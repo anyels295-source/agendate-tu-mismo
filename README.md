@@ -134,3 +134,6 @@ docs/
 scripts/
   hash-password.ts          utilidad para generar ADMIN_PASSWORD_HASH
 ```
+
+
+<!-- trigger redeploy -->
