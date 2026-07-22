@@ -1,0 +1,44 @@
+{
+  "name": "agendate-tu-mismo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@prisma/client": "5.19.1",
+    "googleapis": "144.0.0",
+    "@azure/msal-node": "2.13.1",
+    "luxon": "3.5.0",
+    "jose": "5.9.3",
+    "zod": "3.23.8",
+    "bcryptjs": "2.4.3"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4",
+    "@types/react": "18.3.5",
+    "@types/react-dom": "18.3.0",
+    "@types/node": "20.14.15",
+    "@types/luxon": "3.4.2",
+    "@types/bcryptjs": "2.4.6",
+    "tailwindcss": "3.4.10",
+    "postcss": "8.4.41",
+    "autoprefixer": "10.4.20",
+    "prisma": "5.19.1",
+    "tsx": "4.19.1"
+  },
+  "allowScripts": {
+    "esbuild@0.23.1": true,
+    "prisma@5.19.1": true,
+    "@prisma/client@5.19.1": true,
+    "@prisma/engines@5.19.1": true
+  }
+}

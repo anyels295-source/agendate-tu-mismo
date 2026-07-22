@@ -1,0 +1,106 @@
+// Modelo de datos de Agendate Tú Mismo (MVP)
+// Diseñado para arrancar con un único profesional piloto y escalar a multi-tenant
+// sin romper el esquema (professionalId ya está presente en todo lo relevante).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model Professional {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  name              String
+  email             String   @unique
+  phone             String?
+  timezone          String   @default("America/Montevideo")
+  serviceName       String   @default("Consulta")
+  durationMinutes   Int      @default(30)
+  bufferMinutes     Int      @default(0)
+  workingHours      Json
+  minNoticeHours    Int      @default(2)
+  maxAdvanceDays    Int      @default(30)
+  bookingCalendarId String?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  calendarConnections CalendarConnection[]
+  bookings            Booking[]
+}
+
+model CalendarConnection {
+  id                 String           @id @default(cuid())
+  professionalId     String
+  professional       Professional     @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  provider           CalendarProvider
+  accountEmail       String
+  externalCalendarId String           @default("primary")
+  accessTokenEnc     String
+  refreshTokenEnc    String
+  expiresAt          DateTime
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([professionalId, provider, accountEmail])
+}
+
+model Booking {
+  id               String            @id @default(cuid())
+  professionalId   String
+  professional     Professional      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  clientName       String
+  clientEmail      String?
+  clientPhone      String
+  startTime        DateTime
+  endTime          DateTime
+  status           BookingStatus     @default(PENDING)
+  notes            String?
+  calendarProvider CalendarProvider?
+  externalEventId  String?
+  cancelToken      String            @unique @default(cuid())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  notifications NotificationLog[]
+
+  @@index([professionalId, startTime])
+}
+
+model NotificationLog {
+  id        String              @id @default(cuid())
+  bookingId String
+  booking   Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel
+  status    NotificationStatus
+  error     String?
+  sentAt    DateTime            @default(now())
+}
