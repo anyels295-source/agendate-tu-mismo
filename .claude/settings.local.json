@@ -13,7 +13,14 @@
       "Bash(git remote *)",
       "Bash(git checkout *)",
       "Bash(git add *)",
-      "Bash(rm -f \".git/index.lock\")"
+      "Bash(rm -f \".git/index.lock\")",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(tasklist)",
+      "Bash(taskkill //F //PID 27392)",
+      "Bash(taskkill //F //PID 27520)",
+      "Bash(ssh-keygen -t rsa -b 4096 -C \"iyaris-azuredevops\" -f ~/.ssh/id_rsa_azuredevops -N \"\")",
+      "Read(//c/Users/Anyel/.ssh/**)"
     ]
   }
 }
