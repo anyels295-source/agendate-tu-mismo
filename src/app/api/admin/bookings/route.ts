@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/auth";
+import { getActiveProfessional } from "@/lib/professional";
 import { createBooking, BookingConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
 import { checkDateRange } from "@/lib/validation";
 
+/** Alta manual de un turno desde el panel (botón "+ Nueva reserva" en Reservas). */
 const bookingSchema = z
   .object({
-    slug: z.string().min(1),
     serviceId: z.string().min(1).optional(),
     clientName: z.string().min(2, "El nombre es obligatorio."),
     clientEmail: z.string().email().optional().or(z.literal("")),
@@ -19,16 +20,18 @@ const bookingSchema = z
   .superRefine(checkDateRange);
 
 export async function POST(req: NextRequest) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+
   const json = await req.json().catch(() => null);
   const parsed = bookingSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
   }
 
-  const professional = await prisma.professional.findUnique({ where: { slug: parsed.data.slug } });
-  if (!professional) {
-    return NextResponse.json({ error: "Profesional no encontrado." }, { status: 404 });
-  }
+  const professional = await getActiveProfessional();
 
   try {
     const booking = await createBooking({
@@ -50,7 +53,8 @@ export async function POST(req: NextRequest) {
     if (err instanceof AppError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
-    console.error("Error creando reserva:", err);
+    // Error inesperado (Prisma, red, etc.): nunca reenviar el mensaje real al cliente.
+    console.error("Error creando reserva manual:", err);
     return NextResponse.json({ error: "No se pudo crear la reserva. Intentá nuevamente." }, { status: 500 });
   }
 }

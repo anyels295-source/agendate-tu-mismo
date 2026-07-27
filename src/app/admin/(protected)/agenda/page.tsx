@@ -1,0 +1,128 @@
+import Link from "next/link";
+import { DateTime } from "luxon";
+import { prisma } from "@/lib/prisma";
+import { getActiveProfessional } from "@/lib/professional";
+import type { WorkingHours } from "@/lib/types";
+import AgendaWeekGrid, { type AgendaEvent } from "@/components/admin/AgendaWeekGrid";
+import { IconChevronLeft, IconChevronRight } from "@/components/admin/icons";
+
+export const dynamic = "force-dynamic";
+
+const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const WEEKDAY_KEYS: (keyof WorkingHours)[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "Pendiente",
+  CONFIRMED: "Confirmada",
+  COMPLETED: "Completada",
+  NO_SHOW: "Ausente",
+};
+
+export default async function AgendaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ offset?: string }>;
+}) {
+  const { offset: offsetParam } = await searchParams;
+  const offset = Number(offsetParam ?? "0") || 0;
+
+  const professional = await getActiveProfessional();
+  const tz = professional.timezone;
+  const now = DateTime.now().setZone(tz);
+  const startOfWeek = now.startOf("week").plus({ weeks: offset });
+  const endOfWeek = startOfWeek.plus({ days: 7 });
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      professionalId: professional.id,
+      status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "NO_SHOW"] },
+      startTime: { gte: startOfWeek.toJSDate(), lt: endOfWeek.toJSDate() },
+    },
+    include: { service: true },
+    orderBy: { startTime: "asc" },
+  });
+
+  const workingHours = professional.workingHours as unknown as WorkingHours;
+  let gridStartHour = 8;
+  let gridEndHour = 20;
+  for (const key of WEEKDAY_KEYS) {
+    for (const range of workingHours[key] ?? []) {
+      const [sh] = range.start.split(":").map(Number);
+      const [eh, em] = range.end.split(":").map(Number);
+      gridStartHour = Math.min(gridStartHour, sh);
+      gridEndHour = Math.max(gridEndHour, em > 0 ? eh + 1 : eh);
+    }
+  }
+  const ROW = 56;
+
+  const days = Array.from({ length: 7 }).map((_, i) => {
+    const day = startOfWeek.plus({ days: i });
+    const dayBookings = bookings.filter((b) => DateTime.fromJSDate(b.startTime).setZone(tz).hasSame(day, "day"));
+
+    const events: AgendaEvent[] = dayBookings.map((b) => {
+      const start = DateTime.fromJSDate(b.startTime).setZone(tz);
+      const end = DateTime.fromJSDate(b.endTime).setZone(tz);
+      const startMinutesFromGrid = (start.hour - gridStartHour) * 60 + start.minute;
+      const durationMinutes = end.diff(start, "minutes").minutes;
+      return {
+        id: b.id,
+        clientName: b.clientName,
+        phone: b.clientPhone,
+        serviceName: b.service?.name ?? professional.serviceName,
+        status: b.status,
+        statusLabel: STATUS_LABEL[b.status] ?? b.status,
+        timeLabel: start.toFormat("HH:mm"),
+        endTimeLabel: end.toFormat("HH:mm"),
+        dateLabel: start.setLocale("es").toFormat("cccc d 'de' LLLL"),
+        top: Math.max(startMinutesFromGrid, 0) * (ROW / 60),
+        height: Math.max((durationMinutes * ROW) / 60 - 4, 24),
+      };
+    });
+
+    return {
+      label: DAY_LABELS[i],
+      dateNum: day.day,
+      isToday: day.hasSame(now, "day"),
+      events,
+    };
+  });
+
+  const timeLabels = Array.from({ length: gridEndHour - gridStartHour + 1 }).map((_, i) =>
+    `${String(gridStartHour + i).padStart(2, "0")}:00`
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-[1200px] px-4 py-[18px] pb-11 md:px-9 md:py-[30px]">
+      <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[#16233d]">Agenda</h1>
+          <div className="mt-[3px] text-[13.5px] font-semibold text-[#6b7280]">
+            {startOfWeek.toFormat("d LLL")} – {endOfWeek.minus({ days: 1 }).toFormat("d LLL yyyy")}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/agenda?offset=${offset - 1}`}
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d6deeb] bg-white text-[#4a5878]"
+          >
+            <IconChevronLeft />
+          </Link>
+          <Link
+            href="/admin/agenda"
+            className="rounded-[10px] border border-[#d6deeb] bg-white px-[15px] py-2 text-[13px] font-semibold text-[#2a3856]"
+          >
+            Hoy
+          </Link>
+          <Link
+            href={`/admin/agenda?offset=${offset + 1}`}
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d6deeb] bg-white text-[#4a5878]"
+          >
+            <IconChevronRight />
+          </Link>
+        </div>
+      </div>
+
+      <AgendaWeekGrid days={days} timeLabels={timeLabels} rowHeight={ROW} professionalSlug={professional.slug} />
+    </div>
+  );
+}

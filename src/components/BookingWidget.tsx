@@ -8,13 +8,20 @@ type AvailabilityResponse = {
   professional: { name: string; serviceName: string; durationMinutes: number; timezone: string };
   slots: FreeSlot[];
 };
+type ServiceOption = { id: string; name: string; durationMinutes: number; price: string | null };
+
+function initialsOf(name: string): string {
+  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
 
 /**
  * Widget de reserva pensado para usuarios poco tecnológicos (hallazgo clave
  * de la investigación de mercado): pocos pasos, botones grandes, sin
  * necesidad de crear cuenta ni de entender zonas horarias o husos.
  */
-export default function BookingWidget({ slug }: { slug: string }) {
+export default function BookingWidget({ slug, professionalName }: { slug: string; professionalName: string }) {
+  const [services, setServices] = useState<ServiceOption[] | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [data, setData] = useState<AvailabilityResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,9 +33,22 @@ export default function BookingWidget({ slug }: { slug: string }) {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
+    fetch(`/api/services?slug=${encodeURIComponent(slug)}`)
+      .then((res) => res.json())
+      .then((json) => {
+        const list: ServiceOption[] = json.services ?? [];
+        setServices(list);
+        if (list.length > 0) setSelectedServiceId(list[0].id);
+      })
+      .catch(() => setServices([]));
+  }, [slug]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/availability?slug=${encodeURIComponent(slug)}&days=10`)
+    const query = new URLSearchParams({ slug, days: "10" });
+    if (selectedServiceId) query.set("serviceId", selectedServiceId);
+    fetch(`/api/availability?${query.toString()}`)
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "No se pudo cargar la disponibilidad.");
@@ -38,13 +58,15 @@ export default function BookingWidget({ slug }: { slug: string }) {
         if (cancelled) return;
         setData(json);
         setError(null);
+        setSelectedDay(null);
+        setSelectedSlot(null);
       })
       .catch((err) => !cancelled && setError(err.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, selectedServiceId]);
 
   const slotsByDay = useMemo(() => {
     if (!data) return new Map<string, FreeSlot[]>();
@@ -57,7 +79,7 @@ export default function BookingWidget({ slug }: { slug: string }) {
     return map;
   }, [data]);
 
-  const days = useMemo(() => Array.from(slotsByDay.keys()).sort(), [slotsByDay]);
+  const days = useMemo(() => Array.from(slotsByDay.keys()).sort().slice(0, 6), [slotsByDay]);
 
   useEffect(() => {
     if (!selectedDay && days.length > 0) setSelectedDay(days[0]);
@@ -83,6 +105,7 @@ export default function BookingWidget({ slug }: { slug: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug,
+          serviceId: selectedServiceId ?? undefined,
           clientName: form.clientName,
           clientPhone: form.clientPhone,
           clientEmail: form.clientEmail || undefined,
@@ -105,147 +128,218 @@ export default function BookingWidget({ slug }: { slug: string }) {
     }
   }
 
-  if (loading) {
-    return <p className="text-center text-gray-500">Cargando horarios disponibles…</p>;
-  }
+  const curService = services?.find((s) => s.id === selectedServiceId);
+  const serviceName = curService?.name ?? data?.professional.serviceName ?? "Servicio";
+  const durationMinutes = curService?.durationMinutes ?? data?.professional.durationMinutes ?? 30;
 
-  if (error) {
-    return (
-      <div className="rounded-lg bg-red-50 p-4 text-center text-red-700">
-        <p className="font-medium">No pudimos cargar la disponibilidad.</p>
-        <p className="text-sm">{error}</p>
-      </div>
-    );
-  }
-
-  if (!data || days.length === 0) {
-    return (
-      <div className="rounded-lg bg-amber-50 p-4 text-center text-amber-800">
-        No hay horarios disponibles en los próximos días. Volvé a intentar más tarde.
-      </div>
-    );
-  }
-
-  if (step === "confirmado") {
-    const dt = DateTime.fromISO(selectedSlot!.startISO).setZone(data.professional.timezone).setLocale("es");
-    return (
-      <div className="rounded-xl bg-green-50 p-6 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-2xl text-white">✓</div>
-        <h2 className="text-xl font-semibold text-green-800">¡Turno confirmado!</h2>
-        <p className="mt-1 text-green-700">
-          {dt.toFormat("cccc d 'de' LLLL")} a las {dt.toFormat("HH:mm")}
-        </p>
-        <p className="mt-3 text-sm text-green-700">
-          Te enviamos la confirmación por WhatsApp{form.clientEmail ? " y por email" : ""}.
-        </p>
-      </div>
-    );
-  }
-
-  if (step === "datos" && selectedSlot) {
-    const dt = DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).setLocale("es");
-    return (
-      <div>
-        <button onClick={() => setStep("elegir")} className="mb-4 text-sm text-brand-600 hover:underline">
-          ← Elegir otro horario
-        </button>
-        <div className="mb-5 rounded-lg bg-brand-50 p-3 text-center text-brand-700">
-          <p className="font-medium">
-            {dt.toFormat("cccc d 'de' LLLL")} · {dt.toFormat("HH:mm")}
-          </p>
-          <p className="text-sm">{data.professional.serviceName} con {data.professional.name}</p>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Nombre y apellido *</label>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-brand-500 focus:outline-none"
-              value={form.clientName}
-              onChange={(e) => setForm({ ...form, clientName: e.target.value })}
-              placeholder="Tu nombre"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">WhatsApp *</label>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-brand-500 focus:outline-none"
-              value={form.clientPhone}
-              onChange={(e) => setForm({ ...form, clientPhone: e.target.value })}
-              placeholder="+598 9x xxx xxx"
-            />
-            <p className="mt-1 text-xs text-gray-500">Ahí te confirmamos el turno.</p>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Email (opcional)</label>
-            <input
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-brand-500 focus:outline-none"
-              value={form.clientEmail}
-              onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
-              placeholder="tu@email.com"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Comentario (opcional)</label>
-            <textarea
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-brand-500 focus:outline-none"
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            />
-          </div>
-
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full rounded-lg bg-brand-600 py-3 text-base font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
-          >
-            {submitting ? "Confirmando…" : "Confirmar turno"}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const stepOrder = ["elegir", "datos", "confirmado"];
+  const curIdx = stepOrder.indexOf(step);
+  const stepLabels: [string, string][] = [
+    ["elegir", "Horario"],
+    ["datos", "Tus datos"],
+    ["confirmado", "Listo"],
+  ];
 
   return (
-    <div>
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {days.map((day) => {
-          const dt = DateTime.fromISO(day).setLocale("es");
-          const active = day === selectedDay;
-          return (
-            <button
-              key={day}
-              onClick={() => setSelectedDay(day)}
-              className={`shrink-0 rounded-lg border px-3 py-2 text-sm ${
-                active ? "border-brand-600 bg-brand-600 text-white" : "border-gray-300 text-gray-700"
-              }`}
-            >
-              <div className="font-medium">{dt.toFormat("ccc")}</div>
-              <div>{dt.toFormat("d LLL")}</div>
-            </button>
-          );
-        })}
+    <div className="w-full max-w-[430px]">
+      <div className="mb-4 flex items-center justify-center gap-[7px] text-[12.5px] font-semibold text-[#6b7280]">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+        Reservá tu turno
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        {(slotsByDay.get(selectedDay ?? days[0]) ?? []).map((slot) => {
-          const dt = DateTime.fromISO(slot.startISO).setZone(data.professional.timezone);
-          return (
-            <button
-              key={slot.startISO}
-              onClick={() => {
-                setSelectedSlot(slot);
-                setStep("datos");
-              }}
-              className="rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 transition hover:border-brand-500 hover:bg-brand-50"
-            >
-              {dt.toFormat("HH:mm")}
-            </button>
-          );
-        })}
+      <div className="overflow-hidden rounded-[24px] border border-[#eaeef5] bg-white shadow-[0_20px_50px_-20px_rgba(31,56,100,0.35)]">
+        <div
+          className="p-[26px_26px_20px] text-center text-white"
+          style={{ background: "linear-gradient(160deg,#1f3864,#2e74b5)" }}
+        >
+          <div className="mx-auto mb-3 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-white/[.18] text-[22px] font-extrabold">
+            {initialsOf(professionalName)}
+          </div>
+          <div className="text-[20px] font-extrabold tracking-tight">{professionalName}</div>
+          <div className="mt-0.5 text-[13.5px] opacity-85">
+            {serviceName} · {durationMinutes} min
+          </div>
+        </div>
+
+        <div className="p-[22px_22px_26px]">
+          <div className="mb-5 flex items-center gap-1.5">
+            {stepLabels.map(([key, label], i) => (
+              <div key={key} className="flex flex-1 flex-col items-center gap-1.5">
+                <div className="h-1 w-full rounded-[3px]" style={{ background: i <= curIdx ? "#215a8f" : "#dfe6f0" }} />
+                <span className="text-[10.5px] font-bold" style={{ color: i <= curIdx ? "#1f3864" : "#6b7280" }}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {loading && step === "elegir" && <p className="text-center text-[#6b7280]">Cargando horarios disponibles…</p>}
+
+          {error && (
+            <div className="rounded-lg bg-[#fbe7e7] p-4 text-center text-[#b6382f]">
+              <p className="font-semibold">No pudimos cargar la disponibilidad.</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && data && days.length === 0 && step === "elegir" && (
+            <div className="rounded-lg bg-[#fdf1dc] p-4 text-center text-[#8a5d0b]">
+              No hay horarios disponibles en los próximos días. Volvé a intentar más tarde.
+            </div>
+          )}
+
+          {!loading && !error && data && days.length > 0 && step === "elegir" && (
+            <>
+              {services && services.length > 1 && (
+                <>
+                  <div className="mb-[11px] text-[13.5px] font-bold text-[#22314f]">Elegí el servicio</div>
+                  <div className="mb-[18px] flex flex-wrap gap-2">
+                    {services.map((sv) => {
+                      const active = sv.id === selectedServiceId;
+                      return (
+                        <button
+                          key={sv.id}
+                          onClick={() => setSelectedServiceId(sv.id)}
+                          className="rounded-[11px] border-[1.5px] px-[13px] py-[9px] text-[13px] font-bold"
+                          style={{ borderColor: active ? "#215a8f" : "#e0e6f0", background: active ? "#eef4fb" : "#fff", color: active ? "#1f3864" : "#5a6884" }}
+                        >
+                          {sv.name} · {sv.durationMinutes}m
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              <div className="mb-[11px] text-[13.5px] font-bold text-[#22314f]">Elegí el día</div>
+              <div className="mb-[18px] flex gap-2 overflow-x-auto pb-1.5">
+                {days.map((day) => {
+                  const dt = DateTime.fromISO(day).setLocale("es");
+                  const active = day === selectedDay;
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedDay(day)}
+                      className="shrink-0 rounded-[13px] border-[1.5px] py-2.5 text-center"
+                      style={{ width: 62, borderColor: active ? "#215a8f" : "#e0e6f0", background: active ? "#215a8f" : "#fff", color: active ? "#fff" : "#2a3856" }}
+                    >
+                      <div className="text-[11px] font-bold opacity-75">{dt.toFormat("ccc")}</div>
+                      <div className="text-[17px] font-extrabold leading-tight">{dt.toFormat("d")}</div>
+                      <div className="text-[10px] font-semibold opacity-75">{dt.toFormat("LLL")}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mb-[11px] text-[13.5px] font-bold text-[#22314f]">Horarios disponibles</div>
+              <div className="grid grid-cols-3 gap-[9px]">
+                {(slotsByDay.get(selectedDay ?? days[0]) ?? []).map((slot) => {
+                  const dt = DateTime.fromISO(slot.startISO).setZone(data.professional.timezone);
+                  return (
+                    <button
+                      key={slot.startISO}
+                      onClick={() => {
+                        setSelectedSlot(slot);
+                        setStep("datos");
+                      }}
+                      className="rounded-[11px] border-[1.5px] border-[#e0e6f0] bg-white py-[11px] text-[14px] font-bold text-[#2a3856] hover:border-[#2e74b5] hover:bg-[#eef4fb] hover:text-[#1f3864]"
+                    >
+                      {dt.toFormat("HH:mm")}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {step === "datos" && selectedSlot && data && (
+            <div>
+              <button onClick={() => setStep("elegir")} className="mb-3.5 text-[13px] font-semibold text-[#215a8f]">
+                ← Elegir otro horario
+              </button>
+              <div className="mb-[18px] rounded-[13px] bg-[#eef4fb] p-3.5 text-center">
+                <div className="text-[14.5px] font-extrabold text-[#1f3864]">
+                  {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).setLocale("es").toFormat("cccc d 'de' LLLL")} ·{" "}
+                  {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).toFormat("HH:mm")}
+                </div>
+                <div className="mt-0.5 text-[12.5px] text-[#4a5878]">
+                  {serviceName} con {professionalName}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3.5">
+                <div>
+                  <label htmlFor="bw-clientName" className="mb-1.5 block text-[12.5px] font-semibold text-[#6b7890]">Nombre y apellido *</label>
+                  <input
+                    id="bw-clientName"
+                    className="w-full rounded-[11px] border-[1.5px] border-[#e0e6f0] px-[13px] py-[11px] text-[15px]"
+                    value={form.clientName}
+                    onChange={(e) => setForm({ ...form, clientName: e.target.value })}
+                    placeholder="Tu nombre"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="bw-clientPhone" className="mb-1.5 block text-[12.5px] font-semibold text-[#6b7890]">WhatsApp *</label>
+                  <input
+                    id="bw-clientPhone"
+                    className="w-full rounded-[11px] border-[1.5px] border-[#e0e6f0] px-[13px] py-[11px] text-[15px]"
+                    value={form.clientPhone}
+                    onChange={(e) => setForm({ ...form, clientPhone: e.target.value })}
+                    placeholder="+598 9x xxx xxx"
+                  />
+                  <p className="mt-1 text-[11.5px] text-[#6b7280]">Ahí te confirmamos el turno.</p>
+                </div>
+                <div>
+                  <label htmlFor="bw-clientEmail" className="mb-1.5 block text-[12.5px] font-semibold text-[#6b7890]">Email (opcional)</label>
+                  <input
+                    id="bw-clientEmail"
+                    className="w-full rounded-[11px] border-[1.5px] border-[#e0e6f0] px-[13px] py-[11px] text-[15px]"
+                    value={form.clientEmail}
+                    onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
+                    placeholder="tu@email.com"
+                  />
+                </div>
+
+                {formError && <p className="text-[13px] text-red-600">{formError}</p>}
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="mt-1 w-full rounded-[12px] bg-[#215a8f] py-3.5 text-[15px] font-bold text-white disabled:opacity-60"
+                >
+                  {submitting ? "Confirmando…" : "Confirmar turno"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === "confirmado" && selectedSlot && data && (
+            <div className="p-[14px_6px_8px] text-center">
+              <div className="mx-auto mb-4 flex h-[66px] w-[66px] items-center justify-center rounded-full bg-[#e4f6ec]">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#22a05a" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+              </div>
+              <div className="text-[20px] font-extrabold text-[#1a7d45]">¡Turno confirmado!</div>
+              <div className="mt-1.5 text-[14.5px] font-semibold text-[#3a8560]">
+                {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).setLocale("es").toFormat("cccc d 'de' LLLL")} a las{" "}
+                {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).toFormat("HH:mm")}
+              </div>
+              <div className="mt-3.5 text-[13px] leading-relaxed text-[#6b7890]">
+                Te enviamos la confirmación por WhatsApp{form.clientEmail ? " y por email" : ""}.
+                <br />
+                Podés cancelar desde ese mismo mensaje.
+              </div>
+              <button
+                onClick={() => {
+                  setStep("elegir");
+                  setSelectedSlot(null);
+                }}
+                className="mt-5 rounded-[11px] border border-[#d6deeb] bg-white px-[18px] py-2.5 text-[13.5px] font-semibold text-[#2a3856]"
+              >
+                Reservar otro turno
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -14,17 +14,21 @@ más adelante para integrarse con Agente AgendaFácil.
 
 ## Qué incluye este MVP
 
-- Página pública de reserva (`/reservar/{slug}`): elegir día, elegir horario, completar nombre/WhatsApp, confirmar.
+- Página pública de reserva (`/reservar/{slug}`): elegir servicio (si hay más de uno), elegir día, elegir horario, completar nombre/WhatsApp, confirmar.
 - Disponibilidad calculada en tiempo real, fusionando Google Calendar **y** Outlook a la vez.
 - Creación automática del evento en el calendario que el profesional elija como "calendario de reservas".
-- Confirmación por WhatsApp (plantilla aprobada por Meta) con respaldo por email.
+- Confirmación por WhatsApp (plantilla aprobada por Meta), con respaldo por email y, si se configura, aviso a un canal de Microsoft Teams.
 - Cancelación por link, sin necesidad de crear cuenta.
-- Panel simple (`/admin`) para conectar calendarios, configurar horario de atención/duración, y ver reservas + un mini-reporte (turnos por semana/mes, cancelaciones).
+- Reprogramación de turnos desde el panel (Reservas o Agenda → Reprogramar), moviendo el evento en el calendario real y avisando al cliente.
+- Gestión de Servicios (nombre, duración y precio informativo) desde Configuración; el cliente elige entre ellos en la página pública.
+- Panel (`/admin`) con: Panel (métricas y próximos turnos), Agenda semanal, Reservas (buscador, filtros y acciones), Calendarios, y Configuración (datos básicos, horario, servicios, notificaciones).
+- Selector de profesional en el panel: una misma cuenta admin puede gestionar varios profesionales/integrantes del equipo, cada uno con su propio calendario, servicios y página de reserva.
 
 ## Qué NO incluye todavía (a propósito, para no demorar el piloto)
 
-- Múltiples profesionales con alta propia (el MVP asume 1 profesional piloto; el modelo de datos ya soporta N).
-- Reprogramación de turnos (por ahora: cancelar y reservar de nuevo).
+- Alta propia de profesionales por fuera del panel admin (se suman vía `POST /api/admin/professionals`, sin login propio por profesional todavía).
+- Canal de Telegram para notificaciones (queda como "próximamente" en Configuración → Notificaciones).
+- Plantilla de WhatsApp aprobada específicamente para cancelaciones (se reutiliza la de confirmación para reprogramaciones; las cancelaciones solo avisan por email/Teams).
 - Reconfirmación o cancelación respondiendo al WhatsApp (queda un webhook receptor listo como punto de extensión en `src/app/api/webhooks/whatsapp/route.ts`).
 - Múltiples tramos horarios por día en la UI de configuración (el modelo de datos sí lo soporta; ver nota en la página de Configuración).
 
@@ -63,10 +67,14 @@ npx tsx scripts/hash-password.ts "la-contraseña-que-quieras"
 ## 3. Base de datos
 
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate dev
 ```
 
-Esto crea las tablas en la base de PostgreSQL de `DATABASE_URL`.
+Esto crea las tablas en la base de PostgreSQL de `DATABASE_URL` y regenera el
+cliente de Prisma. Si ya tenías el proyecto corriendo desde antes de sumar
+Servicios/Teams/multi-profesional, alcanza con volver a correr este mismo
+comando: aplica la migración nueva (`add_services_teams_multiprofessional`)
+sin tocar los datos existentes.
 
 ## 4. Credenciales de calendario
 

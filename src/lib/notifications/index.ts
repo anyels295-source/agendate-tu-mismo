@@ -1,44 +1,60 @@
 import { prisma } from "@/lib/prisma";
 import { sendBookingConfirmationWhatsApp } from "./whatsapp";
-import { sendBookingConfirmationEmail } from "./email";
+import { sendBookingConfirmationEmail, sendBookingRescheduledEmail, sendBookingCancelledEmail } from "./email";
+import { sendTeamsMessage } from "./teams";
 import type { Booking, Professional } from "@prisma/client";
 import { DateTime } from "luxon";
 
 /**
- * Punto único desde el que se disparan las confirmaciones. Intenta WhatsApp
- * primero (canal principal validado en el mercado uruguayo); si falla o no
- * hay teléfono, cae a email. Cada intento queda registrado en
- * NotificationLog para trazabilidad ante el cliente y para depurar el piloto.
+ * Punto único desde el que se disparan los avisos de turnos (confirmación,
+ * reprogramación, cancelación). Respeta los canales que el profesional tiene
+ * habilitados (notifyWhatsapp / notifyEmail / notifyTeams en Configuración →
+ * Notificaciones). Cada intento queda registrado en NotificationLog para
+ * trazabilidad ante el cliente y para depurar el piloto.
+ *
+ * WhatsApp exige plantillas pre-aprobadas por Meta para abrir conversación
+ * (ver docs/whatsapp-template.md). Hoy solo existe la plantilla de
+ * confirmación, así que se reutiliza también para reprogramaciones (el
+ * contenido —fecha y hora del turno— sigue siendo válido); para
+ * cancelaciones no hay plantilla aprobada todavía, así que ese envío queda
+ * registrado como SKIPPED en vez de enviarse.
  */
-export async function notifyBookingConfirmed(booking: Booking, professional: Professional) {
-  const dt = DateTime.fromJSDate(booking.startTime).setZone(professional.timezone).setLocale("es");
-  const dateLabel = dt.toFormat("cccc d 'de' LLLL");
-  const timeLabel = dt.toFormat("HH:mm");
-  const cancelUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/cancelar/${booking.cancelToken}`;
 
-  const whatsappResult = await sendBookingConfirmationWhatsApp({
-    toPhone: booking.clientPhone,
-    clientName: booking.clientName,
-    professionalName: professional.name,
-    serviceName: professional.serviceName,
-    dateLabel,
-    timeLabel,
-    cancelUrl,
-  });
+function buildLabels(startTime: Date, timezone: string) {
+  const dt = DateTime.fromJSDate(startTime).setZone(timezone).setLocale("es");
+  return { dateLabel: dt.toFormat("cccc d 'de' LLLL"), timeLabel: dt.toFormat("HH:mm") };
+}
 
+async function logNotification(bookingId: string, channel: "WHATSAPP" | "EMAIL" | "TEAMS", result: { status: "SENT" | "FAILED" | "SKIPPED"; error?: string; reason?: string }) {
   await prisma.notificationLog.create({
     data: {
-      bookingId: booking.id,
-      channel: "WHATSAPP",
-      status: whatsappResult.status,
-      error: whatsappResult.status === "FAILED" ? whatsappResult.error : whatsappResult.status === "SKIPPED" ? whatsappResult.reason : null,
+      bookingId,
+      channel,
+      status: result.status,
+      error: result.status === "FAILED" ? result.error : result.status === "SKIPPED" ? result.reason : null,
     },
   });
+}
 
-  // Email siempre se intenta también como respaldo si el cliente dejó email,
-  // independientemente de si WhatsApp funcionó (redundancia deliberada en el piloto).
-  if (booking.clientEmail) {
-    const emailResult = await sendBookingConfirmationEmail({
+export async function notifyBookingConfirmed(booking: Booking, professional: Professional) {
+  const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
+  const cancelUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/cancelar/${booking.cancelToken}`;
+
+  if (professional.notifyWhatsapp) {
+    const result = await sendBookingConfirmationWhatsApp({
+      toPhone: booking.clientPhone,
+      clientName: booking.clientName,
+      professionalName: professional.name,
+      serviceName: professional.serviceName,
+      dateLabel,
+      timeLabel,
+      cancelUrl,
+    });
+    await logNotification(booking.id, "WHATSAPP", result);
+  }
+
+  if (professional.notifyEmail && booking.clientEmail) {
+    const result = await sendBookingConfirmationEmail({
       toEmail: booking.clientEmail,
       clientName: booking.clientName,
       professionalName: professional.name,
@@ -47,14 +63,87 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
       timeLabel,
       cancelUrl,
     });
+    await logNotification(booking.id, "EMAIL", result);
+  }
 
-    await prisma.notificationLog.create({
-      data: {
-        bookingId: booking.id,
-        channel: "EMAIL",
-        status: emailResult.status,
-        error: emailResult.status === "FAILED" ? emailResult.error : emailResult.status === "SKIPPED" ? emailResult.reason : null,
-      },
+  if (professional.notifyTeams) {
+    const result = await sendTeamsMessage({
+      webhookUrl: professional.teamsWebhookUrl,
+      title: `Nuevo turno: ${booking.clientName}`,
+      text: `${professional.serviceName} · ${dateLabel} a las ${timeLabel}. Tel: ${booking.clientPhone}`,
     });
+    await logNotification(booking.id, "TEAMS", result);
+  }
+}
+
+export async function notifyBookingRescheduled(booking: Booking, professional: Professional) {
+  const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
+  const cancelUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/cancelar/${booking.cancelToken}`;
+
+  if (professional.notifyWhatsapp) {
+    const result = await sendBookingConfirmationWhatsApp({
+      toPhone: booking.clientPhone,
+      clientName: booking.clientName,
+      professionalName: professional.name,
+      serviceName: professional.serviceName,
+      dateLabel,
+      timeLabel,
+      cancelUrl,
+    });
+    await logNotification(booking.id, "WHATSAPP", result);
+  }
+
+  if (professional.notifyEmail && booking.clientEmail) {
+    const result = await sendBookingRescheduledEmail({
+      toEmail: booking.clientEmail,
+      clientName: booking.clientName,
+      professionalName: professional.name,
+      serviceName: professional.serviceName,
+      dateLabel,
+      timeLabel,
+      cancelUrl,
+    });
+    await logNotification(booking.id, "EMAIL", result);
+  }
+
+  if (professional.notifyTeams) {
+    const result = await sendTeamsMessage({
+      webhookUrl: professional.teamsWebhookUrl,
+      title: `Turno reprogramado: ${booking.clientName}`,
+      text: `${professional.serviceName} · nueva fecha ${dateLabel} a las ${timeLabel}.`,
+    });
+    await logNotification(booking.id, "TEAMS", result);
+  }
+}
+
+export async function notifyBookingCancelled(booking: Booking, professional: Professional) {
+  const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
+
+  if (professional.notifyWhatsapp) {
+    await logNotification(booking.id, "WHATSAPP", {
+      status: "SKIPPED",
+      reason: "No hay plantilla de WhatsApp aprobada para cancelaciones todavía (ver docs/whatsapp-template.md).",
+    });
+  }
+
+  if (professional.notifyEmail && booking.clientEmail) {
+    const result = await sendBookingCancelledEmail({
+      toEmail: booking.clientEmail,
+      clientName: booking.clientName,
+      professionalName: professional.name,
+      serviceName: professional.serviceName,
+      dateLabel,
+      timeLabel,
+    });
+    await logNotification(booking.id, "EMAIL", result);
+  }
+
+  if (professional.notifyTeams) {
+    const result = await sendTeamsMessage({
+      webhookUrl: professional.teamsWebhookUrl,
+      title: `Turno cancelado: ${booking.clientName}`,
+      text: `${professional.serviceName} · era el ${dateLabel} a las ${timeLabel}.`,
+    });
+    await logNotification(booking.id, "TEAMS", result);
   }
 }

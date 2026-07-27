@@ -27,6 +27,7 @@ enum BookingStatus {
 enum NotificationChannel {
   WHATSAPP
   EMAIL
+  TEAMS
 }
 
 enum NotificationStatus {
@@ -37,6 +38,9 @@ enum NotificationStatus {
 
 model Professional {
   id                String   @id @default(cuid())
+  // Email del admin dueño de esta cuenta (puede tener varios profesionales/
+  // integrantes del equipo, todos gestionados con el mismo login de /admin).
+  ownerEmail        String   @default("")
   slug              String   @unique
   name              String
   email             String   @unique
@@ -50,11 +54,38 @@ model Professional {
   maxAdvanceDays    Int      @default(30)
   bookingCalendarId String?
   active            Boolean  @default(true)
+  // Canales de notificación habilitados para los turnos de este profesional.
+  notifyWhatsapp    Boolean  @default(true)
+  notifyEmail       Boolean  @default(true)
+  notifyTeams       Boolean  @default(false)
+  teamsWebhookUrl   String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   calendarConnections CalendarConnection[]
   bookings            Booking[]
+  services            Service[]
+
+  @@index([ownerEmail])
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  professionalId  String
+  professional    Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  name            String
+  durationMinutes Int      @default(30)
+  // Precio como texto libre ("$650", "US$ 20", etc.) para no atar el MVP a
+  // una moneda o formato particular; es solo informativo, no afecta el cobro.
+  price           String?
+  active          Boolean  @default(true)
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@index([professionalId])
 }
 
 model CalendarConnection {
@@ -77,6 +108,8 @@ model Booking {
   id               String            @id @default(cuid())
   professionalId   String
   professional     Professional      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  serviceId        String?
+  service          Service?          @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   clientName       String
   clientEmail      String?
   clientPhone      String

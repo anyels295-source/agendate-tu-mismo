@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
   const slug = searchParams.get("slug");
   const fromParam = searchParams.get("from"); // YYYY-MM-DD, opcional
   const daysParam = Number(searchParams.get("days") ?? "7");
+  const serviceId = searchParams.get("serviceId");
 
   if (!slug) {
     return NextResponse.json({ error: "Falta el parámetro 'slug'." }, { status: 400 });
@@ -26,6 +27,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Este profesional todavía no tiene calendarios conectados." }, { status: 409 });
   }
 
+  let serviceName = professional.serviceName;
+  let durationMinutes = professional.durationMinutes;
+  if (serviceId) {
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, professionalId: professional.id, active: true },
+    });
+    if (!service) {
+      return NextResponse.json({ error: "Servicio no encontrado." }, { status: 404 });
+    }
+    serviceName = service.name;
+    durationMinutes = service.durationMinutes;
+  }
+
   const fromDate = fromParam
     ? DateTime.fromISO(fromParam, { zone: professional.timezone })
     : DateTime.now().setZone(professional.timezone);
@@ -35,7 +49,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const slots = await getAvailableSlots({
-      professional,
+      professional: { ...professional, durationMinutes },
       connections: professional.calendarConnections,
       fromDate,
       toDate,
@@ -44,8 +58,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       professional: {
         name: professional.name,
-        serviceName: professional.serviceName,
-        durationMinutes: professional.durationMinutes,
+        serviceName,
+        durationMinutes,
         timezone: professional.timezone,
       },
       slots,

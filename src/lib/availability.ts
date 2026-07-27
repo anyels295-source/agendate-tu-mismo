@@ -139,8 +139,9 @@ export async function isSlotStillFree(params: {
   connections: CalendarConnection[];
   startISO: string;
   endISO: string;
+  excludeBookingId?: string;
 }): Promise<boolean> {
-  const { professional, connections, startISO, endISO } = params;
+  const { professional, connections, startISO, endISO, excludeBookingId } = params;
   const busyBlocksPerConnection = await Promise.all(
     connections.map((c) => fetchBusyBlocksForConnection(c, startISO, endISO))
   );
@@ -151,11 +152,13 @@ export async function isSlotStillFree(params: {
 
   // También chequear reservas PENDING/CONFIRMED ya registradas en nuestra base
   // (cubre la ventana entre que se creó el registro y que el evento aparece
-  // reflejado en el freebusy del proveedor).
+  // reflejado en el freebusy del proveedor). Al reprogramar, se excluye la
+  // propia reserva para no chocar contra su horario anterior.
   const conflicting = await prisma.booking.findFirst({
     where: {
       professionalId: professional.id,
       status: { in: ["PENDING", "CONFIRMED"] },
+      ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
       startTime: { lt: DateTime.fromISO(endISO).toJSDate() },
       endTime: { gt: DateTime.fromISO(startISO).toJSDate() },
     },

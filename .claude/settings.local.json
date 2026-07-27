@@ -9,7 +9,11 @@
       "Read(//tmp/**)",
       "Bash(curl -s -m 12 \"http://localhost:3001/api/availability?slug=demo&date=2026-07-21\" -w \"\\\\nHTTP %{http_code}\\\\n\")",
       "Bash(curl -s -m 8 -o /dev/null -w \"conectividad a google: %{http_code}\\\\n\" https://www.google.com)",
-      "Bash(timeout 8 bash -c 'cat < /dev/null > /dev/tcp/ep-wandering-rice-aw61qj4o-pooler.c-12.us-east-1.aws.neon.tech/5432 && echo \"puerto 5432 ALCANZABLE\" || echo \"puerto 5432 NO alcanzable\"')"
+      "Bash(timeout 8 bash -c 'cat < /dev/null > /dev/tcp/ep-wandering-rice-aw61qj4o-pooler.c-12.us-east-1.aws.neon.tech/5432 && echo \"puerto 5432 ALCANZABLE\" || echo \"puerto 5432 NO alcanzable\"')",
+      "Bash(git remote *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(rm -f \".git/index.lock\")"
     ]
   }
 }
