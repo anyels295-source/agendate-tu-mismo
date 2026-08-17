@@ -9,6 +9,12 @@ export const dynamic = "force-dynamic";
 const WEEKDAY_KEYS: (keyof WorkingHours)[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+const NOTIF_CHANNEL_LABEL: Record<string, string> = {
+  WHATSAPP: "WhatsApp",
+  EMAIL: "Email",
+  TEAMS: "Teams",
+};
+
 function workingMinutesForWeek(workingHours: WorkingHours): number {
   return WEEKDAY_KEYS.reduce((total, key) => {
     const ranges = workingHours[key] ?? [];
@@ -104,6 +110,26 @@ export default async function PanelPage() {
   const bookingUrlDisplay = bookingUrl.replace(/^https?:\/\//, "");
   const connectedCount = await prisma.calendarConnection.count({ where: { professionalId: professional.id } });
 
+  // Los envíos fallidos quedan registrados en NotificationLog pero antes no
+  // se mostraban en ningún lado del panel — el profesional podía no enterarse
+  // nunca de que un cliente no recibió su confirmación/aviso. Se muestran acá
+  // los de los últimos 7 días como alerta, con hasta 5 ejemplos.
+  const failedSince = now.minus({ days: 7 }).toJSDate();
+  const failedNotificationsWhere = {
+    status: "FAILED" as const,
+    sentAt: { gte: failedSince },
+    booking: { professionalId: professional.id },
+  };
+  const [failedNotificationsTotal, failedNotifications] = await Promise.all([
+    prisma.notificationLog.count({ where: failedNotificationsWhere }),
+    prisma.notificationLog.findMany({
+      where: failedNotificationsWhere,
+      include: { booking: { select: { clientName: true } } },
+      orderBy: { sentAt: "desc" },
+      take: 5,
+    }),
+  ]);
+
   return (
     <div className="mx-auto w-full max-w-[1180px] px-4 py-[18px] pb-11 md:px-9 md:py-[30px]">
       <div className="mb-[26px] flex flex-wrap items-end justify-between gap-4">
@@ -116,6 +142,34 @@ export default async function PanelPage() {
           {connectedCount > 0 ? "Calendarios sincronizados" : "Sin calendarios conectados todavía"}
         </div>
       </div>
+
+      {failedNotificationsTotal > 0 && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#f3c6c2] bg-[#fbe7e7] px-5 py-4">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#b6382f] text-[12px] font-extrabold text-white">
+            !
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[13.5px] font-bold text-[#8a241d]">
+              {failedNotificationsTotal === 1
+                ? "1 notificación no se pudo enviar en los últimos 7 días"
+                : `${failedNotificationsTotal} notificaciones no se pudieron enviar en los últimos 7 días`}
+            </div>
+            <div className="mt-1.5 flex flex-col gap-0.5 text-[12.5px] text-[#a5342b]">
+              {failedNotifications.map((n) => (
+                <span key={n.id} className="truncate">
+                  {NOTIF_CHANNEL_LABEL[n.channel] ?? n.channel} · {n.booking.clientName} ·{" "}
+                  {DateTime.fromJSDate(n.sentAt).setZone(tz).setLocale("es").toFormat("d LLL, HH:mm")}
+                </span>
+              ))}
+              {failedNotificationsTotal > failedNotifications.length && (
+                <span className="text-[12px] opacity-80">
+                  y {failedNotificationsTotal - failedNotifications.length} más.
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mb-4 grid grid-cols-2 gap-3.5 md:grid-cols-4">
         {metrics.map((m) => (

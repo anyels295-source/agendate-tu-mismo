@@ -49,6 +49,50 @@ function initialsOf(name: string): string {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 
+type LaidOutEvent = AgendaEvent & { columnIndex: number; columnCount: number };
+
+/**
+ * Distribuye turnos que se superponen en el tiempo en columnas paralelas
+ * (como Google Calendar), en vez de dibujarlos todos con el ancho completo
+ * uno encima del otro. Usa `top`/`height` (ya calculados en minutos→píxeles
+ * por la página que arma `days`) para detectar solapamiento, agrupando en
+ * "clusters" de turnos que se tocan entre sí de forma transitiva.
+ */
+function layoutOverlappingEvents(events: AgendaEvent[]): LaidOutEvent[] {
+  const sorted = [...events].sort((a, b) => a.top - b.top || a.height - b.height);
+
+  type Cluster = { columnEnds: number[]; clusterEnd: number };
+  const clusters: Cluster[] = [];
+  const columnByEventId = new Map<string, number>();
+  const clusterByEventId = new Map<string, Cluster>();
+
+  for (const ev of sorted) {
+    const start = ev.top;
+    const end = ev.top + ev.height;
+    let cluster = clusters[clusters.length - 1];
+    if (!cluster || start >= cluster.clusterEnd) {
+      cluster = { columnEnds: [], clusterEnd: end };
+      clusters.push(cluster);
+    }
+    let columnIndex = cluster.columnEnds.findIndex((colEnd) => colEnd <= start);
+    if (columnIndex === -1) {
+      columnIndex = cluster.columnEnds.length;
+      cluster.columnEnds.push(end);
+    } else {
+      cluster.columnEnds[columnIndex] = end;
+    }
+    cluster.clusterEnd = Math.max(cluster.clusterEnd, end);
+    columnByEventId.set(ev.id, columnIndex);
+    clusterByEventId.set(ev.id, cluster);
+  }
+
+  return sorted.map((ev) => ({
+    ...ev,
+    columnIndex: columnByEventId.get(ev.id) ?? 0,
+    columnCount: clusterByEventId.get(ev.id)?.columnEnds.length ?? 1,
+  }));
+}
+
 export default function AgendaWeekGrid({
   days,
   timeLabels,
@@ -146,16 +190,19 @@ export default function AgendaWeekGrid({
               background: `repeating-linear-gradient(#fff, #fff ${rowHeight - 1}px, #f4f6fa ${rowHeight - 1}px, #f4f6fa ${rowHeight}px)`,
             }}
           >
-            {d.events.map((ev) => {
+            {layoutOverlappingEvents(d.events).map((ev) => {
               const style = STATUS_STYLE[ev.status] ?? STATUS_STYLE.CONFIRMED;
+              const widthPct = 100 / ev.columnCount;
               return (
                 <button
                   key={ev.id}
                   onClick={() => setDetail(ev)}
-                  className="absolute left-1 right-1 flex flex-col justify-center gap-px overflow-hidden rounded-lg px-2 py-1 text-left leading-tight"
+                  className="absolute flex flex-col justify-center gap-px overflow-hidden rounded-lg px-2 py-1 text-left leading-tight"
                   style={{
                     top: ev.top,
                     height: ev.height,
+                    left: `calc(${ev.columnIndex * widthPct}% + 2px)`,
+                    width: `calc(${widthPct}% - 4px)`,
                     background: style.bg,
                     border: `1px solid ${style.border}`,
                     borderLeft: `3px solid ${style.bar}`,
@@ -163,7 +210,9 @@ export default function AgendaWeekGrid({
                   }}
                 >
                   <div className="truncate text-[12px] font-bold">{ev.timeLabel} · {ev.clientName}</div>
-                  {ev.height > 34 && <div className="truncate text-[11px] opacity-75">{ev.serviceName}</div>}
+                  {ev.height > 34 && ev.columnCount === 1 && (
+                    <div className="truncate text-[11px] opacity-75">{ev.serviceName}</div>
+                  )}
                 </button>
               );
             })}
