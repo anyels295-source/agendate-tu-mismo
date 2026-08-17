@@ -14,7 +14,7 @@ type AvailabilityResponse = {
 type ChannelKey = "whatsapp" | "email" | "telegram" | "teams";
 const CHANNEL_META: Record<ChannelKey, { label: string; dot: string; disabled?: boolean }> = {
   whatsapp: { label: "WhatsApp", dot: "#25d366" },
-  email: { label: "Email", dot: "#215a8f" },
+  email: { label: "Email", dot: "var(--brand)" },
   telegram: { label: "Telegram", dot: "#2aabee", disabled: true },
   teams: { label: "Teams", dot: "#5b5fc7" },
 };
@@ -123,9 +123,9 @@ export default function RescheduleModal({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-[#16233d]/45 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-[var(--ink)]/45 p-4" onClick={onClose}>
       <div
-        className="max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-[20px] bg-white p-6 shadow-[0_30px_70px_-20px_rgba(22,35,61,0.5)]"
+        className="max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-[20px] bg-[var(--surface)] p-6 shadow-[0_30px_70px_-20px_rgba(22,35,61,0.5)]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -133,20 +133,20 @@ export default function RescheduleModal({
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <div className="text-[18px] font-extrabold text-[#16233d]">Reprogramar turno</div>
-            <div className="mt-0.5 text-[13px] text-[#6b7280]">{clientName}</div>
+            <div className="text-[18px] font-extrabold text-[var(--ink)]">Reprogramar turno</div>
+            <div className="mt-0.5 text-[13px] text-[var(--muted-nav)]">{clientName}</div>
           </div>
-          <button onClick={onClose} aria-label="Cerrar" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-[#f4f7fb] text-[#6b7280]">
+          <button onClick={onClose} aria-label="Cerrar" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-[var(--page)] text-[var(--muted-nav)]">
             <IconClose />
           </button>
         </div>
 
-        {loading && <p className="text-sm text-[#6b7280]">Cargando horarios disponibles…</p>}
+        {loading && <p className="text-sm text-[var(--muted-nav)]">Cargando horarios disponibles…</p>}
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
         {!loading && data && days.length > 0 && (
           <>
-            <div className="mb-4 text-[13px] font-semibold text-[#22314f]">Nuevo día</div>
+            <div className="mb-4 text-[13px] font-semibold text-[var(--ink3)]">Nuevo día</div>
             <div className="mb-4 flex gap-2 overflow-x-auto pb-1.5">
               {days.map((day) => {
                 const dt = DateTime.fromISO(day).setLocale("es");
@@ -161,9 +161,9 @@ export default function RescheduleModal({
                     className="shrink-0 rounded-xl border-[1.5px] px-0 py-[9px] text-center"
                     style={{
                       width: 60,
-                      borderColor: active ? "#215a8f" : "#e0e6f0",
-                      background: active ? "#215a8f" : "#fff",
-                      color: active ? "#fff" : "#2a3856",
+                      borderColor: active ? "var(--brand)" : "var(--line-in)",
+                      background: active ? "var(--brand)" : "var(--surface)",
+                      color: active ? "#fff" : "var(--ink2)",
                     }}
                   >
                     <div className="text-[10.5px] font-bold opacity-75">{dt.toFormat("ccc")}</div>
@@ -174,7 +174,7 @@ export default function RescheduleModal({
               })}
             </div>
 
-            <div className="mb-2.5 text-[13px] font-semibold text-[#22314f]">Nuevo horario</div>
+            <div className="mb-2.5 text-[13px] font-semibold text-[var(--ink3)]">Nuevo horario</div>
             <div className="mb-5 grid grid-cols-4 gap-2">
               {(slotsByDay.get(selectedDay ?? days[0]) ?? []).map((slot) => {
                 const dt = DateTime.fromISO(slot.startISO).setZone(data.professional.timezone);
@@ -185,9 +185,9 @@ export default function RescheduleModal({
                     onClick={() => setSelectedSlot(slot)}
                     className="rounded-[10px] border-[1.5px] py-[9px] text-[13.5px] font-bold"
                     style={{
-                      borderColor: active ? "#215a8f" : "#e0e6f0",
-                      background: active ? "#215a8f" : "#fff",
-                      color: active ? "#fff" : "#2a3856",
+                      borderColor: active ? "var(--brand)" : "var(--line-in)",
+                      background: active ? "var(--brand)" : "var(--surface)",
+                      color: active ? "#fff" : "var(--ink2)",
                     }}
                   >
                     {dt.toFormat("HH:mm")}
@@ -196,9 +196,9 @@ export default function RescheduleModal({
               })}
             </div>
 
-            <div className="mb-4 border-t border-[#eef1f7] pt-4">
-              <div className="mb-0.5 text-[13px] font-semibold text-[#22314f]">Avisar al cliente por</div>
-              <div className="mb-2.5 text-[12px] text-[#6b7280]">Se envía automáticamente al confirmar el cambio.</div>
+            <div className="mb-4 border-t border-[var(--line2)] pt-4">
+              <div className="mb-0.5 text-[13px] font-semibold text-[var(--ink3)]">Avisar al cliente por</div>
+              <div className="mb-2.5 text-[12px] text-[var(--muted-nav)]">Se envía automáticamente al confirmar el cambio.</div>
               <div className="mb-3.5 flex flex-wrap gap-2">
                 {(Object.keys(CHANNEL_META) as ChannelKey[]).map((k) => {
                   const meta = CHANNEL_META[k];
@@ -209,35 +209,35 @@ export default function RescheduleModal({
                       onClick={() => toggleChannel(k)}
                       className="inline-flex items-center gap-[7px] rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-semibold"
                       style={{
-                        borderColor: on ? "#215a8f" : "#e0e6f0",
-                        background: on ? "#eef4fb" : "#fff",
-                        color: meta.disabled ? "#6b7280" : on ? "#1f3864" : "#6b7280",
+                        borderColor: on ? "var(--brand)" : "var(--line-in)",
+                        background: on ? "var(--brand-soft)" : "var(--surface)",
+                        color: meta.disabled ? "var(--muted-nav)" : on ? "var(--brand-dk)" : "var(--muted-nav)",
                         opacity: meta.disabled ? 0.7 : 1,
                       }}
                     >
                       <span className="h-[9px] w-[9px] rounded-full" style={{ background: meta.dot }} />
                       {meta.label}
-                      {meta.disabled ? <span className="text-[10px]">(pronto)</span> : on && <IconCheck className="text-[#215a8f]" />}
+                      {meta.disabled ? <span className="text-[10px]">(pronto)</span> : on && <IconCheck className="text-[var(--brand)]" />}
                     </button>
                   );
                 })}
               </div>
               {telegramNotice && <p className="mb-3 text-[12px] text-[#a4700f]">Telegram va a estar disponible próximamente.</p>}
-              <div className="rounded-xl border border-[#eef1f7] bg-[#f7f9fc] p-[12px_14px]">
-                <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">Vista previa del mensaje</div>
+              <div className="rounded-xl border border-[var(--line2)] bg-[var(--subtle)] p-[12px_14px]">
+                <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">Vista previa del mensaje</div>
                 <div className="text-[13px] leading-relaxed text-[#3a4a68]">{preview}</div>
               </div>
             </div>
 
             <div className="flex flex-wrap justify-end gap-2.5">
-              <button onClick={onClose} className="rounded-[11px] border border-[#d6deeb] bg-white px-[18px] py-[11px] text-[14px] font-semibold text-[#2a3856]">
+              <button onClick={onClose} className="rounded-[11px] border border-[var(--line-btn)] bg-[var(--surface)] px-[18px] py-[11px] text-[14px] font-semibold text-[var(--ink2)]">
                 Cancelar
               </button>
               <button
                 onClick={apply}
                 disabled={!selectedSlot || saving}
                 className="rounded-[11px] px-5 py-[11px] text-[14px] font-bold text-white"
-                style={{ background: selectedSlot ? "#215a8f" : "#b8c6dd" }}
+                style={{ background: selectedSlot ? "var(--brand)" : "#b8c6dd" }}
               >
                 {saving ? "Reprogramando…" : "Confirmar nuevo horario"}
               </button>

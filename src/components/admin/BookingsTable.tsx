@@ -122,12 +122,12 @@ export default function BookingsTable({
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[220px] flex-1">
-          <IconSearch className="absolute left-[13px] top-1/2 -translate-y-1/2 text-[#6b7280]" />
+          <IconSearch className="absolute left-[13px] top-1/2 -translate-y-1/2 text-[var(--muted-nav)]" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por nombre o teléfono…"
-            className="w-full rounded-[11px] border border-[#e0e6f0] bg-white py-[10px] pl-[38px] pr-3 text-[14px]"
+            className="w-full rounded-[11px] border border-[var(--line-in)] bg-[var(--surface)] py-[10px] pl-[38px] pr-3 text-[14px]"
           />
         </div>
         <div className="flex flex-wrap gap-[7px]">
@@ -139,8 +139,8 @@ export default function BookingsTable({
                 onClick={() => setFilter(c.key)}
                 className="rounded-full border px-[13px] py-2 text-[12.5px] font-semibold"
                 style={{
-                  borderColor: active ? "#215a8f" : "#e0e6f0",
-                  background: active ? "#215a8f" : "#fff",
+                  borderColor: active ? "var(--brand)" : "var(--line-in)",
+                  background: active ? "var(--brand)" : "var(--surface)",
                   color: active ? "#fff" : "#5a6884",
                 }}
               >
@@ -153,14 +153,14 @@ export default function BookingsTable({
           onClick={() => exportCsv(filtered)}
           disabled={filtered.length === 0}
           title={filtered.length === 0 ? "No hay reservas para exportar con este filtro." : "Exportar las reservas visibles a CSV"}
-          className="rounded-[10px] border border-[#d6deeb] bg-white px-[15px] py-[9px] text-[13px] font-semibold text-[#2a3856] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] px-[15px] py-[9px] text-[13px] font-semibold text-[var(--ink2)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Exportar
         </button>
       </div>
 
-      <div className="overflow-visible rounded-2xl border border-[#e7ecf4] bg-white">
-        <div className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] rounded-t-[15px] bg-[#f7f9fc] p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[#6b7280]">
+      <div className="overflow-visible rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+        <div className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] rounded-t-[15px] bg-[var(--subtle)] p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">
           <span>Fecha</span>
           <span>Cliente</span>
           <span className="hidden sm:block">Teléfono</span>
@@ -169,7 +169,7 @@ export default function BookingsTable({
         </div>
 
         {filtered.length === 0 && (
-          <div className="px-5 py-11 text-center text-[14px] text-[#6b7280]">
+          <div className="px-5 py-11 text-center text-[14px] text-[var(--muted-nav)]">
             {rows.length === 0
               ? "Todavía no hay reservas. Compartí tu link de reserva para empezar."
               : "No hay reservas que coincidan con el filtro."}
@@ -183,11 +183,11 @@ export default function BookingsTable({
           return (
             <div
               key={b.id}
-              className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] items-center border-t border-[#f4f6fa] p-[14px_20px] text-[13.5px]"
+              className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] items-center border-t border-[var(--line3)] p-[14px_20px] text-[13.5px]"
             >
               <div className="min-w-0">
-                <div className="font-bold text-[#2a3856]">{b.dateLabel}</div>
-                <div className="text-[12px] text-[#6b7280]">{b.timeLabel}</div>
+                <div className="font-bold text-[var(--ink2)]">{b.dateLabel}</div>
+                <div className="text-[12px] text-[var(--muted-nav)]">{b.timeLabel}</div>
               </div>
               <div className="flex min-w-0 items-center gap-2.5">
                 <div
@@ -197,8 +197,8 @@ export default function BookingsTable({
                   {initialsOf(b.clientName)}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-[#2a3856]">{b.clientName}</div>
-                  <div className="truncate text-[12px] text-[#6b7280] sm:hidden">{b.clientPhone}</div>
+                  <div className="truncate font-semibold text-[var(--ink2)]">{b.clientName}</div>
+                  <div className="truncate text-[12px] text-[var(--muted-nav)] sm:hidden">{b.clientPhone}</div>
                 </div>
               </div>
               <div className="hidden text-[#5a6884] sm:block">{b.clientPhone}</div>
@@ -219,37 +219,37 @@ export default function BookingsTable({
                       aria-label={`Más acciones para el turno de ${b.clientName}`}
                       aria-haspopup="menu"
                       aria-expanded={menuId === b.id}
-                      className="rounded-md p-1 text-[#6b7280] hover:bg-[#f4f7fb]"
+                      className="rounded-md p-1 text-[var(--muted-nav)] hover:bg-[var(--page)]"
                     >
                       <IconDots />
                     </button>
                     {menuId === b.id && (
-                      <div className="absolute right-0 top-9 z-30 w-[196px] rounded-[13px] border border-[#e7ecf4] bg-white p-1.5 text-left shadow-[0_16px_36px_-12px_rgba(31,56,100,0.35)]">
+                      <div className="absolute right-0 top-9 z-30 w-[196px] rounded-[13px] border border-[var(--line)] bg-[var(--surface)] p-1.5 text-left shadow-[0_16px_36px_-12px_rgba(31,56,100,0.35)]">
                         <button
                           onClick={() => {
                             setMenuId(null);
                             setRescheduleId(b.id);
                           }}
-                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[#2a3856] hover:bg-[#f4f7fb]"
+                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
                         >
-                          <IconReprogramar className="text-[#215a8f]" />
+                          <IconReprogramar className="text-[var(--brand)]" />
                           Reprogramar
                         </button>
                         <button
                           onClick={() => updateStatus(b.id, "COMPLETED")}
-                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[#2a3856] hover:bg-[#f4f7fb]"
+                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
                         >
                           <IconCheck className="text-[#1a7d45]" />
                           Marcar completada
                         </button>
                         <button
                           onClick={() => updateStatus(b.id, "NO_SHOW")}
-                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[#2a3856] hover:bg-[#f4f7fb]"
+                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
                         >
                           <IconNoShow className="text-[#a4700f]" />
                           Marcar ausente
                         </button>
-                        <div className="my-1 h-px bg-[#eef1f7]" />
+                        <div className="my-1 h-px bg-[var(--line2)]" />
                         <button
                           onClick={() => {
                             setMenuId(null);
@@ -300,12 +300,12 @@ export default function BookingsTable({
       )}
 
       {toast && (
-        <div className="fixed bottom-[28px] left-1/2 z-40 flex max-w-[520px] -translate-x-1/2 items-center gap-3 rounded-[13px] bg-[#16233d] px-[18px] py-[13px] text-white shadow-[0_18px_40px_-14px_rgba(22,35,61,0.6)]">
+        <div className="fixed bottom-[28px] left-1/2 z-40 flex max-w-[520px] -translate-x-1/2 items-center gap-3 rounded-[13px] bg-[var(--ink)] px-[18px] py-[13px] text-white shadow-[0_18px_40px_-14px_rgba(22,35,61,0.6)]">
           <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-[#25d366]">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
           </span>
           <span className="text-[13.5px] font-semibold leading-tight">{toast}</span>
-          <button onClick={() => setToast(null)} aria-label="Cerrar aviso" className="shrink-0 text-[#6b7280] hover:text-white">
+          <button onClick={() => setToast(null)} aria-label="Cerrar aviso" className="shrink-0 text-[var(--muted-nav)] hover:text-white">
             <IconClose />
           </button>
         </div>

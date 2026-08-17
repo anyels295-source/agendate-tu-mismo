@@ -32,7 +32,7 @@ export default async function ReservasPage() {
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 py-[18px] pb-11 md:px-9 md:py-[30px]">
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
-        <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[#16233d]">Reservas</h1>
+        <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[var(--ink)]">Reservas</h1>
         <div className="flex gap-2.5">
           <NewBookingButton professionalSlug={professional.slug} />
         </div>

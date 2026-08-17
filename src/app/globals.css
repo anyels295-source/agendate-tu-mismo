@@ -6,6 +6,128 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+  Variables de tema (Apariencia, Configuración → Apariencia).
+  "claro" son los valores por defecto en :root para que cualquier parte de la
+  app que no esté (todavía) dentro de un [data-theme] siga viéndose igual que
+  antes de agregar el theming. Los otros 3 temas se activan agregando
+  data-theme="arena|bosque|noche" en un ancestro (ver AdminShell y la página
+  pública de reserva).
+*/
+:root {
+  --page: #f4f7fb;
+  --surface: #ffffff;
+  --subtle: #f7f9fc;
+
+  --line: #e7ecf4;
+  --line2: #eef1f7;
+  --line3: #f4f6fa;
+  --line-in: #e0e6f0;
+  --line-btn: #d6deeb;
+
+  --ink: #16233d;
+  --ink2: #2a3856;
+  --ink3: #22314f;
+  --ink4: #4a5878;
+
+  --muted: #8b97ae;
+  --muted2: #9aa6bd;
+  --muted3: #b3bccd;
+  --muted-nav: #6b7280;
+
+  --brand: #215a8f;
+  --brand-dk: #1f3864;
+  --brand-lt: #2e74b5;
+  --brand-soft: #eef4fb;
+  --brand-line: #d6e2f0;
+}
+
+[data-theme="arena"] {
+  --page: #f6f1e7;
+  --surface: #fffdf9;
+  --subtle: #faf6ee;
+
+  --line: #eae1d2;
+  --line2: #f0e9dc;
+  --line3: #f6f1e8;
+  --line-in: #e5dbc9;
+  --line-btn: #ded2bd;
+
+  --ink: #2a2317;
+  --ink2: #3e3524;
+  --ink3: #332b1d;
+  --ink4: #5c5140;
+
+  --muted: #9a8d78;
+  --muted2: #a89b85;
+  --muted3: #c0b5a1;
+  --muted-nav: #7a6e5c;
+
+  --brand: #a8622f;
+  --brand-dk: #7d4620;
+  --brand-lt: #c67a42;
+  --brand-soft: #f8ece0;
+  --brand-line: #e8d5c2;
+}
+
+[data-theme="bosque"] {
+  --page: #eef5f0;
+  --surface: #ffffff;
+  --subtle: #f4f9f6;
+
+  --line: #dde9e1;
+  --line2: #e7f0ea;
+  --line3: #f1f7f3;
+  --line-in: #d8e6dd;
+  --line-btn: #cadfd2;
+
+  --ink: #132119;
+  --ink2: #25382c;
+  --ink3: #1d2e23;
+  --ink4: #43594c;
+
+  --muted: #7d9086;
+  --muted2: #8ba095;
+  --muted3: #aec0b5;
+  --muted-nav: #5f7469;
+
+  --brand: #1f6b46;
+  --brand-dk: #14492f;
+  --brand-lt: #2f8d5e;
+  --brand-soft: #e5f3ea;
+  --brand-line: #c6e2d1;
+}
+
+[data-theme="noche"] {
+  --page: #12161f;
+  --surface: #1b2130;
+  --subtle: #222a3b;
+
+  --line: #2c3648;
+  --line2: #2a3244;
+  --line3: #242c3c;
+  --line-in: #35415a;
+  --line-btn: #3a4760;
+
+  --ink: #eef2f8;
+  --ink2: #dde4ef;
+  --ink3: #e8eef7;
+  --ink4: #b6c1d4;
+
+  /* "noche" usa --ink4 (8.85:1) como color de texto atenuado en vez de
+     --muted-nav, que no alcanza el contraste AA sobre --surface en este tema. */
+  --muted: #8f9bb2;
+  --muted2: #7f8ba3;
+  --muted3: #6c778d;
+  --muted-nav: #b6c1d4;
+
+  --brand: #3d8ecc;
+  --brand-dk: #8fc0e8;
+  --brand-lt: #5aa0d8;
+  --brand-soft: #23364b;
+  --brand-line: #39536e;
+}
+
 body {
   color: #1f2937;
   background-color: #f7f9fc;

@@ -95,27 +95,27 @@ export default async function AgendaPage({
     <div className="mx-auto w-full max-w-[1200px] px-4 py-[18px] pb-11 md:px-9 md:py-[30px]">
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[#16233d]">Agenda</h1>
-          <div className="mt-[3px] text-[13.5px] font-semibold text-[#6b7280]">
+          <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[var(--ink)]">Agenda</h1>
+          <div className="mt-[3px] text-[13.5px] font-semibold text-[var(--muted-nav)]">
             {startOfWeek.toFormat("d LLL")} – {endOfWeek.minus({ days: 1 }).toFormat("d LLL yyyy")}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/agenda?offset=${offset - 1}`}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d6deeb] bg-white text-[#4a5878]"
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
           >
             <IconChevronLeft />
           </Link>
           <Link
             href="/admin/agenda"
-            className="rounded-[10px] border border-[#d6deeb] bg-white px-[15px] py-2 text-[13px] font-semibold text-[#2a3856]"
+            className="rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] px-[15px] py-2 text-[13px] font-semibold text-[var(--ink2)]"
           >
             Hoy
           </Link>
           <Link
             href={`/admin/agenda?offset=${offset + 1}`}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d6deeb] bg-white text-[#4a5878]"
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
           >
             <IconChevronRight />
           </Link>

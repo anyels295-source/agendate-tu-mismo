@@ -19,9 +19,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         name: p.name,
         slug: p.slug,
         serviceName: p.serviceName,
+        photoUrl: p.photoUrl,
       }))}
       activeId={active.id}
       bookingUrl={bookingUrl}
+      theme={active.theme}
     >
       {children}
     </AdminShell>

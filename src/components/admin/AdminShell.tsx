@@ -16,7 +16,7 @@ import {
   IconPlus,
 } from "./icons";
 
-type ProfessionalLite = { id: string; name: string; slug: string; serviceName: string };
+type ProfessionalLite = { id: string; name: string; slug: string; serviceName: string; photoUrl: string | null };
 
 const NAV = [
   { href: "/admin", label: "Panel", exact: true, Icon: IconPanel },
@@ -31,6 +31,9 @@ function initialsOf(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "P";
 }
 
+// Colores decorativos de avatar: se mantienen fijos, no dependen del tema
+// (igual que los estados de reservas), para que cada profesional conserve
+// siempre el mismo color de identificación en la lista.
 const PALETTE = [
   ["#dce6f1", "#1f3864"],
   ["#e4f6ec", "#1a7d45"],
@@ -38,6 +41,42 @@ const PALETTE = [
   ["#fdf1dc", "#a4700f"],
   ["#e7effb", "#215a8f"],
 ];
+
+function Avatar({
+  professional,
+  size,
+  bg,
+  fg,
+  fontSize,
+}: {
+  professional: { name: string; photoUrl: string | null };
+  size: number;
+  bg: string;
+  fg: string;
+  fontSize: number;
+}) {
+  if (professional.photoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={professional.photoUrl}
+        alt={professional.name}
+        width={size}
+        height={size}
+        className="shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full font-bold"
+      style={{ width: size, height: size, background: bg, color: fg, fontSize }}
+    >
+      {initialsOf(professional.name)}
+    </span>
+  );
+}
 
 function ProfessionalMenu({
   professionals,
@@ -68,8 +107,8 @@ function ProfessionalMenu({
   }
 
   return (
-    <div className="rounded-[13px] border border-[#e7ecf4] bg-white p-1.5 shadow-[0_14px_40px_-12px_rgba(31,56,100,0.4)]">
-      <div className="px-2.5 pb-1 pt-1.5 text-[10.5px] font-bold uppercase tracking-wide text-[#6b7280]">
+    <div className="rounded-[13px] border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-[0_14px_40px_-12px_rgba(31,56,100,0.4)]">
+      <div className="px-2.5 pb-1 pt-1.5 text-[10.5px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">
         Cambiar profesional
       </div>
       {professionals.map((p, i) => {
@@ -81,23 +120,18 @@ function ProfessionalMenu({
             onClick={() => pick(p.id)}
             disabled={switching}
             className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left"
-            style={{ background: active ? "#eef4fb" : "#fff" }}
+            style={{ background: active ? "var(--brand-soft)" : "var(--surface)" }}
           >
-            <span
-              className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold"
-              style={{ background: bg, color: fg }}
-            >
-              {initialsOf(p.name)}
-            </span>
+            <Avatar professional={p} size={30} bg={bg} fg={fg} fontSize={11.5} />
             <span className="min-w-0 leading-tight">
-              <span className="block truncate text-[13px] font-bold text-[#2a3856]">{p.name}</span>
-              <span className="block text-[11px] text-[#6b7280]">{p.serviceName}</span>
+              <span className="block truncate text-[13px] font-bold text-[var(--ink2)]">{p.name}</span>
+              <span className="block text-[11px] text-[var(--muted-nav)]">{p.serviceName}</span>
             </span>
           </button>
         );
       })}
-      <div className="my-1 h-px bg-[#eef1f7]" />
-      <button className="flex w-full items-center gap-2 rounded-[9px] px-2.5 py-2 text-left text-[13px] font-semibold text-[#215a8f]">
+      <div className="my-1 h-px bg-[var(--line2)]" />
+      <button className="flex w-full items-center gap-2 rounded-[9px] px-2.5 py-2 text-left text-[13px] font-semibold text-[var(--brand)]">
         <IconPlus />
         Agregar profesional
       </button>
@@ -109,11 +143,13 @@ export default function AdminShell({
   professionals,
   activeId,
   bookingUrl,
+  theme,
   children,
 }: {
   professionals: ProfessionalLite[];
   activeId: string;
   bookingUrl: string;
+  theme: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -127,16 +163,16 @@ export default function AdminShell({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f4f7fb] md:flex-row flex-col">
+    <div id="agendate-shell" data-theme={theme} className="flex min-h-screen bg-[var(--page)] md:flex-row flex-col">
       {/* Sidebar (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-[250px] shrink-0 flex-col overflow-y-auto border-r border-[#e7ecf4] bg-white p-[22px_16px] md:flex">
+      <aside className="sticky top-0 hidden h-screen w-[250px] shrink-0 flex-col overflow-y-auto border-r border-[var(--line)] bg-[var(--surface)] p-[22px_16px] md:flex">
         <div className="flex items-center gap-2.5 px-2 pb-[22px] pt-1">
-          <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-gradient-to-br from-[#2e74b5] to-[#1f3864] text-[16px] font-extrabold text-white">
+          <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--brand-lt)] to-[var(--brand-dk)] text-[16px] font-extrabold text-white">
             A
           </div>
           <div className="leading-tight">
-            <div className="text-[15px] font-extrabold text-[#1f3864]">Agendate</div>
-            <div className="text-[11px] font-medium text-[#6b7280]">Tú Mismo</div>
+            <div className="text-[15px] font-extrabold text-[var(--brand-dk)]">Agendate</div>
+            <div className="text-[11px] font-medium text-[var(--muted-nav)]">Tú Mismo</div>
           </div>
         </div>
 
@@ -148,7 +184,7 @@ export default function AdminShell({
                 key={href}
                 href={href}
                 className="flex items-center gap-[11px] rounded-[10px] px-3 py-2.5 text-[14px] font-semibold"
-                style={{ background: isOn ? "#eef4fb" : "transparent", color: isOn ? "#1f3864" : "#64708a" }}
+                style={{ background: isOn ? "var(--brand-soft)" : "transparent", color: isOn ? "var(--brand-dk)" : "var(--muted-nav)" }}
               >
                 <Icon />
                 {label}
@@ -157,13 +193,13 @@ export default function AdminShell({
           })}
         </nav>
 
-        <div className="my-4 h-px bg-[#eef1f7]" />
+        <div className="my-4 h-px bg-[var(--line2)]" />
 
         <a
           href={bookingUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-[11px] rounded-[10px] border border-[#d6e2f0] bg-white px-3 py-2.5 text-[13.5px] font-semibold text-[#215a8f]"
+          className="flex items-center gap-[11px] rounded-[10px] border border-[var(--brand-line)] bg-[var(--surface)] px-3 py-2.5 text-[13.5px] font-semibold text-[var(--brand)]"
         >
           <IconGlobe />
           Página pública
@@ -183,17 +219,21 @@ export default function AdminShell({
               aria-label="Cambiar de profesional"
               className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] p-1 text-left"
             >
-              <span
-                className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
-                style={{ background: "#dce6f1", color: "#1f3864" }}
-              >
-                {active ? initialsOf(active.name) : "P"}
-              </span>
+              {active ? (
+                <Avatar professional={active} size={34} bg="#dce6f1" fg="#1f3864" fontSize={13} />
+              ) : (
+                <span
+                  className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
+                  style={{ background: "#dce6f1", color: "#1f3864" }}
+                >
+                  P
+                </span>
+              )}
               <span className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate text-[13px] font-bold text-[#2a3856]">{active?.name}</span>
-                <span className="block truncate text-[11px] text-[#6b7280]">{active?.serviceName}</span>
+                <span className="block truncate text-[13px] font-bold text-[var(--ink2)]">{active?.name}</span>
+                <span className="block truncate text-[11px] text-[var(--muted-nav)]">{active?.serviceName}</span>
               </span>
-              {proOpen ? <IconChevronDown className="text-[#6b7280]" /> : <IconChevronUp className="text-[#6b7280]" />}
+              {proOpen ? <IconChevronDown className="text-[var(--muted-nav)]" /> : <IconChevronUp className="text-[var(--muted-nav)]" />}
             </button>
             <button
               type="button"
@@ -204,7 +244,7 @@ export default function AdminShell({
                 router.push("/admin/login");
                 router.refresh();
               }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[#6b7280] hover:bg-[#f4f7fb]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[var(--muted-nav)] hover:bg-[var(--page)]"
             >
               <IconLogout />
             </button>
@@ -213,14 +253,14 @@ export default function AdminShell({
       </aside>
 
       {/* Topbar (mobile) */}
-      <header className="sticky top-0 z-40 flex flex-col gap-2.5 border-b border-[#e7ecf4] bg-white p-[12px_14px_10px] md:hidden">
+      <header className="sticky top-0 z-40 flex flex-col gap-2.5 border-b border-[var(--line)] bg-[var(--surface)] p-[12px_14px_10px] md:hidden">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#2e74b5] to-[#1f3864] text-[15px] font-extrabold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[var(--brand-lt)] to-[var(--brand-dk)] text-[15px] font-extrabold text-white">
             A
           </div>
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="text-[14.5px] font-extrabold text-[#1f3864]">Agendate</div>
-            <div className="text-[10.5px] font-medium text-[#6b7280]">Tú Mismo</div>
+            <div className="text-[14.5px] font-extrabold text-[var(--brand-dk)]">Agendate</div>
+            <div className="text-[10.5px] font-medium text-[var(--muted-nav)]">Tú Mismo</div>
           </div>
           <div className="relative">
             <button
@@ -228,15 +268,19 @@ export default function AdminShell({
               aria-haspopup="menu"
               aria-expanded={proOpen}
               aria-label="Cambiar de profesional"
-              className="flex items-center gap-1.5 rounded-full border border-[#e7ecf4] bg-white py-1 pl-1 pr-2"
+              className="flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] py-1 pl-1 pr-2"
             >
-              <span
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[11.5px] font-bold"
-                style={{ background: "#dce6f1", color: "#1f3864" }}
-              >
-                {active ? initialsOf(active.name) : "P"}
-              </span>
-              <IconChevronDown className="text-[#6b7280]" />
+              {active ? (
+                <Avatar professional={active} size={28} bg="#dce6f1" fg="#1f3864" fontSize={11.5} />
+              ) : (
+                <span
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[11.5px] font-bold"
+                  style={{ background: "#dce6f1", color: "#1f3864" }}
+                >
+                  P
+                </span>
+              )}
+              <IconChevronDown className="text-[var(--muted-nav)]" />
             </button>
             {proOpen && (
               <div className="absolute right-0 top-[46px] z-20 w-[230px]">
@@ -254,9 +298,9 @@ export default function AdminShell({
                 href={href}
                 className="shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-semibold"
                 style={{
-                  borderColor: isOn ? "#215a8f" : "#e0e6f0",
-                  background: isOn ? "#215a8f" : "#fff",
-                  color: isOn ? "#fff" : "#4a5878",
+                  borderColor: isOn ? "var(--brand)" : "var(--line-in)",
+                  background: isOn ? "var(--brand)" : "var(--surface)",
+                  color: isOn ? "#fff" : "var(--ink4)",
                 }}
               >
                 {label}

@@ -12,11 +12,12 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
 
   return (
     <main
-      className="flex min-h-screen flex-col items-center px-5 py-[34px] pb-[50px]"
-      style={{ background: "radial-gradient(120% 90% at 50% 0%, #eaf1fa 0%, #f4f7fb 55%)" }}
+      data-theme={professional.theme}
+      className="flex min-h-screen flex-col items-center bg-[var(--page)] px-5 py-[34px] pb-[50px]"
+      style={{ background: "radial-gradient(120% 90% at 50% 0%, var(--brand-soft) 0%, var(--page) 55%)" }}
     >
       <BookingWidget slug={professional.slug} professionalName={professional.name} />
-      <p className="mt-5 text-[11.5px] text-[#6b7280]">Agendate Tú Mismo · reservá cuando quieras, sin llamadas</p>
+      <p className="mt-5 text-[11.5px] text-[var(--muted-nav)]">Agendate Tú Mismo · reservá cuando quieras, sin llamadas</p>
     </main>
   );
 }

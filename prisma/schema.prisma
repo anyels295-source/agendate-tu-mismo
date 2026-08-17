@@ -59,6 +59,12 @@ model Professional {
   notifyEmail       Boolean  @default(true)
   notifyTeams       Boolean  @default(false)
   teamsWebhookUrl   String?
+  // Foto de perfil como data URL (base64), comprimida en el cliente antes de
+  // subirla — no hay almacenamiento de archivos/blob en este MVP, así que
+  // guardarla como texto en la propia fila es la opción sin infraestructura
+  // extra. "claro" es el tema por defecto (ver Configuración → Apariencia).
+  photoUrl          String?
+  theme             String   @default("claro")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

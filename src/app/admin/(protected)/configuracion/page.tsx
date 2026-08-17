@@ -27,6 +27,9 @@ export default async function ConfiguracionPage() {
           bufferMinutes: professional.bufferMinutes,
           minNoticeHours: professional.minNoticeHours,
           workingHours: professional.workingHours as unknown as WorkingHours,
+          timezone: professional.timezone,
+          photoUrl: professional.photoUrl,
+          theme: professional.theme,
         }}
       />
 

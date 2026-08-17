@@ -20,8 +20,8 @@ export default async function CalendariosPage({
 
   return (
     <div className="mx-auto w-full max-w-[900px] px-4 py-[18px] pb-11 md:px-9 md:py-[30px]">
-      <h1 className="m-0 mb-1.5 text-[26px] font-extrabold tracking-tight text-[#16233d]">Calendarios conectados</h1>
-      <p className="mb-6 max-w-[600px] text-[14px] leading-relaxed text-[#6b7890]">
+      <h1 className="m-0 mb-1.5 text-[26px] font-extrabold tracking-tight text-[var(--ink)]">Calendarios conectados</h1>
+      <p className="mb-6 max-w-[600px] text-[14px] leading-relaxed text-[var(--muted-nav)]">
         Conectá los calendarios que quieras que se tengan en cuenta para calcular tu disponibilidad real. Elegí
         además en cuál se crean los turnos confirmados.
       </p>
@@ -54,21 +54,21 @@ export default async function CalendariosPage({
         />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#e7ecf4] bg-white">
-        <div className="grid grid-cols-3 bg-[#f7f9fc] p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[#6b7280]">
+      <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+        <div className="grid grid-cols-3 bg-[var(--subtle)] p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">
           <span>Proveedor</span>
           <span>Cuenta</span>
           <span>Calendario de reservas</span>
         </div>
         {connections.length === 0 && (
-          <div className="px-5 py-11 text-center text-[14px] text-[#6b7280]">
+          <div className="px-5 py-11 text-center text-[14px] text-[var(--muted-nav)]">
             Todavía no conectaste ningún calendario. Sin al menos uno, tu página de reserva no puede calcular
             disponibilidad.
           </div>
         )}
         {connections.map((c) => (
-          <div key={c.id} className="grid grid-cols-3 items-center border-t border-[#f4f6fa] p-[15px_20px] text-[13.5px]">
-            <div className="font-semibold text-[#2a3856]">{PROVIDER_LABEL[c.provider]}</div>
+          <div key={c.id} className="grid grid-cols-3 items-center border-t border-[var(--line3)] p-[15px_20px] text-[13.5px]">
+            <div className="font-semibold text-[var(--ink2)]">{PROVIDER_LABEL[c.provider]}</div>
             <div className="text-[#5a6884]">{c.accountEmail}</div>
             <div>
               <SetBookingCalendarSelect connectionId={c.id} checked={professional.bookingCalendarId === c.id} />
@@ -97,29 +97,29 @@ function ProviderCard({
     <div
       className="flex items-center gap-3.5 rounded-2xl p-5"
       style={{
-        background: "#fff",
-        border: connected ? "1px solid #e7ecf4" : "1px dashed #cdd7e6",
+        background: "var(--surface)",
+        border: connected ? "1px solid var(--line)" : "1px dashed var(--line-btn)",
       }}
     >
       <div
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[18px] font-extrabold"
-        style={{ background: connected ? "#eef4fb" : "#f2f5fa", color: connected ? "#2e74b5" : "#6b7280" }}
+        style={{ background: connected ? "var(--brand-soft)" : "#f2f5fa", color: connected ? "var(--brand-lt)" : "var(--muted-nav)" }}
       >
         {letter}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[14.5px] font-bold text-[#22314f]">{name}</div>
+        <div className="text-[14.5px] font-bold text-[var(--ink3)]">{name}</div>
         {connected ? (
           <div className="flex items-center gap-[5px] text-[12.5px] font-semibold text-[#3aa55f]">
             <span className="h-[7px] w-[7px] rounded-full bg-[#3aa55f]" />
             {connectedLabel ?? "Conectado"}
           </div>
         ) : (
-          <div className="text-[12.5px] text-[#6b7280]">Sin conectar</div>
+          <div className="text-[12.5px] text-[var(--muted-nav)]">Sin conectar</div>
         )}
       </div>
       {!connected && (
-        <a href={connectUrl} className="shrink-0 rounded-[9px] border border-[#215a8f] px-[13px] py-[7px] text-[12.5px] font-semibold text-[#215a8f]">
+        <a href={connectUrl} className="shrink-0 rounded-[9px] border border-[var(--brand)] px-[13px] py-[7px] text-[12.5px] font-semibold text-[var(--brand)]">
           Conectar
         </a>
       )}

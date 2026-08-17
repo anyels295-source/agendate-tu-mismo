@@ -50,7 +50,7 @@ function ServiceEditRow({ service, onRemove }: { service: ServiceRow; onRemove: 
         value={name}
         onChange={(e) => setName(e.target.value)}
         onBlur={() => name !== saved.name && save({ name }, () => setName(saved.name))}
-        className="w-full rounded-[10px] border border-[#e0e6f0] px-3 py-2 text-[14px] font-semibold text-[#2a3856]"
+        className="w-full rounded-[10px] border border-[var(--line-in)] px-3 py-2 text-[14px] font-semibold text-[var(--ink2)]"
       />
       <div className="relative">
         <input
@@ -58,22 +58,22 @@ function ServiceEditRow({ service, onRemove }: { service: ServiceRow; onRemove: 
           value={dur}
           onChange={(e) => setDur(Number(e.target.value))}
           onBlur={() => dur !== saved.durationMinutes && save({ durationMinutes: dur }, () => setDur(saved.durationMinutes))}
-          className="w-full rounded-[10px] border border-[#e0e6f0] px-3 py-2 pr-9 text-[14px]"
+          className="w-full rounded-[10px] border border-[var(--line-in)] px-3 py-2 pr-9 text-[14px]"
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#6b7280]">min</span>
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[var(--muted-nav)]">min</span>
       </div>
       <input
         value={price}
         onChange={(e) => setPrice(e.target.value)}
         onBlur={() => price !== saved.price && save({ price: price || null }, () => setPrice(saved.price))}
         placeholder="$0"
-        className="w-full rounded-[10px] border border-[#e0e6f0] px-3 py-2 text-[14px]"
+        className="w-full rounded-[10px] border border-[var(--line-in)] px-3 py-2 text-[14px]"
       />
       <button
         onClick={() => onRemove(service.id)}
         title="Quitar"
         aria-label={`Quitar el servicio ${service.name}`}
-        className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] bg-[#f4f7fb] text-[#b6382f]"
+        className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] bg-[var(--page)] text-[#b6382f]"
       >
         <IconTrash />
       </button>
@@ -135,14 +135,14 @@ export default function ServiciosManager({ initial }: { initial: ServiceRow[] })
   }
 
   return (
-    <section className="mb-4 rounded-2xl border border-[#e7ecf4] bg-white p-[22px_24px]">
+    <section className="mb-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[22px_24px]">
       <div className="mb-4">
-        <div className="text-[15px] font-bold text-[#22314f]">Servicios</div>
-        <div className="text-[12.5px] text-[#6b7280]">Cada servicio puede tener su propia duración y precio.</div>
+        <div className="text-[15px] font-bold text-[var(--ink3)]">Servicios</div>
+        <div className="text-[12.5px] text-[var(--muted-nav)]">Cada servicio puede tener su propia duración y precio.</div>
       </div>
 
       <div className="flex flex-col gap-2.5">
-        {services.length === 0 && <p className="text-[13.5px] text-[#6b7280]">Todavía no cargaste ningún servicio.</p>}
+        {services.length === 0 && <p className="text-[13.5px] text-[var(--muted-nav)]">Todavía no cargaste ningún servicio.</p>}
         {services.map((sv) => (
           <ServiceEditRow key={sv.id} service={sv} onRemove={removeService} />
         ))}
@@ -153,25 +153,25 @@ export default function ServiciosManager({ initial }: { initial: ServiceRow[] })
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="Nombre del servicio"
-          className="rounded-[10px] border border-[#e0e6f0] px-3 py-2 text-[14px]"
+          className="rounded-[10px] border border-[var(--line-in)] px-3 py-2 text-[14px]"
         />
         <input
           type="number"
           value={form.durationMinutes}
           onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
           placeholder="Minutos"
-          className="rounded-[10px] border border-[#e0e6f0] px-3 py-2 text-[14px]"
+          className="rounded-[10px] border border-[var(--line-in)] px-3 py-2 text-[14px]"
         />
         <input
           value={form.price}
           onChange={(e) => setForm({ ...form, price: e.target.value })}
           placeholder="Precio (opc.)"
-          className="rounded-[10px] border border-[#e0e6f0] px-3 py-2 text-[14px]"
+          className="rounded-[10px] border border-[var(--line-in)] px-3 py-2 text-[14px]"
         />
         <button
           onClick={addService}
           disabled={saving}
-          className="rounded-[9px] border border-[#215a8f] bg-[#eef4fb] px-[13px] py-2 text-[12.5px] font-semibold text-[#215a8f] disabled:opacity-60"
+          className="rounded-[9px] border border-[var(--brand)] bg-[var(--brand-soft)] px-[13px] py-2 text-[12.5px] font-semibold text-[var(--brand)] disabled:opacity-60"
         >
           {saving ? "Agregando…" : "+ Agregar"}
         </button>

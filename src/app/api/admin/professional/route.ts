@@ -28,6 +28,11 @@ const patchSchema = z.object({
   timezone: z.string().optional(),
   bookingCalendarId: z.string().optional(),
   workingHours: workingHoursSchema.optional(),
+  // Data URL base64 (ya comprimida en el cliente antes de subir). El límite
+  // es un resguardo por si algo llega sin comprimir; en uso normal una foto
+  // 320x320 JPEG pesa muchísimo menos que esto.
+  photoUrl: z.string().max(400_000).nullable().optional(),
+  theme: z.enum(["claro", "arena", "bosque", "noche"]).optional(),
 });
 
 export async function PATCH(req: NextRequest) {

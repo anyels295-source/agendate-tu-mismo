@@ -80,7 +80,7 @@ export default async function PanelPage() {
   const occTrend = trendBadge(occupancy, occupancyLastWeek);
 
   const GREEN = { bg: "#e4f6ec", fg: "#1a7d45" };
-  const BLUE = { bg: "#e7effb", fg: "#215a8f" };
+  const BLUE = { bg: "#e7effb", fg: "var(--brand)" };
 
   const metrics = [
     { label: "Turnos esta semana", value: String(thisWeek.length), sub: lastWeek.length ? "vs. semana pasada" : "sin datos de la semana pasada", trend: weekTrend.trend, ...(weekTrend.up ? GREEN : BLUE) },
@@ -134,11 +134,11 @@ export default async function PanelPage() {
     <div className="mx-auto w-full max-w-[1180px] px-4 py-[18px] pb-11 md:px-9 md:py-[30px]">
       <div className="mb-[26px] flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="mb-[3px] text-[13px] font-semibold text-[#6b7280]">Hola de nuevo, {professional.name.split(" ")[0]}</div>
-          <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[#16233d]">Panel</h1>
+          <div className="mb-[3px] text-[13px] font-semibold text-[var(--muted-nav)]">Hola de nuevo, {professional.name.split(" ")[0]}</div>
+          <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[var(--ink)]">Panel</h1>
         </div>
-        <div className="flex items-center gap-2.5 rounded-[11px] border border-[#e7ecf4] bg-white px-[13px] py-[9px] text-[13px] text-[#4a5878]">
-          <span className="h-[9px] w-[9px] rounded-full bg-[#2e74b5]" />
+        <div className="flex items-center gap-2.5 rounded-[11px] border border-[var(--line)] bg-[var(--surface)] px-[13px] py-[9px] text-[13px] text-[var(--ink4)]">
+          <span className="h-[9px] w-[9px] rounded-full bg-[var(--brand-lt)]" />
           {connectedCount > 0 ? "Calendarios sincronizados" : "Sin calendarios conectados todavía"}
         </div>
       </div>
@@ -173,52 +173,52 @@ export default async function PanelPage() {
 
       <div className="mb-4 grid grid-cols-2 gap-3.5 md:grid-cols-4">
         {metrics.map((m) => (
-          <div key={m.label} className="rounded-2xl border border-[#e7ecf4] bg-white p-[18px_18px_16px]">
+          <div key={m.label} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[18px_18px_16px]">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[12.5px] font-semibold text-[#6b7280]">{m.label}</span>
+              <span className="text-[12.5px] font-semibold text-[var(--muted-nav)]">{m.label}</span>
               {m.trend && (
                 <span className="rounded-full px-[7px] py-[2px] text-[11px] font-bold" style={{ background: m.bg, color: m.fg }}>
                   {m.trend}
                 </span>
               )}
             </div>
-            <div className="text-[30px] font-extrabold tracking-tight text-[#1f3864]">{m.value}</div>
-            <div className="mt-0.5 text-[12px] text-[#6b7280]">{m.sub}</div>
+            <div className="text-[30px] font-extrabold tracking-tight text-[var(--brand-dk)]">{m.value}</div>
+            <div className="mt-0.5 text-[12px] text-[var(--muted-nav)]">{m.sub}</div>
           </div>
         ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-[#e7ecf4] bg-white p-[22px_24px]">
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[22px_24px]">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <div className="text-[15px] font-bold text-[#22314f]">Turnos por día</div>
-              <div className="text-[12.5px] text-[#6b7280]">Esta semana</div>
+              <div className="text-[15px] font-bold text-[var(--ink3)]">Turnos por día</div>
+              <div className="text-[12.5px] text-[var(--muted-nav)]">Esta semana</div>
             </div>
-            <div className="rounded-lg bg-[#eef4fb] px-[11px] py-[5px] text-[12px] font-semibold text-[#4a5878]">Ocupación {occupancy}%</div>
+            <div className="rounded-lg bg-[var(--brand-soft)] px-[11px] py-[5px] text-[12px] font-semibold text-[var(--ink4)]">Ocupación {occupancy}%</div>
           </div>
           <div className="flex h-[170px] items-end gap-3.5 pt-2">
             {chart.map((c) => (
               <div key={c.label} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
-                <span className="text-[12px] font-bold text-[#22314f]">{c.count}</span>
+                <span className="text-[12px] font-bold text-[var(--ink3)]">{c.count}</span>
                 <div
                   className="w-full max-w-[34px] rounded-t-[8px] rounded-b-[3px]"
                   style={{
                     height: `${Math.max((c.count / maxChart) * 100, 3)}%`,
-                    background: c.isToday ? "linear-gradient(180deg,#2e74b5,#215a8f)" : "#cfe0f2",
+                    background: c.isToday ? "linear-gradient(180deg,var(--brand-lt),var(--brand))" : "#cfe0f2",
                   }}
                 />
-                <span className="text-[11.5px] font-semibold text-[#6b7280]">{c.label}</span>
+                <span className="text-[11.5px] font-semibold text-[var(--muted-nav)]">{c.label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#e7ecf4] bg-white p-[22px_22px_8px]">
-          <div className="mb-1 text-[15px] font-bold text-[#22314f]">Próximos turnos</div>
-          <div className="mb-3.5 text-[12.5px] text-[#6b7280]">Hoy y los próximos días</div>
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[22px_22px_8px]">
+          <div className="mb-1 text-[15px] font-bold text-[var(--ink3)]">Próximos turnos</div>
+          <div className="mb-3.5 text-[12.5px] text-[var(--muted-nav)]">Hoy y los próximos días</div>
           {upcoming.length === 0 ? (
-            <p className="pb-4 text-sm text-[#6b7280]">No hay turnos próximos.</p>
+            <p className="pb-4 text-sm text-[var(--muted-nav)]">No hay turnos próximos.</p>
           ) : (
             <div className="flex flex-col">
               {upcoming.map((b) => {
@@ -228,13 +228,13 @@ export default async function PanelPage() {
                 return (
                   <div key={b.id} className="flex items-center gap-3.5 border-t border-[#f0f3f8] py-2.5">
                     <div className="w-[46px] shrink-0 text-center">
-                      <div className="text-[15px] font-extrabold leading-none text-[#215a8f]">{dt.toFormat("HH:mm")}</div>
-                      <div className="mt-0.5 text-[10.5px] font-semibold text-[#6b7280]">{when}</div>
+                      <div className="text-[15px] font-extrabold leading-none text-[var(--brand)]">{dt.toFormat("HH:mm")}</div>
+                      <div className="mt-0.5 text-[10.5px] font-semibold text-[var(--muted-nav)]">{when}</div>
                     </div>
-                    <div className="w-px self-stretch bg-[#eef1f7]" />
+                    <div className="w-px self-stretch bg-[var(--line2)]" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13.5px] font-bold text-[#2a3856]">{b.clientName}</div>
-                      <div className="truncate text-[12px] text-[#6b7280]">{b.service?.name ?? professional.serviceName}</div>
+                      <div className="truncate text-[13.5px] font-bold text-[var(--ink2)]">{b.clientName}</div>
+                      <div className="truncate text-[12px] text-[var(--muted-nav)]">{b.service?.name ?? professional.serviceName}</div>
                     </div>
                     <span className="shrink-0 rounded-full px-2 py-[3px] text-[10.5px] font-bold" style={{ background: sc.bg, color: sc.fg }}>
                       {STATUS_LABEL[b.status]}
@@ -247,14 +247,14 @@ export default async function PanelPage() {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-br from-[#1f3864] to-[#2e74b5] px-6 py-5 text-white">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-br from-[var(--brand-dk)] to-[var(--brand-lt)] px-6 py-5 text-white">
         <div>
           <div className="mb-0.5 text-[15px] font-bold">Tu página de reserva</div>
           <div className="text-[13px] opacity-85">{bookingUrlDisplay}</div>
         </div>
         <div className="flex gap-2.5">
           <CopyLinkButton url={bookingUrl} className="rounded-lg bg-white/15 px-[15px] py-[9px] text-[13px] font-semibold text-white" />
-          <a href={bookingUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-white px-[15px] py-[9px] text-[13px] font-bold text-[#1f3864]">
+          <a href={bookingUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-white px-[15px] py-[9px] text-[13px] font-bold text-[var(--brand-dk)]">
             Ver página
           </a>
         </div>

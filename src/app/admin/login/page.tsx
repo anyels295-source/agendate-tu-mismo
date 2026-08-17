@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-2xl bg-[var(--surface)] p-6 shadow-sm ring-1 ring-gray-100">
         <h1 className="mb-4 text-xl font-semibold text-brand-700">Panel del profesional</h1>
         <div className="space-y-3">
           <input

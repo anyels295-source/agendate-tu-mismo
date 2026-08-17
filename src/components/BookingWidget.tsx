@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
+import { TIMEZONES, timezoneLabel } from "@/lib/timezones";
 
 type FreeSlot = { startISO: string; endISO: string };
 type AvailabilityResponse = {
@@ -31,6 +32,10 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
   const [formError, setFormError] = useState<string | null>(null);
+  // Zona horaria elegida por el cliente para ver los horarios en su hora
+  // local (por defecto, la del negocio). No afecta lo que se guarda: los
+  // slots siguen viajando como ISO/UTC, esto es solo de visualización.
+  const [clientTz, setClientTz] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/services?slug=${encodeURIComponent(slug)}`)
@@ -60,6 +65,10 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
         setError(null);
         setSelectedDay(null);
         setSelectedSlot(null);
+        // Solo la primera vez: arrancamos mostrando la zona horaria del
+        // negocio. Si el cliente ya eligió la suya, no se la pisamos al
+        // cambiar de servicio.
+        setClientTz((prev) => prev ?? json.professional.timezone);
       })
       .catch((err) => !cancelled && setError(err.message))
       .finally(() => !cancelled && setLoading(false));
@@ -68,16 +77,26 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
     };
   }, [slug, selectedServiceId]);
 
+  const displayTz = clientTz ?? data?.professional.timezone ?? "UTC";
+
   const slotsByDay = useMemo(() => {
     if (!data) return new Map<string, FreeSlot[]>();
     const map = new Map<string, FreeSlot[]>();
     for (const slot of data.slots) {
-      const day = DateTime.fromISO(slot.startISO).setZone(data.professional.timezone).toISODate()!;
+      const day = DateTime.fromISO(slot.startISO).setZone(displayTz).toISODate()!;
       if (!map.has(day)) map.set(day, []);
       map.get(day)!.push(slot);
     }
     return map;
-  }, [data]);
+  }, [data, displayTz]);
+
+  // Lista de zonas para el selector del cliente: la curada + la del negocio
+  // si por algún motivo no está en la lista curada, para no ocultarla.
+  const clientTzOptions = useMemo(() => {
+    const businessTz = data?.professional.timezone;
+    if (!businessTz || TIMEZONES.some((t) => t.id === businessTz)) return TIMEZONES;
+    return [...TIMEZONES, { id: businessTz, label: businessTz }];
+  }, [data?.professional.timezone]);
 
   const days = useMemo(() => Array.from(slotsByDay.keys()).sort().slice(0, 6), [slotsByDay]);
 
@@ -211,6 +230,33 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 </>
               )}
 
+              <div className="mb-[18px]">
+                <label htmlFor="bw-clientTz" className="mb-1.5 flex items-center gap-1.5 text-[13px] font-bold text-[#22314f]">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="text-[#215a8f]"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>
+                  Tu zona horaria
+                </label>
+                <select
+                  id="bw-clientTz"
+                  value={displayTz}
+                  onChange={(e) => setClientTz(e.target.value)}
+                  className="w-full rounded-[10px] border-[1.5px] border-[#e0e6f0] bg-white px-[11px] py-[9px] text-[13.5px] font-semibold text-[#2a3856]"
+                >
+                  {clientTzOptions.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+                <div
+                  className="mt-1.5 text-[11.5px] font-semibold"
+                  style={{ color: displayTz === data.professional.timezone ? "#6b7280" : "#215a8f" }}
+                >
+                  {displayTz === data.professional.timezone
+                    ? "Misma zona horaria que el negocio."
+                    : `Horarios convertidos desde ${timezoneLabel(data.professional.timezone)} a tu hora local.`}
+                </div>
+              </div>
+
               <div className="mb-[11px] text-[13.5px] font-bold text-[#22314f]">Elegí el día</div>
               <div className="mb-[18px] flex gap-2 overflow-x-auto pb-1.5">
                 {days.map((day) => {
@@ -234,7 +280,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
               <div className="mb-[11px] text-[13.5px] font-bold text-[#22314f]">Horarios disponibles</div>
               <div className="grid grid-cols-3 gap-[9px]">
                 {(slotsByDay.get(selectedDay ?? days[0]) ?? []).map((slot) => {
-                  const dt = DateTime.fromISO(slot.startISO).setZone(data.professional.timezone);
+                  const dt = DateTime.fromISO(slot.startISO).setZone(displayTz);
                   return (
                     <button
                       key={slot.startISO}
@@ -259,8 +305,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
               </button>
               <div className="mb-[18px] rounded-[13px] bg-[#eef4fb] p-3.5 text-center">
                 <div className="text-[14.5px] font-extrabold text-[#1f3864]">
-                  {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).setLocale("es").toFormat("cccc d 'de' LLLL")} ·{" "}
-                  {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).toFormat("HH:mm")}
+                  {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).setLocale("es").toFormat("cccc d 'de' LLLL")} ·{" "}
+                  {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).toFormat("HH:mm")}
                 </div>
                 <div className="mt-0.5 text-[12.5px] text-[#4a5878]">
                   {serviceName} con {professionalName}
@@ -320,8 +366,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
               </div>
               <div className="text-[20px] font-extrabold text-[#1a7d45]">¡Turno confirmado!</div>
               <div className="mt-1.5 text-[14.5px] font-semibold text-[#3a8560]">
-                {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).setLocale("es").toFormat("cccc d 'de' LLLL")} a las{" "}
-                {DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).toFormat("HH:mm")}
+                {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).setLocale("es").toFormat("cccc d 'de' LLLL")} a las{" "}
+                {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).toFormat("HH:mm")}
               </div>
               <div className="mt-3.5 text-[13px] leading-relaxed text-[#6b7890]">
                 Te enviamos la confirmación por WhatsApp{form.clientEmail ? " y por email" : ""}.
