@@ -40,110 +40,138 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
   const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
   const cancelUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/cancelar/${booking.cancelToken}`;
 
+  // Los tres canales son independientes entre sí (cada uno atrapa sus propios
+  // errores y siempre resuelve con un resultado, nunca rechaza — ver
+  // sendBookingConfirmationWhatsApp/Email/sendTeamsMessage). Se disparan en
+  // paralelo en vez de uno detrás del otro para no sumar sus latencias (cada
+  // llamada externa puede tardar 1-3 s) al tiempo que el cliente espera la
+  // confirmación de su turno.
+  const tasks: Promise<unknown>[] = [];
+
   if (professional.notifyWhatsapp) {
-    const result = await sendBookingConfirmationWhatsApp({
-      toPhone: booking.clientPhone,
-      clientName: booking.clientName,
-      professionalName: professional.name,
-      serviceName: professional.serviceName,
-      dateLabel,
-      timeLabel,
-      cancelUrl,
-    });
-    await logNotification(booking.id, "WHATSAPP", result);
+    tasks.push(
+      sendBookingConfirmationWhatsApp({
+        toPhone: booking.clientPhone,
+        clientName: booking.clientName,
+        professionalName: professional.name,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+        cancelUrl,
+      }).then((result) => logNotification(booking.id, "WHATSAPP", result))
+    );
   }
 
   if (professional.notifyEmail && booking.clientEmail) {
-    const result = await sendBookingConfirmationEmail({
-      toEmail: booking.clientEmail,
-      clientName: booking.clientName,
-      professionalName: professional.name,
-      serviceName: professional.serviceName,
-      dateLabel,
-      timeLabel,
-      cancelUrl,
-    });
-    await logNotification(booking.id, "EMAIL", result);
+    tasks.push(
+      sendBookingConfirmationEmail({
+        toEmail: booking.clientEmail,
+        clientName: booking.clientName,
+        professionalName: professional.name,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+        cancelUrl,
+      }).then((result) => logNotification(booking.id, "EMAIL", result))
+    );
   }
 
   if (professional.notifyTeams) {
-    const result = await sendTeamsMessage({
-      webhookUrl: professional.teamsWebhookUrl,
-      title: `Nuevo turno: ${booking.clientName}`,
-      text: `${professional.serviceName} · ${dateLabel} a las ${timeLabel}. Tel: ${booking.clientPhone}`,
-    });
-    await logNotification(booking.id, "TEAMS", result);
+    tasks.push(
+      sendTeamsMessage({
+        webhookUrl: professional.teamsWebhookUrl,
+        title: `Nuevo turno: ${booking.clientName}`,
+        text: `${professional.serviceName} · ${dateLabel} a las ${timeLabel}. Tel: ${booking.clientPhone}`,
+      }).then((result) => logNotification(booking.id, "TEAMS", result))
+    );
   }
+
+  await Promise.allSettled(tasks);
 }
 
 export async function notifyBookingRescheduled(booking: Booking, professional: Professional) {
   const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
   const cancelUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/cancelar/${booking.cancelToken}`;
 
+  const tasks: Promise<unknown>[] = [];
+
   if (professional.notifyWhatsapp) {
-    const result = await sendBookingConfirmationWhatsApp({
-      toPhone: booking.clientPhone,
-      clientName: booking.clientName,
-      professionalName: professional.name,
-      serviceName: professional.serviceName,
-      dateLabel,
-      timeLabel,
-      cancelUrl,
-    });
-    await logNotification(booking.id, "WHATSAPP", result);
+    tasks.push(
+      sendBookingConfirmationWhatsApp({
+        toPhone: booking.clientPhone,
+        clientName: booking.clientName,
+        professionalName: professional.name,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+        cancelUrl,
+      }).then((result) => logNotification(booking.id, "WHATSAPP", result))
+    );
   }
 
   if (professional.notifyEmail && booking.clientEmail) {
-    const result = await sendBookingRescheduledEmail({
-      toEmail: booking.clientEmail,
-      clientName: booking.clientName,
-      professionalName: professional.name,
-      serviceName: professional.serviceName,
-      dateLabel,
-      timeLabel,
-      cancelUrl,
-    });
-    await logNotification(booking.id, "EMAIL", result);
+    tasks.push(
+      sendBookingRescheduledEmail({
+        toEmail: booking.clientEmail,
+        clientName: booking.clientName,
+        professionalName: professional.name,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+        cancelUrl,
+      }).then((result) => logNotification(booking.id, "EMAIL", result))
+    );
   }
 
   if (professional.notifyTeams) {
-    const result = await sendTeamsMessage({
-      webhookUrl: professional.teamsWebhookUrl,
-      title: `Turno reprogramado: ${booking.clientName}`,
-      text: `${professional.serviceName} · nueva fecha ${dateLabel} a las ${timeLabel}.`,
-    });
-    await logNotification(booking.id, "TEAMS", result);
+    tasks.push(
+      sendTeamsMessage({
+        webhookUrl: professional.teamsWebhookUrl,
+        title: `Turno reprogramado: ${booking.clientName}`,
+        text: `${professional.serviceName} · nueva fecha ${dateLabel} a las ${timeLabel}.`,
+      }).then((result) => logNotification(booking.id, "TEAMS", result))
+    );
   }
+
+  await Promise.allSettled(tasks);
 }
 
 export async function notifyBookingCancelled(booking: Booking, professional: Professional) {
   const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
 
+  const tasks: Promise<unknown>[] = [];
+
   if (professional.notifyWhatsapp) {
-    await logNotification(booking.id, "WHATSAPP", {
-      status: "SKIPPED",
-      reason: "No hay plantilla de WhatsApp aprobada para cancelaciones todavía (ver docs/whatsapp-template.md).",
-    });
+    tasks.push(
+      logNotification(booking.id, "WHATSAPP", {
+        status: "SKIPPED",
+        reason: "No hay plantilla de WhatsApp aprobada para cancelaciones todavía (ver docs/whatsapp-template.md).",
+      })
+    );
   }
 
   if (professional.notifyEmail && booking.clientEmail) {
-    const result = await sendBookingCancelledEmail({
-      toEmail: booking.clientEmail,
-      clientName: booking.clientName,
-      professionalName: professional.name,
-      serviceName: professional.serviceName,
-      dateLabel,
-      timeLabel,
-    });
-    await logNotification(booking.id, "EMAIL", result);
+    tasks.push(
+      sendBookingCancelledEmail({
+        toEmail: booking.clientEmail,
+        clientName: booking.clientName,
+        professionalName: professional.name,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+      }).then((result) => logNotification(booking.id, "EMAIL", result))
+    );
   }
 
   if (professional.notifyTeams) {
-    const result = await sendTeamsMessage({
-      webhookUrl: professional.teamsWebhookUrl,
-      title: `Turno cancelado: ${booking.clientName}`,
-      text: `${professional.serviceName} · era el ${dateLabel} a las ${timeLabel}.`,
-    });
-    await logNotification(booking.id, "TEAMS", result);
+    tasks.push(
+      sendTeamsMessage({
+        webhookUrl: professional.teamsWebhookUrl,
+        title: `Turno cancelado: ${booking.clientName}`,
+        text: `${professional.serviceName} · era el ${dateLabel} a las ${timeLabel}.`,
+      }).then((result) => logNotification(booking.id, "TEAMS", result))
+    );
   }
+
+  await Promise.allSettled(tasks);
 }
