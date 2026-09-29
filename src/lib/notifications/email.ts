@@ -95,3 +95,108 @@ export async function sendBookingCancelledEmail(
     html,
   });
 }
+
+/**
+ * Aviso al propio profesional (no al cliente) de un turno nuevo, reprogramado
+ * o cancelado. Antes de esto, si el profesional no tenía Teams configurado,
+ * la única forma de enterarse de un turno nuevo era entrar al Panel — ver
+ * agendate_ideas_originales_gap_analysis (68ZG6: "enviar alertas si hay
+ * modificaciones en horarios"). Se envía por el mismo canal de email que ya
+ * existe (Professional.email siempre está presente), sin agregar ninguna
+ * columna nueva a la base de datos: reutiliza el toggle notifyEmail que el
+ * profesional ya tiene en Configuración → Notificaciones.
+ */
+type OwnerNoticeParams = {
+  toEmail: string;
+  professionalName: string;
+  clientName: string;
+  clientPhone: string;
+  serviceName: string;
+  dateLabel: string;
+  timeLabel: string;
+};
+
+export async function sendOwnerNewBookingEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
+  const html = `
+    <p>Hola ${params.professionalName},</p>
+    <p>Tenés un turno nuevo: <strong>${params.serviceName}</strong> con <strong>${params.clientName}</strong>
+    (${params.clientPhone}).</p>
+    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
+  `;
+  return sendEmail({
+    toEmail: params.toEmail,
+    subject: `Nuevo turno: ${params.clientName} · ${params.dateLabel} ${params.timeLabel}`,
+    html,
+  });
+}
+
+export async function sendOwnerBookingRescheduledEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
+  const html = `
+    <p>Hola ${params.professionalName},</p>
+    <p>El turno de <strong>${params.clientName}</strong> (${params.clientPhone}) se reprogramó a:</p>
+    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
+  `;
+  return sendEmail({
+    toEmail: params.toEmail,
+    subject: `Turno reprogramado: ${params.clientName} · ${params.dateLabel} ${params.timeLabel}`,
+    html,
+  });
+}
+
+/**
+ * Resumen diario (ver src/lib/dailySummary.ts). Se envía una vez por día,
+ * distinto de los avisos por turno individual de arriba.
+ */
+export async function sendDailySummaryEmail(params: {
+  toEmail: string;
+  professionalName: string;
+  dateLabel: string;
+  panelUrl: string;
+  totalToday: number;
+  bookingsToday: Array<{ timeLabel: string; clientName: string; serviceName: string; status: string }>;
+  failedNotificationsYesterday: number;
+}): Promise<EmailSendResult> {
+  const STATUS_LABEL: Record<string, string> = { PENDING: "pendiente", CONFIRMED: "confirmado" };
+  const rows = params.bookingsToday
+    .map(
+      (b) =>
+        `<li><strong>${b.timeLabel}</strong> — ${b.clientName} (${b.serviceName}, ${STATUS_LABEL[b.status] ?? b.status})</li>`
+    )
+    .join("");
+
+  const alertHtml =
+    params.failedNotificationsYesterday > 0
+      ? `<p style="color:#b6382f;"><strong>Atención:</strong> ${params.failedNotificationsYesterday} notificación(es) a clientes no se pudieron enviar ayer. Revisá el Panel.</p>`
+      : "";
+
+  const html = `
+    <p>Hola ${params.professionalName},</p>
+    <p>Tu agenda de hoy (${params.dateLabel}):</p>
+    ${
+      params.totalToday === 0
+        ? "<p>No tenés turnos agendados para hoy.</p>"
+        : `<ul>${rows}</ul><p>${params.totalToday} turno(s) en total.</p>`
+    }
+    ${alertHtml}
+    <p><a href="${params.panelUrl}">Ver el Panel completo</a></p>
+  `;
+  return sendEmail({
+    toEmail: params.toEmail,
+    subject: params.totalToday === 0 ? `Hoy no tenés turnos (${params.dateLabel})` : `Tu agenda de hoy: ${params.totalToday} turno(s) (${params.dateLabel})`,
+    html,
+  });
+}
+
+export async function sendOwnerBookingCancelledEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
+  const html = `
+    <p>Hola ${params.professionalName},</p>
+    <p><strong>${params.clientName}</strong> (${params.clientPhone}) canceló su turno de
+    <strong>${params.serviceName}</strong> del ${params.dateLabel} a las ${params.timeLabel}.</p>
+    <p>Ese horario ya quedó libre en tu agenda.</p>
+  `;
+  return sendEmail({
+    toEmail: params.toEmail,
+    subject: `Turno cancelado: ${params.clientName} · ${params.dateLabel} ${params.timeLabel}`,
+    html,
+  });
+}

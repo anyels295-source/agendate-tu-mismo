@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getAvailableSlots } from "@/lib/availability";
+import { CalendarTokenExpiredError } from "@/lib/calendar/tokenManager";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -16,7 +17,11 @@ export async function GET(req: NextRequest) {
 
   const professional = await prisma.professional.findUnique({
     where: { slug },
-    include: { calendarConnections: true },
+    include: {
+      calendarConnections: {
+        where: { isActive: true },
+      },
+    },
   });
 
   if (!professional || !professional.active) {
@@ -65,6 +70,16 @@ export async function GET(req: NextRequest) {
       slots,
     });
   } catch (err) {
+    if (err instanceof CalendarTokenExpiredError) {
+      console.warn("Token de calendario expirado:", err.message);
+      return NextResponse.json(
+        {
+          error: "calendar_token_expired",
+          message: "La conexión con Google Calendar expiró o fue revocada. El profesional debe reconectar su calendario desde el panel de administración.",
+        },
+        { status: 409 }
+      );
+    }
     console.error("Error calculando disponibilidad:", err);
     return NextResponse.json({ error: "No se pudo calcular la disponibilidad en este momento." }, { status: 502 });
   }

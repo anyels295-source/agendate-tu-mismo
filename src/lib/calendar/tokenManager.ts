@@ -4,6 +4,18 @@ import { refreshGoogleAccessToken } from "./google";
 import { refreshOutlookAccessToken } from "./outlook";
 import type { CalendarConnection } from "@prisma/client";
 
+/**
+ * Error lanzado cuando el refresh token ya no es válido (revocado, expirado
+ * o excedió el límite de 50 tokens por usuario en Google).
+ * Las capas superiores pueden detectarlo para responder 401 en lugar de 502.
+ */
+export class CalendarTokenExpiredError extends Error {
+  constructor(public readonly connectionId: string, public readonly provider: string) {
+    super(`El token de ${provider} para la conexión ${connectionId} expiró o fue revocado. El profesional debe reconectar su calendario.`);
+    this.name = "CalendarTokenExpiredError";
+  }
+}
+
 const EXPIRY_SAFETY_MARGIN_MS = 2 * 60 * 1000; // renovar 2 minutos antes de que venza
 
 /**
@@ -20,10 +32,29 @@ export async function getValidAccessToken(connection: CalendarConnection): Promi
   }
 
   const refreshToken = decryptToken(connection.refreshTokenEnc);
-  const refreshed =
-    connection.provider === "GOOGLE"
-      ? await refreshGoogleAccessToken(refreshToken)
-      : await refreshOutlookAccessToken(refreshToken);
+
+  let refreshed: Awaited<ReturnType<typeof refreshGoogleAccessToken>>;
+  try {
+    refreshed =
+      connection.provider === "GOOGLE"
+        ? await refreshGoogleAccessToken(refreshToken)
+        : await refreshOutlookAccessToken(refreshToken);
+  } catch (err: unknown) {
+    // invalid_grant → el token ya no es válido, marcar la conexión como inactiva
+    const isInvalidGrant =
+      err instanceof Error &&
+      (err.message.includes("invalid_grant") ||
+        (err as { status?: number }).status === 400);
+
+    if (isInvalidGrant) {
+      await prisma.calendarConnection.update({
+        where: { id: connection.id },
+        data: { isActive: false },
+      });
+      throw new CalendarTokenExpiredError(connection.id, connection.provider);
+    }
+    throw err;
+  }
 
   await prisma.calendarConnection.update({
     where: { id: connection.id },

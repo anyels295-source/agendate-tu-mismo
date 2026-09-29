@@ -190,28 +190,28 @@ export default function ConfiguracionForm({ initial }: Props) {
         <div className="mb-4 text-[15px] font-bold text-[var(--ink3)]">Datos básicos</div>
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Nombre</label>
-            <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <label htmlFor="cf-name" className={labelClass}>Nombre</label>
+            <input id="cf-name" className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div>
-            <label className={labelClass}>Link de reserva (slug)</label>
-            <input className={inputClass} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+            <label htmlFor="cf-slug" className={labelClass}>Link de reserva (slug)</label>
+            <input id="cf-slug" className={inputClass} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
           </div>
           <div>
-            <label className={labelClass}>Nombre del servicio</label>
-            <input className={inputClass} value={form.serviceName} onChange={(e) => setForm({ ...form, serviceName: e.target.value })} />
+            <label htmlFor="cf-serviceName" className={labelClass}>Nombre del servicio</label>
+            <input id="cf-serviceName" className={inputClass} value={form.serviceName} onChange={(e) => setForm({ ...form, serviceName: e.target.value })} />
           </div>
           <div>
-            <label className={labelClass}>Duración (minutos)</label>
-            <input type="number" className={inputClass} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} />
+            <label htmlFor="cf-duration" className={labelClass}>Duración (minutos)</label>
+            <input id="cf-duration" type="number" className={inputClass} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} />
           </div>
           <div>
-            <label className={labelClass}>Colchón entre turnos (min)</label>
-            <input type="number" className={inputClass} value={form.bufferMinutes} onChange={(e) => setForm({ ...form, bufferMinutes: Number(e.target.value) })} />
+            <label htmlFor="cf-buffer" className={labelClass}>Colchón entre turnos (min)</label>
+            <input id="cf-buffer" type="number" className={inputClass} value={form.bufferMinutes} onChange={(e) => setForm({ ...form, bufferMinutes: Number(e.target.value) })} />
           </div>
           <div>
-            <label className={labelClass}>Anticipación mínima (horas)</label>
-            <input type="number" className={inputClass} value={form.minNoticeHours} onChange={(e) => setForm({ ...form, minNoticeHours: Number(e.target.value) })} />
+            <label htmlFor="cf-minNotice" className={labelClass}>Anticipación mínima (horas)</label>
+            <input id="cf-minNotice" type="number" className={inputClass} value={form.minNoticeHours} onChange={(e) => setForm({ ...form, minNoticeHours: Number(e.target.value) })} />
           </div>
         </div>
       </section>
@@ -220,8 +220,9 @@ export default function ConfiguracionForm({ initial }: Props) {
         <div className="mb-1 text-[15px] font-bold text-[var(--ink3)]">Zona horaria</div>
         <div className="mb-4 text-[12.5px] text-[var(--muted-nav)]">Los horarios se muestran a cada cliente en su hora local.</div>
         <div className="max-w-[320px]">
-          <label className={labelClass}>Zona horaria del negocio</label>
+          <label htmlFor="cf-timezone" className={labelClass}>Zona horaria del negocio</label>
           <select
+            id="cf-timezone"
             className={inputClass}
             value={form.timezone}
             onChange={(e) => setForm({ ...form, timezone: e.target.value })}

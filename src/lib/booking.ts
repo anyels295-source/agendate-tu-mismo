@@ -118,7 +118,7 @@ export async function createBooking(params: {
 export async function cancelBooking(cancelToken: string) {
   const booking = await prisma.booking.findUnique({
     where: { cancelToken },
-    include: { professional: { include: { calendarConnections: true } } },
+    include: { professional: { include: { calendarConnections: true } }, service: true },
   });
   if (!booking) {
     throw new AppError("Reserva no encontrada.");
@@ -151,7 +151,20 @@ export async function cancelBooking(cancelToken: string) {
     }
   }
 
-  return prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+  const cancelled = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+
+  // Hasta ahora, si el cliente cancelaba desde su propio link, el
+  // profesional no se enteraba de ninguna forma salvo entrando al Panel a
+  // mirar la agenda — ver agendate_ideas_originales_gap_analysis (68ZG6:
+  // "enviar alertas si hay modificaciones en horarios"). Se avisa acá igual
+  // que en la cancelación hecha desde el panel (adminSetBookingStatus más
+  // abajo), reutilizando notifyBookingCancelled.
+  await notifyBookingCancelled(cancelled, {
+    ...booking.professional,
+    serviceName: booking.service?.name ?? booking.professional.serviceName,
+  });
+
+  return cancelled;
 }
 
 /**

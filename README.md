@@ -23,6 +23,9 @@ más adelante para integrarse con Agente AgendaFácil.
 - Gestión de Servicios (nombre, duración y precio informativo) desde Configuración; el cliente elige entre ellos en la página pública.
 - Panel (`/admin`) con: Panel (métricas y próximos turnos), Agenda semanal, Reservas (buscador, filtros y acciones), Calendarios, y Configuración (datos básicos, horario, servicios, notificaciones).
 - Selector de profesional en el panel: una misma cuenta admin puede gestionar varios profesionales/integrantes del equipo, cada uno con su propio calendario, servicios y página de reserva.
+- Botón "Compartir por WhatsApp" en el Panel y en Reservas: abre WhatsApp con el link de reserva y un mensaje ya cargados, sin tener que copiar y pegar aparte.
+- Aviso por email al propio profesional (no solo al cliente) cuando hay un turno nuevo, reprogramado o cancelado — reutiliza el toggle de email de Configuración → Notificaciones, así se entera aunque no tenga Teams configurado.
+- Resumen diario automático por email (`/api/cron/daily-summary`, ver sección 8): la agenda del día, sin tener que entrar al Panel a buscarla.
 
 ## Qué NO incluye todavía (a propósito, para no demorar el piloto)
 
@@ -112,7 +115,29 @@ npm run dev
 - Ir a **Configuración** → definir horario de atención, duración del turno, anticipación mínima.
 - Compartir la página pública que aparece en **Reservas**: `/reservar/{tu-slug}`.
 
-## 7. Antes de pasar del piloto a producción
+## 7. Resumen diario automático
+
+`/api/cron/daily-summary` manda por email, a cada profesional activo con
+`notifyEmail` habilitado, la agenda del día (turnos de hoy, y si hubo algún
+aviso a un cliente que falló ayer). No requiere ninguna dependencia nueva ni
+IA — es la respuesta directa a que ambas ideas originales piden un
+resumen/reporte automático (ver `docs/Propuesta-funcionalidades-faltantes-MVP.docx`).
+
+Para que se dispare solo:
+
+1. Definir `CRON_SECRET` en `.env` (una palabra clave propia, igual que las demás).
+2. Al desplegar en Vercel, el archivo `vercel.json` ya deja configurado que
+   Vercel Cron llame a esta ruta todos los días a las 11:00 UTC (8:00 en
+   Uruguay) — Vercel agrega automáticamente el header `Authorization: Bearer
+   $CRON_SECRET` si la variable está configurada en el proyecto.
+3. Si se prefiere no depender de Vercel Cron (o mientras se prueba en
+   local), se puede llamar a mano o desde cualquier scheduler externo
+   (cron-job.org, n8n) con:
+   ```bash
+   curl -H "Authorization: Bearer $CRON_SECRET" https://tu-dominio/api/cron/daily-summary
+   ```
+
+## 8. Antes de pasar del piloto a producción
 
 - Reemplazar la autenticación de admin (hoy es 1 usuario por variables de entorno) por un modelo de usuarios real si se suma más de un profesional.
 - Servir la app por HTTPS (Vercel, Railway o similar) — Google y Microsoft no aceptan `http://` como redirect URI en producción.
@@ -134,11 +159,14 @@ src/
     notifications/          WhatsApp + email
     availability.ts         servicio de disponibilidad unificado (el núcleo)
     booking.ts              flujo de creación/cancelación de reservas
+    dailySummary.ts         cálculo del resumen diario (ver sección 7)
     auth.ts                 sesión de admin
 prisma/
   schema.prisma             modelo de datos
 docs/
   whatsapp-template.md      plantilla a aprobar en Meta
+  Propuesta-funcionalidades-faltantes-MVP.docx   gap analysis vs. ideas originales
 scripts/
   hash-password.ts          utilidad para generar ADMIN_PASSWORD_HASH
+vercel.json                 config de Vercel Cron (resumen diario)
 ```

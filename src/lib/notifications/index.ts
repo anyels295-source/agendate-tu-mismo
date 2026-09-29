@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { sendBookingConfirmationWhatsApp } from "./whatsapp";
-import { sendBookingConfirmationEmail, sendBookingRescheduledEmail, sendBookingCancelledEmail } from "./email";
+import {
+  sendBookingConfirmationEmail,
+  sendBookingRescheduledEmail,
+  sendBookingCancelledEmail,
+  sendOwnerNewBookingEmail,
+  sendOwnerBookingRescheduledEmail,
+  sendOwnerBookingCancelledEmail,
+} from "./email";
 import { sendTeamsMessage } from "./teams";
 import type { Booking, Professional } from "@prisma/client";
 import { DateTime } from "luxon";
@@ -18,6 +25,12 @@ import { DateTime } from "luxon";
  * contenido —fecha y hora del turno— sigue siendo válido); para
  * cancelaciones no hay plantilla aprobada todavía, así que ese envío queda
  * registrado como SKIPPED en vez de enviarse.
+ *
+ * Además de avisar al cliente, cada función manda una copia corta al propio
+ * profesional (a su Professional.email) cuando notifyEmail está activo — así
+ * se entera de un turno nuevo/reprogramado/cancelado aunque no tenga Teams
+ * configurado, en vez de tener que entrar al Panel para descubrirlo (ver
+ * agendate_ideas_originales_gap_analysis en memoria del proyecto).
  */
 
 function buildLabels(startTime: Date, timezone: string) {
@@ -86,6 +99,20 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
     );
   }
 
+  if (professional.notifyEmail) {
+    tasks.push(
+      sendOwnerNewBookingEmail({
+        toEmail: professional.email,
+        professionalName: professional.name,
+        clientName: booking.clientName,
+        clientPhone: booking.clientPhone,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+      }).then((result) => logNotification(booking.id, "EMAIL", result))
+    );
+  }
+
   await Promise.allSettled(tasks);
 }
 
@@ -133,6 +160,20 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
     );
   }
 
+  if (professional.notifyEmail) {
+    tasks.push(
+      sendOwnerBookingRescheduledEmail({
+        toEmail: professional.email,
+        professionalName: professional.name,
+        clientName: booking.clientName,
+        clientPhone: booking.clientPhone,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+      }).then((result) => logNotification(booking.id, "EMAIL", result))
+    );
+  }
+
   await Promise.allSettled(tasks);
 }
 
@@ -170,6 +211,20 @@ export async function notifyBookingCancelled(booking: Booking, professional: Pro
         title: `Turno cancelado: ${booking.clientName}`,
         text: `${professional.serviceName} · era el ${dateLabel} a las ${timeLabel}.`,
       }).then((result) => logNotification(booking.id, "TEAMS", result))
+    );
+  }
+
+  if (professional.notifyEmail) {
+    tasks.push(
+      sendOwnerBookingCancelledEmail({
+        toEmail: professional.email,
+        professionalName: professional.name,
+        clientName: booking.clientName,
+        clientPhone: booking.clientPhone,
+        serviceName: professional.serviceName,
+        dateLabel,
+        timeLabel,
+      }).then((result) => logNotification(booking.id, "EMAIL", result))
     );
   }
 

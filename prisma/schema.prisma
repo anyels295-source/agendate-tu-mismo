@@ -104,6 +104,9 @@ model CalendarConnection {
   accessTokenEnc     String
   refreshTokenEnc    String
   expiresAt          DateTime
+  // false cuando Google/Outlook devuelve invalid_grant (token revocado o expirado).
+  // El profesional debe desconectar y reconectar su calendario desde el admin.
+  isActive           Boolean          @default(true)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 

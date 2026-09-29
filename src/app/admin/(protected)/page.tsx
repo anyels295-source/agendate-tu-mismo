@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
 import type { WorkingHours } from "@/lib/types";
 import CopyLinkButton from "@/components/admin/CopyLinkButton";
+import ShareWhatsAppButton from "@/components/admin/ShareWhatsAppButton";
 
 export const dynamic = "force-dynamic";
 
@@ -252,7 +253,12 @@ export default async function PanelPage() {
           <div className="mb-0.5 text-[15px] font-bold">Tu página de reserva</div>
           <div className="text-[13px] opacity-85">{bookingUrlDisplay}</div>
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex flex-wrap gap-2.5">
+          <ShareWhatsAppButton
+            url={bookingUrl}
+            professionalName={professional.name}
+            className="flex items-center gap-1.5 rounded-lg bg-[#25d366] px-[15px] py-[9px] text-[13px] font-bold text-white"
+          />
           <CopyLinkButton url={bookingUrl} className="rounded-lg bg-white/15 px-[15px] py-[9px] text-[13px] font-semibold text-white" />
           <a href={bookingUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-white px-[15px] py-[9px] text-[13px] font-bold text-[var(--brand-dk)]">
             Ver página

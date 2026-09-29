@@ -30,9 +30,12 @@ html {
   --ink3: #22314f;
   --ink4: #4a5878;
 
-  --muted: #8b97ae;
-  --muted2: #9aa6bd;
-  --muted3: #b3bccd;
+  /* Oscurecidos respecto al mockup original (#8b97ae/#9aa6bd/#b3bccd) para
+     cumplir WCAG 2.1 AA (>=4.5:1) sobre --surface/--subtle/--page; ver
+     auditoría QA de accesibilidad. */
+  --muted: #4c586d;
+  --muted2: #576785;
+  --muted3: #627395;
   --muted-nav: #6b7280;
 
   --brand: #215a8f;
@@ -58,9 +61,9 @@ html {
   --ink3: #332b1d;
   --ink4: #5c5140;
 
-  --muted: #9a8d78;
-  --muted2: #a89b85;
-  --muted3: #c0b5a1;
+  --muted: #5f5647;
+  --muted2: #716551;
+  --muted3: #817256;
   --muted-nav: #7a6e5c;
 
   --brand: #a8622f;
@@ -86,9 +89,9 @@ html {
   --ink3: #1d2e23;
   --ink4: #43594c;
 
-  --muted: #7d9086;
-  --muted2: #8ba095;
-  --muted3: #aec0b5;
+  --muted: #4d5a53;
+  --muted2: #596c62;
+  --muted3: #5f7b6a;
   --muted-nav: #5f7469;
 
   --brand: #1f6b46;
@@ -118,7 +121,7 @@ html {
      --muted-nav, que no alcanza el contraste AA sobre --surface en este tema. */
   --muted: #8f9bb2;
   --muted2: #7f8ba3;
-  --muted3: #6c778d;
+  --muted3: #8b94a6;
   --muted-nav: #b6c1d4;
 
   --brand: #3d8ecc;

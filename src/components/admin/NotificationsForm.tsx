@@ -67,8 +67,9 @@ export default function NotificationsForm({
 
       {form.notifyTeams && (
         <div className="mb-[18px]">
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--muted-nav)]">Webhook de Microsoft Teams</label>
+          <label htmlFor="nf-teamsWebhook" className="mb-1.5 block text-[12.5px] font-semibold text-[var(--muted-nav)]">Webhook de Microsoft Teams</label>
           <input
+            id="nf-teamsWebhook"
             value={form.teamsWebhookUrl ?? ""}
             onChange={(e) => setForm({ ...form, teamsWebhookUrl: e.target.value })}
             placeholder="https://…webhook.office.com/…"
