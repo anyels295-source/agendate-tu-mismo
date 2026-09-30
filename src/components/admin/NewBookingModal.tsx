@@ -20,6 +20,7 @@ type ServiceOption = { id: string; name: string; durationMinutes: number; price:
  */
 export default function NewBookingModal({
   professionalSlug,
+  initialDateISO,
   onClose,
   onDone,
 }: {

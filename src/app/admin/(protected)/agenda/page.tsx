@@ -106,23 +106,24 @@ export default async function AgendaPage({
           <NewBookingButton professionalSlug={professional.slug} />
           <div className="flex items-center gap-2">
             <Link
-            href={`/admin/agenda?offset=${offset - 1}`}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
-          >
-            <IconChevronLeft />
-          </Link>
-          <Link
-            href="/admin/agenda"
-            className="rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] px-[15px] py-2 text-[13px] font-semibold text-[var(--ink2)]"
-          >
-            Hoy
-          </Link>
-          <Link
-            href={`/admin/agenda?offset=${offset + 1}`}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
-          >
-            <IconChevronRight />
-          </Link>
+              href={`/admin/agenda?offset=${offset - 1}`}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
+            >
+              <IconChevronLeft />
+            </Link>
+            <Link
+              href="/admin/agenda"
+              className="rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] px-[15px] py-2 text-[13px] font-semibold text-[var(--ink2)]"
+            >
+              Hoy
+            </Link>
+            <Link
+              href={`/admin/agenda?offset=${offset + 1}`}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
+            >
+              <IconChevronRight />
+            </Link>
+          </div>
         </div>
       </div>
 
