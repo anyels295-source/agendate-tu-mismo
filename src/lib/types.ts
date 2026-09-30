@@ -59,3 +59,17 @@ export interface CalendarConnector {
 
   refreshAccessToken(refreshToken: string): Promise<CalendarConnectorTokens>;
 }
+
+export const WEEKDAY_KEYS: (keyof WorkingHours)[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+export function workingMinutesForWeek(workingHours: WorkingHours): number {
+  return WEEKDAY_KEYS.reduce((total, key) => {
+    const ranges = workingHours[key] ?? [];
+    const dayMinutes = ranges.reduce((sum, r) => {
+      const [sh, sm] = r.start.split(":").map(Number);
+      const [eh, em] = r.end.split(":").map(Number);
+      return sum + (eh * 60 + em - (sh * 60 + sm));
+    }, 0);
+    return total + dayMinutes;
+  }, 0);
+}

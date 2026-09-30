@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
 import type { WorkingHours } from "@/lib/types";
 import AgendaWeekGrid, { type AgendaEvent } from "@/components/admin/AgendaWeekGrid";
+import NewBookingButton from "@/components/admin/NewBookingButton";
 import { IconChevronLeft, IconChevronRight } from "@/components/admin/icons";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +83,7 @@ export default async function AgendaPage({
     return {
       label: DAY_LABELS[i],
       dateNum: day.day,
+      dateISO: day.toISODate()!,
       isToday: day.hasSame(now, "day"),
       events,
     };
@@ -100,8 +102,10 @@ export default async function AgendaPage({
             {startOfWeek.toFormat("d LLL")} – {endOfWeek.minus({ days: 1 }).toFormat("d LLL yyyy")}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
+        <div className="flex flex-wrap items-center gap-4">
+          <NewBookingButton professionalSlug={professional.slug} />
+          <div className="flex items-center gap-2">
+            <Link
             href={`/admin/agenda?offset=${offset - 1}`}
             className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
           >

@@ -45,6 +45,9 @@ export async function GET(req: NextRequest) {
         totalToday: summary.totalToday,
         bookingsToday: summary.bookingsToday,
         failedNotificationsYesterday: summary.failedNotificationsYesterday,
+        bookingsThisWeekCount: summary.bookingsThisWeekCount,
+        occupancyThisWeek: summary.occupancyThisWeek,
+        cancelledThisMonthCount: summary.cancelledThisMonthCount,
       });
     })
   );

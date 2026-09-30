@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import RescheduleModal from "./RescheduleModal";
 import ConfirmDialog from "./ConfirmDialog";
+import NewBookingModal from "./NewBookingModal";
 import { IconCalendarSmall, IconClock, IconWhatsapp, IconClose } from "./icons";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 
@@ -21,7 +22,7 @@ export type AgendaEvent = {
   height: number;
 };
 
-type Day = { label: string; dateNum: number; isToday: boolean; events: AgendaEvent[] };
+type Day = { label: string; dateNum: number; dateISO: string; isToday: boolean; events: AgendaEvent[] };
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; bar: string; fg: string }> = {
   CONFIRMED: { bg: "#e4f6ec", border: "#a8e0bd", bar: "#1a7d45", fg: "#166b3b" },
@@ -108,13 +109,14 @@ export default function AgendaWeekGrid({
   const [detail, setDetail] = useState<AgendaEvent | null>(null);
   const [showReschedule, setShowReschedule] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [newBookingDay, setNewBookingDay] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   // El reschedule modal y el diálogo de confirmación manejan su propio Escape;
   // este solo cierra el detalle cuando ninguno de esos dos está abierto encima.
   useEscapeKey(() => {
-    if (showReschedule || confirmCancel) return;
+    if (showReschedule || confirmCancel || newBookingDay) return;
     if (detail) setDetail(null);
   });
 
@@ -185,7 +187,11 @@ export default function AgendaWeekGrid({
         {days.map((d) => (
           <div
             key={d.label}
-            className="relative border-r border-[var(--line3)]"
+            className="relative border-r border-[var(--line3)] cursor-pointer transition-colors hover:bg-[var(--line3)]/30"
+            onClick={(e) => {
+              if (e.target !== e.currentTarget) return;
+              setNewBookingDay(d.dateISO);
+            }}
             style={{
               background: `repeating-linear-gradient(var(--surface), var(--surface) ${rowHeight - 1}px, var(--line3) ${rowHeight - 1}px, var(--line3) ${rowHeight}px)`,
             }}
@@ -341,6 +347,19 @@ export default function AgendaWeekGrid({
           onDone={(message) => {
             setShowReschedule(false);
             setDetail(null);
+            setToast(message);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {newBookingDay && (
+        <NewBookingModal
+          professionalSlug={professionalSlug}
+          initialDateISO={newBookingDay}
+          onClose={() => setNewBookingDay(null)}
+          onDone={(message) => {
+            setNewBookingDay(null);
             setToast(message);
             router.refresh();
           }}

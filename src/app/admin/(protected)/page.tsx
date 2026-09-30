@@ -1,13 +1,12 @@
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
-import type { WorkingHours } from "@/lib/types";
+import { type WorkingHours, WEEKDAY_KEYS, workingMinutesForWeek } from "@/lib/types";
 import CopyLinkButton from "@/components/admin/CopyLinkButton";
 import ShareWhatsAppButton from "@/components/admin/ShareWhatsAppButton";
 
 export const dynamic = "force-dynamic";
 
-const WEEKDAY_KEYS: (keyof WorkingHours)[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 const NOTIF_CHANNEL_LABEL: Record<string, string> = {
@@ -15,19 +14,6 @@ const NOTIF_CHANNEL_LABEL: Record<string, string> = {
   EMAIL: "Email",
   TEAMS: "Teams",
 };
-
-function workingMinutesForWeek(workingHours: WorkingHours): number {
-  return WEEKDAY_KEYS.reduce((total, key) => {
-    const ranges = workingHours[key] ?? [];
-    const dayMinutes = ranges.reduce((sum, r) => {
-      const [sh, sm] = r.start.split(":").map(Number);
-      const [eh, em] = r.end.split(":").map(Number);
-      return sum + (eh * 60 + em - (sh * 60 + sm));
-    }, 0);
-    return total + dayMinutes;
-  }, 0);
-}
-
 function trendBadge(current: number, previous: number, invertColor = false) {
   if (previous === 0) return { trend: null as string | null, up: true };
   const delta = Math.round(((current - previous) / previous) * 100);

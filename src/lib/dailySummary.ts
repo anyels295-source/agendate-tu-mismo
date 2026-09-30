@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import type { Professional } from "@prisma/client";
+import { type WorkingHours, workingMinutesForWeek } from "@/lib/types";
 
 /**
  * Resumen diario de la agenda de un profesional, para mandar por email cada
@@ -28,6 +29,9 @@ export type DailySummary = {
   }>;
   totalToday: number;
   failedNotificationsYesterday: number;
+  bookingsThisWeekCount: number;
+  occupancyThisWeek: number;
+  cancelledThisMonthCount: number;
 };
 
 export async function buildDailySummary(professional: Professional, now: DateTime): Promise<DailySummary> {
@@ -51,6 +55,35 @@ export async function buildDailySummary(professional: Professional, now: DateTim
     where: { status: "FAILED", sentAt: { gte: failedSince }, booking: { professionalId: professional.id } },
   });
 
+  const startOfWeek = today.startOf("week");
+  const endOfWeek = today.endOf("week");
+  const startOfMonth = today.startOf("month");
+  const endOfMonth = today.endOf("month");
+
+  const rangeStart = DateTime.min(startOfWeek, startOfMonth);
+
+  const bookingsRange = await prisma.booking.findMany({
+    where: {
+      professionalId: professional.id,
+      startTime: { gte: rangeStart.toJSDate(), lte: endOfMonth.toJSDate() },
+    },
+    include: { service: true },
+    orderBy: { startTime: "asc" },
+  });
+
+  const isCountable = (status: string) => status === "CONFIRMED" || status === "COMPLETED";
+  const inRange = (d: Date, from: DateTime, to: DateTime) => {
+    const dt = DateTime.fromJSDate(d).setZone(tz);
+    return dt >= from && dt <= to;
+  };
+
+  const thisWeek = bookingsRange.filter((b) => isCountable(b.status) && inRange(b.startTime, startOfWeek, endOfWeek));
+  const cancelledThisMonth = bookingsRange.filter((b) => b.status === "CANCELLED" && inRange(b.startTime, startOfMonth, endOfMonth));
+
+  const minutesOf = (list: typeof bookingsRange) => list.reduce((sum, b) => sum + (b.endTime.getTime() - b.startTime.getTime()) / 60000, 0);
+  const availableMinutes = workingMinutesForWeek(professional.workingHours as unknown as WorkingHours);
+  const occupancyThisWeek = availableMinutes > 0 ? Math.min(100, Math.round((minutesOf(thisWeek) / availableMinutes) * 100)) : 0;
+
   return {
     professional,
     dateLabel: today.setLocale("es").toFormat("cccc d 'de' LLLL"),
@@ -64,5 +97,8 @@ export async function buildDailySummary(professional: Professional, now: DateTim
     })),
     totalToday: bookings.length,
     failedNotificationsYesterday,
+    bookingsThisWeekCount: thisWeek.length,
+    occupancyThisWeek,
+    cancelledThisMonthCount: cancelledThisMonth.length,
   };
 }

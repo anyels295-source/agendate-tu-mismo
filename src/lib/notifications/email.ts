@@ -155,6 +155,9 @@ export async function sendDailySummaryEmail(params: {
   totalToday: number;
   bookingsToday: Array<{ timeLabel: string; clientName: string; serviceName: string; status: string }>;
   failedNotificationsYesterday: number;
+  bookingsThisWeekCount: number;
+  occupancyThisWeek: number;
+  cancelledThisMonthCount: number;
 }): Promise<EmailSendResult> {
   const STATUS_LABEL: Record<string, string> = { PENDING: "pendiente", CONFIRMED: "confirmado" };
   const rows = params.bookingsToday
@@ -177,6 +180,14 @@ export async function sendDailySummaryEmail(params: {
         ? "<p>No tenés turnos agendados para hoy.</p>"
         : `<ul>${rows}</ul><p>${params.totalToday} turno(s) en total.</p>`
     }
+    
+    <h3>Resumen de la semana</h3>
+    <ul>
+      <li><strong>Turnos confirmados esta semana:</strong> ${params.bookingsThisWeekCount}</li>
+      <li><strong>Ocupación semanal:</strong> ${params.occupancyThisWeek}%</li>
+      <li><strong>Cancelaciones este mes:</strong> ${params.cancelledThisMonthCount}</li>
+    </ul>
+
     ${alertHtml}
     <p><a href="${params.panelUrl}">Ver el Panel completo</a></p>
   `;

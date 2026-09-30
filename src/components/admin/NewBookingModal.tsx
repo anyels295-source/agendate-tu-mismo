@@ -24,6 +24,7 @@ export default function NewBookingModal({
   onDone,
 }: {
   professionalSlug: string;
+  initialDateISO?: string;
   onClose: () => void;
   onDone: (message: string) => void;
 }) {
@@ -89,8 +90,13 @@ export default function NewBookingModal({
   const days = useMemo(() => Array.from(slotsByDay.keys()).sort().slice(0, 6), [slotsByDay]);
 
   useEffect(() => {
-    if (!selectedDay && days.length > 0) setSelectedDay(days[0]);
-  }, [days, selectedDay]);
+    if (selectedDay) return;
+    if (initialDateISO && days.includes(initialDateISO)) {
+      setSelectedDay(initialDateISO);
+    } else if (days.length > 0) {
+      setSelectedDay(days[0]);
+    }
+  }, [days, selectedDay, initialDateISO]);
 
   async function submit() {
     if (!selectedSlot || !data) return;
