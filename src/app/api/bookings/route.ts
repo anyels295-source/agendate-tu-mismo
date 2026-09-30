@@ -10,8 +10,16 @@ const bookingSchema = z
     slug: z.string().min(1),
     serviceId: z.string().min(1).optional(),
     clientName: z.string().min(2, "El nombre es obligatorio."),
-    clientEmail: z.string().email().optional().or(z.literal("")),
-    clientPhone: z.string().min(8, "Ingresá un teléfono válido con código de país, ej. +598 9x xxx xxx."),
+    // El email es el contacto obligatorio; WhatsApp quedó opcional — si el
+    // cliente lo completa, además se le avisa por ahí. Ver
+    // agendate_ideas_originales_gap_analysis en memoria del proyecto,
+    // pedido el 2026-08-24.
+    clientEmail: z.string().min(1, "El email es obligatorio.").email("Ingresá un email válido."),
+    clientPhone: z
+      .string()
+      .min(8, "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.")
+      .optional()
+      .or(z.literal("")),
     startISO: z.string().min(1),
     endISO: z.string().min(1),
     notes: z.string().max(500).optional(),
@@ -35,8 +43,8 @@ export async function POST(req: NextRequest) {
       professionalId: professional.id,
       serviceId: parsed.data.serviceId,
       clientName: parsed.data.clientName,
-      clientEmail: parsed.data.clientEmail || undefined,
-      clientPhone: parsed.data.clientPhone,
+      clientEmail: parsed.data.clientEmail,
+      clientPhone: parsed.data.clientPhone || undefined,
       startISO: parsed.data.startISO,
       endISO: parsed.data.endISO,
       notes: parsed.data.notes,

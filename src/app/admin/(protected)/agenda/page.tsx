@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
 import type { WorkingHours } from "@/lib/types";
 import AgendaWeekGrid, { type AgendaEvent } from "@/components/admin/AgendaWeekGrid";
+import AgendaDateJump from "@/components/admin/AgendaDateJump";
 import NewBookingButton from "@/components/admin/NewBookingButton";
 import { IconChevronLeft, IconChevronRight } from "@/components/admin/icons";
 
@@ -22,15 +23,29 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ offset?: string }>;
+  searchParams: Promise<{ offset?: string; date?: string }>;
 }) {
-  const { offset: offsetParam } = await searchParams;
-  const offset = Number(offsetParam ?? "0") || 0;
+  const { offset: offsetParam, date: dateParam } = await searchParams;
 
   const professional = await getActiveProfessional();
   const tz = professional.timezone;
   const now = DateTime.now().setZone(tz);
-  const startOfWeek = now.startOf("week").plus({ weeks: offset });
+  const currentWeekStart = now.startOf("week");
+
+  // Se puede navegar tanto con las flechas prev/next (?offset=) como
+  // saltando directamente a una fecha con el selector de calendario
+  // (?date=YYYY-MM-DD). Cualquiera de las dos formas termina resolviéndose
+  // a un único "offset" en semanas, así los links de flechas/"Hoy" siguen
+  // funcionando sin importar cómo se llegó a la vista actual.
+  let startOfWeek = currentWeekStart;
+  if (dateParam) {
+    const parsed = DateTime.fromISO(dateParam, { zone: tz });
+    if (parsed.isValid) startOfWeek = parsed.startOf("week");
+  } else {
+    const offsetNum = Number(offsetParam ?? "0") || 0;
+    startOfWeek = currentWeekStart.plus({ weeks: offsetNum });
+  }
+  const offset = Math.round(startOfWeek.diff(currentWeekStart, "weeks").weeks);
   const endOfWeek = startOfWeek.plus({ days: 7 });
 
   const bookings = await prisma.booking.findMany({
@@ -123,6 +138,7 @@ export default async function AgendaPage({
             >
               <IconChevronRight />
             </Link>
+            <AgendaDateJump currentDate={startOfWeek.toISODate()!} />
           </div>
         </div>
       </div>

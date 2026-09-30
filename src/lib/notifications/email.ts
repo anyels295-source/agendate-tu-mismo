@@ -110,17 +110,22 @@ type OwnerNoticeParams = {
   toEmail: string;
   professionalName: string;
   clientName: string;
-  clientPhone: string;
+  /** Opcional: el cliente puede no haber dejado WhatsApp. */
+  clientPhone: string | null;
   serviceName: string;
   dateLabel: string;
   timeLabel: string;
 };
 
+/** "(+598 9x xxx xxx)" si hay teléfono, o nada si el cliente no dejó WhatsApp. */
+function phoneSuffix(clientPhone: string | null): string {
+  return clientPhone ? ` (${clientPhone})` : "";
+}
+
 export async function sendOwnerNewBookingEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
   const html = `
     <p>Hola ${params.professionalName},</p>
-    <p>Tenés un turno nuevo: <strong>${params.serviceName}</strong> con <strong>${params.clientName}</strong>
-    (${params.clientPhone}).</p>
+    <p>Tenés un turno nuevo: <strong>${params.serviceName}</strong> con <strong>${params.clientName}</strong>${phoneSuffix(params.clientPhone)}.</p>
     <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
   `;
   return sendEmail({
@@ -133,7 +138,7 @@ export async function sendOwnerNewBookingEmail(params: OwnerNoticeParams): Promi
 export async function sendOwnerBookingRescheduledEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
   const html = `
     <p>Hola ${params.professionalName},</p>
-    <p>El turno de <strong>${params.clientName}</strong> (${params.clientPhone}) se reprogramó a:</p>
+    <p>El turno de <strong>${params.clientName}</strong>${phoneSuffix(params.clientPhone)} se reprogramó a:</p>
     <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
   `;
   return sendEmail({
@@ -201,7 +206,7 @@ export async function sendDailySummaryEmail(params: {
 export async function sendOwnerBookingCancelledEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
   const html = `
     <p>Hola ${params.professionalName},</p>
-    <p><strong>${params.clientName}</strong> (${params.clientPhone}) canceló su turno de
+    <p><strong>${params.clientName}</strong>${phoneSuffix(params.clientPhone)} canceló su turno de
     <strong>${params.serviceName}</strong> del ${params.dateLabel} a las ${params.timeLabel}.</p>
     <p>Ese horario ya quedó libre en tu agenda.</p>
   `;

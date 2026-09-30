@@ -104,8 +104,12 @@ model CalendarConnection {
   accessTokenEnc     String
   refreshTokenEnc    String
   expiresAt          DateTime
-  // false cuando Google/Outlook devuelve invalid_grant (token revocado o expirado).
-  // El profesional debe desconectar y reconectar su calendario desde el admin.
+  // Se pone en `false` cuando el refresh token queda inválido (revocado o
+  // vencido más allá de lo renovable) — ver tokenManager.ts, que ya
+  // escribía este campo pero nunca se había agregado al schema, lo que
+  // rompía la build (route.ts de availability lo usa para no contar una
+  // conexión rota como "calendario disponible"). Default true: todas las
+  // conexiones existentes se consideran activas al migrar.
   isActive           Boolean          @default(true)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
@@ -120,8 +124,17 @@ model Booking {
   serviceId        String?
   service          Service?          @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   clientName       String
+  // El email pasó a ser el dato de contacto obligatorio (se exige en el
+  // formulario/API, no acá) porque siempre hace falta un canal de contacto
+  // confiable; WhatsApp quedó opcional — si el cliente lo completa, además
+  // se le avisa por ahí. clientPhone se afloja a nullable en vez de
+  // clientEmail pasar a NOT NULL porque ya existen reservas reales (y datos
+  // de demo) con email vacío: forzar NOT NULL ahí rompería la migración o
+  // corrompería datos históricos con un valor inventado. Ver
+  // agendate_ideas_originales_gap_analysis en memoria del proyecto, pedido
+  // el 2026-08-24.
   clientEmail      String?
-  clientPhone      String
+  clientPhone      String?
   startTime        DateTime
   endTime          DateTime
   status           BookingStatus     @default(PENDING)

@@ -18,7 +18,8 @@ export async function createBooking(params: {
   serviceId?: string;
   clientName: string;
   clientEmail?: string;
-  clientPhone: string;
+  /** Opcional: el email es el contacto obligatorio, WhatsApp es un canal extra. */
+  clientPhone?: string;
   startISO: string;
   endISO: string;
   notes?: string;
@@ -75,7 +76,7 @@ export async function createBooking(params: {
 
   try {
     const accessToken = await getValidAccessToken(bookingConnection);
-    const eventDescription = `Reserva creada vía Agendate Tú Mismo.\nCliente: ${params.clientName}\nTeléfono: ${params.clientPhone}${params.notes ? `\nNotas: ${params.notes}` : ""}`;
+    const eventDescription = `Reserva creada vía Agendate Tú Mismo.\nCliente: ${params.clientName}${params.clientPhone ? `\nTeléfono: ${params.clientPhone}` : ""}${params.notes ? `\nNotas: ${params.notes}` : ""}`;
 
     const { eventId } =
       bookingConnection.provider === "GOOGLE"
@@ -256,7 +257,7 @@ export async function rescheduleBooking(params: {
     const connection = professional.calendarConnections.find((c) => c.provider === booking.calendarProvider);
     if (connection) {
       const accessToken = await getValidAccessToken(connection);
-      const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}\nTeléfono: ${booking.clientPhone}`;
+      const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}${booking.clientPhone ? `\nTeléfono: ${booking.clientPhone}` : ""}`;
 
       if (booking.calendarProvider === "GOOGLE") {
         await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId: booking.externalEventId });

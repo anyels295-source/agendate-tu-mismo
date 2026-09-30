@@ -9,7 +9,8 @@ import { IconSearch, IconDots, IconReprogramar, IconCheck, IconNoShow, IconClose
 export type BookingRow = {
   id: string;
   clientName: string;
-  clientPhone: string;
+  /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
+  clientPhone: string | null;
   serviceName: string;
   dateLabel: string;
   timeLabel: string;
@@ -56,7 +57,7 @@ function exportCsv(rows: BookingRow[]) {
   const header = ["Fecha", "Hora", "Cliente", "Teléfono", "Servicio", "Estado"].map(csvField).join(",");
   const body = rows
     .map((r) =>
-      [r.dateLabel, r.timeLabel, r.clientName, r.clientPhone, r.serviceName, STATUS_META[r.status]?.label ?? r.status]
+      [r.dateLabel, r.timeLabel, r.clientName, r.clientPhone ?? "", r.serviceName, STATUS_META[r.status]?.label ?? r.status]
         .map(csvField)
         .join(",")
     )
@@ -92,7 +93,7 @@ export default function BookingsTable({
     const query = q.trim().toLowerCase();
     return rows.filter((r) => {
       const okFilter = filter === "all" || r.status === filter;
-      const okQuery = !query || r.clientName.toLowerCase().includes(query) || r.clientPhone.includes(query);
+      const okQuery = !query || r.clientName.toLowerCase().includes(query) || (r.clientPhone ?? "").includes(query);
       return okFilter && okQuery;
     });
   }, [rows, q, filter]);
@@ -198,10 +199,10 @@ export default function BookingsTable({
                 </div>
                 <div className="min-w-0">
                   <div className="truncate font-semibold text-[var(--ink2)]">{b.clientName}</div>
-                  <div className="truncate text-[12px] text-[var(--muted-nav)] sm:hidden">{b.clientPhone}</div>
+                  <div className="truncate text-[12px] text-[var(--muted-nav)] sm:hidden">{b.clientPhone ?? "Sin WhatsApp"}</div>
                 </div>
               </div>
-              <div className="hidden text-[#5a6884] sm:block">{b.clientPhone}</div>
+              <div className="hidden text-[#5a6884] sm:block">{b.clientPhone ?? "—"}</div>
               <div>
                 <span
                   className="inline-block whitespace-nowrap rounded-full px-[10px] py-1 text-[11.5px] font-bold"

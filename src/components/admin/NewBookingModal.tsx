@@ -107,8 +107,13 @@ export default function NewBookingModal({
       setFormError("Ingresá el nombre del cliente.");
       return;
     }
-    if (form.clientPhone.trim().length < 8) {
-      setFormError("Ingresá un teléfono válido con código de país, ej. +598 9x xxx xxx.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim())) {
+      setFormError("Ingresá un email válido.");
+      return;
+    }
+    // El WhatsApp es opcional, pero si se completa que sea algo razonable.
+    if (form.clientPhone.trim() && form.clientPhone.trim().length < 8) {
+      setFormError("Si ingresás WhatsApp, poné uno válido con código de país, ej. +598 9x xxx xxx.");
       return;
     }
 
@@ -120,8 +125,8 @@ export default function NewBookingModal({
         body: JSON.stringify({
           serviceId: selectedServiceId ?? undefined,
           clientName: form.clientName.trim(),
-          clientPhone: form.clientPhone.trim(),
-          clientEmail: form.clientEmail.trim() || undefined,
+          clientPhone: form.clientPhone.trim() || undefined,
+          clientEmail: form.clientEmail.trim(),
           notes: form.notes.trim() || undefined,
           startISO: selectedSlot.startISO,
           endISO: selectedSlot.endISO,
@@ -254,23 +259,24 @@ export default function NewBookingModal({
                   />
                 </div>
                 <div>
-                  <label htmlFor="nb-clientPhone" className="mb-1 block text-[12px] font-semibold text-[var(--muted-nav)]">WhatsApp *</label>
+                  <label htmlFor="nb-clientEmail" className="mb-1 block text-[12px] font-semibold text-[var(--muted-nav)]">Email *</label>
+                  <input
+                    id="nb-clientEmail"
+                    type="email"
+                    className="w-full rounded-[10px] border-[1.5px] border-[var(--line-in)] px-3 py-2.5 text-[14px]"
+                    value={form.clientEmail}
+                    onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
+                    placeholder="cliente@email.com"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="nb-clientPhone" className="mb-1 block text-[12px] font-semibold text-[var(--muted-nav)]">WhatsApp (opcional)</label>
                   <input
                     id="nb-clientPhone"
                     className="w-full rounded-[10px] border-[1.5px] border-[var(--line-in)] px-3 py-2.5 text-[14px]"
                     value={form.clientPhone}
                     onChange={(e) => setForm({ ...form, clientPhone: e.target.value })}
                     placeholder="+598 9x xxx xxx"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="nb-clientEmail" className="mb-1 block text-[12px] font-semibold text-[var(--muted-nav)]">Email (opcional)</label>
-                  <input
-                    id="nb-clientEmail"
-                    className="w-full rounded-[10px] border-[1.5px] border-[var(--line-in)] px-3 py-2.5 text-[14px]"
-                    value={form.clientEmail}
-                    onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
-                    placeholder="cliente@email.com"
                   />
                 </div>
                 <div>

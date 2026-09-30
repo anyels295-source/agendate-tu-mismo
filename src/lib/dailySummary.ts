@@ -22,7 +22,7 @@ export type DailySummary = {
   bookingsToday: Array<{
     id: string;
     clientName: string;
-    clientPhone: string;
+    clientPhone: string | null;
     timeLabel: string;
     serviceName: string;
     status: string;

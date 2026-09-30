@@ -5,13 +5,14 @@ import { useState } from "react";
 import RescheduleModal from "./RescheduleModal";
 import ConfirmDialog from "./ConfirmDialog";
 import NewBookingModal from "./NewBookingModal";
-import { IconCalendarSmall, IconClock, IconWhatsapp, IconClose } from "./icons";
+import { IconCalendarSmall, IconClock, IconWhatsapp, IconClose, IconSearch } from "./icons";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 
 export type AgendaEvent = {
   id: string;
   clientName: string;
-  phone: string;
+  /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
+  phone: string | null;
   serviceName: string;
   status: string;
   statusLabel: string;
@@ -37,6 +38,21 @@ const STATUS_BADGE: Record<string, { bg: string; fg: string }> = {
   COMPLETED: { bg: "#e7effb", fg: "#215a8f" },
   NO_SHOW: { bg: "#fbe7e7", fg: "#b6382f" },
 };
+
+const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "ALL", label: "Todos los estados" },
+  { value: "PENDING", label: "Pendiente" },
+  { value: "CONFIRMED", label: "Confirmada" },
+  { value: "COMPLETED", label: "Completada" },
+  { value: "NO_SHOW", label: "Ausente" },
+];
+
+function normalize(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+    .toLowerCase();
+}
 
 const AVATAR_PALETTE = [
   ["#dce6f1", "#1f3864"],
@@ -112,6 +128,23 @@ export default function AgendaWeekGrid({
   const [newBookingDay, setNewBookingDay] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Búsqueda/filtro de turnos dentro de la semana visible: en vez de saltar
+  // a otra semana o esconder turnos, resalta los que coinciden y atenúa el
+  // resto — así se puede ubicar rápido a un cliente sin perder de vista el
+  // resto de la agenda de esa semana. Ver agendate_ideas_originales_gap_analysis
+  // en memoria del proyecto — mejora pedida el 2026-08-20.
+  const normalizedQuery = normalize(query.trim());
+  const hasFilter = normalizedQuery.length > 0 || statusFilter !== "ALL";
+  function matchesFilter(ev: AgendaEvent): boolean {
+    if (statusFilter !== "ALL" && ev.status !== statusFilter) return false;
+    if (!normalizedQuery) return true;
+    const haystack = normalize(`${ev.clientName} ${ev.phone ?? ""}`);
+    return haystack.includes(normalizedQuery);
+  }
+  const matchCount = hasFilter ? days.reduce((sum, d) => sum + d.events.filter(matchesFilter).length, 0) : 0;
 
   // El reschedule modal y el diálogo de confirmación manejan su propio Escape;
   // este solo cierra el detalle cuando ninguno de esos dos está abierto encima.
@@ -154,6 +187,39 @@ export default function AgendaWeekGrid({
 
   return (
     <div className="relative overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--line2)] p-3">
+        <div className="relative min-w-[220px] flex-1">
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-nav)]" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por cliente o teléfono en esta semana…"
+            aria-label="Buscar turnos por cliente o teléfono en la semana visible"
+            className="w-full rounded-[10px] border border-[var(--line-in)] bg-[var(--surface)] py-2 pl-9 pr-3 text-[13.5px] text-[var(--ink2)]"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Filtrar turnos por estado"
+          className="rounded-[10px] border border-[var(--line-in)] bg-[var(--surface)] px-3 py-2 text-[12.5px] font-semibold text-[var(--ink2)]"
+        >
+          {STATUS_FILTER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {hasFilter && (
+          <span className="text-[12.5px] font-semibold text-[var(--muted-nav)]">
+            {matchCount === 0
+              ? "Ningún turno coincide esta semana"
+              : `${matchCount} ${matchCount === 1 ? "turno coincide" : "turnos coinciden"} esta semana`}
+          </span>
+        )}
+      </div>
+
       <div className="grid min-w-[680px] grid-cols-[62px_repeat(7,minmax(96px,1fr))] border-b border-[var(--line2)]">
         <div className="border-r border-[var(--line2)]" />
         {days.map((d) => (
@@ -199,11 +265,14 @@ export default function AgendaWeekGrid({
             {layoutOverlappingEvents(d.events).map((ev) => {
               const style = STATUS_STYLE[ev.status] ?? STATUS_STYLE.CONFIRMED;
               const widthPct = 100 / ev.columnCount;
+              const isMatch = matchesFilter(ev);
+              const dimmed = hasFilter && !isMatch;
+              const highlighted = hasFilter && isMatch;
               return (
                 <button
                   key={ev.id}
                   onClick={() => setDetail(ev)}
-                  className="absolute flex flex-col justify-center gap-px overflow-hidden rounded-lg px-2 py-1 text-left leading-tight"
+                  className="absolute flex flex-col justify-center gap-px overflow-hidden rounded-lg px-2 py-1 text-left leading-tight transition-opacity"
                   style={{
                     top: ev.top,
                     height: ev.height,
@@ -213,6 +282,8 @@ export default function AgendaWeekGrid({
                     border: `1px solid ${style.border}`,
                     borderLeft: `3px solid ${style.bar}`,
                     color: style.fg,
+                    opacity: dimmed ? 0.28 : 1,
+                    boxShadow: highlighted ? `0 0 0 2px ${style.bar}` : undefined,
                   }}
                 >
                   <div className="truncate text-[12px] font-bold">{ev.timeLabel} · {ev.clientName}</div>
@@ -277,13 +348,15 @@ export default function AgendaWeekGrid({
                   <div className="text-[14px] font-semibold text-[var(--ink2)]">{detail.serviceName}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 py-2.5">
-                <IconWhatsapp className="shrink-0 text-[var(--muted-nav)]" />
-                <div>
-                  <div className="text-[11px] font-semibold text-[var(--muted-nav)]">WhatsApp</div>
-                  <div className="text-[14px] font-semibold text-[var(--ink2)]">{detail.phone}</div>
+              {detail.phone && (
+                <div className="flex items-center gap-3 py-2.5">
+                  <IconWhatsapp className="shrink-0 text-[var(--muted-nav)]" />
+                  <div>
+                    <div className="text-[11px] font-semibold text-[var(--muted-nav)]">WhatsApp</div>
+                    <div className="text-[14px] font-semibold text-[var(--ink2)]">{detail.phone}</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {(detail.status === "PENDING" || detail.status === "CONFIRMED") && (

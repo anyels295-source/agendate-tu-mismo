@@ -61,7 +61,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
   // confirmación de su turno.
   const tasks: Promise<unknown>[] = [];
 
-  if (professional.notifyWhatsapp) {
+  if (professional.notifyWhatsapp && booking.clientPhone) {
     tasks.push(
       sendBookingConfirmationWhatsApp({
         toPhone: booking.clientPhone,
@@ -72,6 +72,13 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         timeLabel,
         cancelUrl,
       }).then((result) => logNotification(booking.id, "WHATSAPP", result))
+    );
+  } else if (professional.notifyWhatsapp) {
+    // El cliente no dejó WhatsApp (ahora es opcional) — no hay a quién
+    // mandarle nada, pero dejamos registro para que no parezca un envío
+    // fallido en el Panel.
+    tasks.push(
+      logNotification(booking.id, "WHATSAPP", { status: "SKIPPED", reason: "El cliente no dejó un teléfono de WhatsApp." })
     );
   }
 
@@ -94,7 +101,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
       sendTeamsMessage({
         webhookUrl: professional.teamsWebhookUrl,
         title: `Nuevo turno: ${booking.clientName}`,
-        text: `${professional.serviceName} · ${dateLabel} a las ${timeLabel}. Tel: ${booking.clientPhone}`,
+        text: `${professional.serviceName} · ${dateLabel} a las ${timeLabel}.${booking.clientPhone ? ` Tel: ${booking.clientPhone}` : ""}`,
       }).then((result) => logNotification(booking.id, "TEAMS", result))
     );
   }
@@ -122,7 +129,7 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
 
   const tasks: Promise<unknown>[] = [];
 
-  if (professional.notifyWhatsapp) {
+  if (professional.notifyWhatsapp && booking.clientPhone) {
     tasks.push(
       sendBookingConfirmationWhatsApp({
         toPhone: booking.clientPhone,
@@ -133,6 +140,10 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
         timeLabel,
         cancelUrl,
       }).then((result) => logNotification(booking.id, "WHATSAPP", result))
+    );
+  } else if (professional.notifyWhatsapp) {
+    tasks.push(
+      logNotification(booking.id, "WHATSAPP", { status: "SKIPPED", reason: "El cliente no dejó un teléfono de WhatsApp." })
     );
   }
 

@@ -10,12 +10,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login", req.url));
   }
 
-  const professionalId = new URL(req.url).searchParams.get("professionalId");
+  const searchParams = new URL(req.url).searchParams;
+  const professionalId = searchParams.get("professionalId");
   if (!professionalId) {
     return NextResponse.json({ error: "Falta professionalId." }, { status: 400 });
   }
+  const popup = searchParams.get("popup") === "1";
 
-  const state = await signOAuthState(professionalId);
+  const state = await signOAuthState(professionalId, { popup });
   const authUrl = getGoogleAuthUrl(state);
   return NextResponse.redirect(authUrl);
 }

@@ -8,6 +8,7 @@ import {
   IconAgenda,
   IconReservas,
   IconCalendarios,
+  IconReportes,
   IconConfiguracion,
   IconGlobe,
   IconChevronDown,
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/admin", label: "Panel", exact: true, Icon: IconPanel },
   { href: "/admin/agenda", label: "Agenda", Icon: IconAgenda },
   { href: "/admin/reservas", label: "Reservas", Icon: IconReservas },
+  { href: "/admin/reportes", label: "Reportes", Icon: IconReportes },
   { href: "/admin/calendarios", label: "Calendarios", Icon: IconCalendarios },
   { href: "/admin/configuracion", label: "Configuración", Icon: IconConfiguracion },
 ];

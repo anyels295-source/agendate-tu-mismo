@@ -13,15 +13,31 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function signOAuthState(professionalId: string): Promise<string> {
-  return new SignJWT({ professionalId })
+export async function signOAuthState(professionalId: string, opts?: { popup?: boolean }): Promise<string> {
+  return new SignJWT({ professionalId, popup: opts?.popup ?? false })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(getSecret());
 }
 
-export async function verifyOAuthState(state: string): Promise<{ professionalId: string }> {
+export async function verifyOAuthState(state: string): Promise<{ professionalId: string; popup: boolean }> {
   const { payload } = await jwtVerify(state, getSecret());
-  return { professionalId: payload.professionalId as string };
+  return { professionalId: payload.professionalId as string, popup: Boolean(payload.popup) };
+}
+
+/**
+ * Igual que verifyOAuthState pero no lanza si el state es inválido/expiró —
+ * se usa en la rama de error de los callbacks de OAuth (cuando el proveedor
+ * vuelve con ?error=..., el state puede venir presente pero no siempre hace
+ * falta que sea 100% válido para decidir si mostrar la página de "cerrar
+ * ventana" del flujo en popup).
+ */
+export async function tryVerifyOAuthState(state: string | null): Promise<{ professionalId: string; popup: boolean } | null> {
+  if (!state) return null;
+  try {
+    return await verifyOAuthState(state);
+  } catch {
+    return null;
+  }
 }

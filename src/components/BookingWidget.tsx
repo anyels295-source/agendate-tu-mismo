@@ -112,8 +112,13 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
       setFormError("Ingresá tu nombre.");
       return;
     }
-    if (form.clientPhone.trim().length < 8) {
-      setFormError("Ingresá tu teléfono con código de país, ej. +598 9x xxx xxx.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim())) {
+      setFormError("Ingresá un email válido.");
+      return;
+    }
+    // El WhatsApp es opcional, pero si lo escribió, que sea algo razonable.
+    if (form.clientPhone.trim() && form.clientPhone.trim().length < 8) {
+      setFormError("Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.");
       return;
     }
 
@@ -126,8 +131,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
           slug,
           serviceId: selectedServiceId ?? undefined,
           clientName: form.clientName,
-          clientPhone: form.clientPhone,
-          clientEmail: form.clientEmail || undefined,
+          clientPhone: form.clientPhone.trim() || undefined,
+          clientEmail: form.clientEmail.trim(),
           notes: form.notes || undefined,
           startISO: selectedSlot.startISO,
           endISO: selectedSlot.endISO,
@@ -325,7 +330,19 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                   />
                 </div>
                 <div>
-                  <label htmlFor="bw-clientPhone" className="mb-1.5 block text-[12.5px] font-semibold text-[#6b7890]">WhatsApp *</label>
+                  <label htmlFor="bw-clientEmail" className="mb-1.5 block text-[12.5px] font-semibold text-[#6b7890]">Email *</label>
+                  <input
+                    id="bw-clientEmail"
+                    type="email"
+                    className="w-full rounded-[11px] border-[1.5px] border-[#e0e6f0] px-[13px] py-[11px] text-[15px]"
+                    value={form.clientEmail}
+                    onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
+                    placeholder="tu@email.com"
+                  />
+                  <p className="mt-1 text-[11.5px] text-[#6b7280]">Ahí te confirmamos el turno.</p>
+                </div>
+                <div>
+                  <label htmlFor="bw-clientPhone" className="mb-1.5 block text-[12.5px] font-semibold text-[#6b7890]">WhatsApp (opcional)</label>
                   <input
                     id="bw-clientPhone"
                     className="w-full rounded-[11px] border-[1.5px] border-[#e0e6f0] px-[13px] py-[11px] text-[15px]"
@@ -333,17 +350,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                     onChange={(e) => setForm({ ...form, clientPhone: e.target.value })}
                     placeholder="+598 9x xxx xxx"
                   />
-                  <p className="mt-1 text-[11.5px] text-[#6b7280]">Ahí te confirmamos el turno.</p>
-                </div>
-                <div>
-                  <label htmlFor="bw-clientEmail" className="mb-1.5 block text-[12.5px] font-semibold text-[#6b7890]">Email (opcional)</label>
-                  <input
-                    id="bw-clientEmail"
-                    className="w-full rounded-[11px] border-[1.5px] border-[#e0e6f0] px-[13px] py-[11px] text-[15px]"
-                    value={form.clientEmail}
-                    onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
-                    placeholder="tu@email.com"
-                  />
+                  <p className="mt-1 text-[11.5px] text-[#6b7280]">Si lo dejás, también te avisamos por ahí.</p>
                 </div>
 
                 {formError && <p className="text-[13px] text-red-600">{formError}</p>}
@@ -370,7 +377,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).toFormat("HH:mm")}
               </div>
               <div className="mt-3.5 text-[13px] leading-relaxed text-[#6b7890]">
-                Te enviamos la confirmación por WhatsApp{form.clientEmail ? " y por email" : ""}.
+                Te enviamos la confirmación por email{form.clientPhone ? " y por WhatsApp" : ""}.
                 <br />
                 Podés cancelar desde ese mismo mensaje.
               </div>

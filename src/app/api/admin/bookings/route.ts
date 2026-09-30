@@ -11,8 +11,12 @@ const bookingSchema = z
   .object({
     serviceId: z.string().min(1).optional(),
     clientName: z.string().min(2, "El nombre es obligatorio."),
-    clientEmail: z.string().email().optional().or(z.literal("")),
-    clientPhone: z.string().min(8, "Ingresá un teléfono válido con código de país, ej. +598 9x xxx xxx."),
+    clientEmail: z.string().min(1, "El email es obligatorio.").email("Ingresá un email válido."),
+    clientPhone: z
+      .string()
+      .min(8, "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.")
+      .optional()
+      .or(z.literal("")),
     startISO: z.string().min(1),
     endISO: z.string().min(1),
     notes: z.string().max(500).optional(),
@@ -38,8 +42,8 @@ export async function POST(req: NextRequest) {
       professionalId: professional.id,
       serviceId: parsed.data.serviceId,
       clientName: parsed.data.clientName,
-      clientEmail: parsed.data.clientEmail || undefined,
-      clientPhone: parsed.data.clientPhone,
+      clientEmail: parsed.data.clientEmail,
+      clientPhone: parsed.data.clientPhone || undefined,
       startISO: parsed.data.startISO,
       endISO: parsed.data.endISO,
       notes: parsed.data.notes,
