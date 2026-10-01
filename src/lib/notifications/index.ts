@@ -49,7 +49,7 @@ async function logNotification(bookingId: string, channel: "WHATSAPP" | "EMAIL" 
   });
 }
 
-export async function notifyBookingConfirmed(booking: Booking, professional: Professional) {
+export async function notifyBookingConfirmed(booking: Booking, professional: Professional, opts: { pending?: boolean; skipOwner?: boolean } = {}) {
   const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
   const cancelUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/cancelar/${booking.cancelToken}`;
 
@@ -61,7 +61,12 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
   // confirmación de su turno.
   const tasks: Promise<unknown>[] = [];
 
-  if (professional.notifyWhatsapp && booking.clientPhone) {
+  if (professional.notifyWhatsapp && opts.pending) {
+    // La plantilla de WhatsApp aprobada dice "turno confirmado"; no sirve para uno pendiente.
+    tasks.push(
+      logNotification(booking.id, "WHATSAPP", { status: "SKIPPED", reason: "Turno pendiente de confirmación: no hay plantilla de WhatsApp para avisos de turnos pendientes." })
+    );
+  } else if (professional.notifyWhatsapp && booking.clientPhone) {
     tasks.push(
       sendBookingConfirmationWhatsApp({
         toPhone: booking.clientPhone,
@@ -92,11 +97,14 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         dateLabel,
         timeLabel,
         cancelUrl,
+        pending: opts.pending,
       }).then((result) => logNotification(booking.id, "EMAIL", result))
     );
   }
 
-  if (professional.notifyTeams) {
+  // Al confirmar un turno ya existente, el profesional es quien lo confirma:
+  // no hace falta volver a avisarle de un "nuevo turno".
+  if (professional.notifyTeams && !opts.skipOwner) {
     tasks.push(
       sendTeamsMessage({
         webhookUrl: professional.teamsWebhookUrl,
@@ -106,7 +114,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
     );
   }
 
-  if (professional.notifyEmail) {
+  if (professional.notifyEmail && !opts.skipOwner) {
     tasks.push(
       sendOwnerNewBookingEmail({
         toEmail: professional.email,

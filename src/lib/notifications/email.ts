@@ -23,6 +23,8 @@ type BookingEmailParams = {
   dateLabel: string;
   timeLabel: string;
   cancelUrl: string;
+  /** Turno registrado que todavía nadie confirmó. */
+  pending?: boolean;
 };
 
 async function sendEmail(params: { toEmail: string; subject: string; html: string }): Promise<EmailSendResult> {
@@ -53,6 +55,19 @@ async function sendEmail(params: { toEmail: string; subject: string; html: strin
 }
 
 export async function sendBookingConfirmationEmail(params: BookingEmailParams): Promise<EmailSendResult> {
+  if (params.pending) {
+    return sendEmail({
+      toEmail: params.toEmail,
+      subject: `Turno pendiente de confirmación: ${params.dateLabel} ${params.timeLabel}`,
+      html: `
+    <p>Hola ${params.clientName},</p>
+    <p>Registramos tu turno de <strong>${params.serviceName}</strong> con <strong>${params.professionalName}</strong>:</p>
+    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
+    <p>El turno queda pendiente de confirmación; te avisaremos cuando se confirme.</p>
+    <p>Si no te queda bien, podés cancelarlo acá: <a href="${params.cancelUrl}">${params.cancelUrl}</a></p>
+  `,
+    });
+  }
   const html = `
     <p>Hola ${params.clientName},</p>
     <p>Tu turno de <strong>${params.serviceName}</strong> con <strong>${params.professionalName}</strong> quedó confirmado:</p>

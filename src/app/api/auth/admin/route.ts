@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const valid = await verifyAdminCredentials(parsed.data.email, parsed.data.password);
   if (!valid) {
-    return NextResponse.json({ error: "Credenciales incorrectas." }, { status: 401 });
+    return NextResponse.json({ error: "Email o contraseña incorrectos." }, { status: 401 });
   }
 
   await createAdminSession(parsed.data.email);

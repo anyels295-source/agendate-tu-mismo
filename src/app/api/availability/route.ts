@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getAvailableSlots } from "@/lib/availability";
 import { CalendarTokenExpiredError } from "@/lib/calendar/tokenManager";
+import { getAdminSession } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -10,6 +11,9 @@ export async function GET(req: NextRequest) {
   const fromParam = searchParams.get("from"); // YYYY-MM-DD, opcional
   const daysParam = Number(searchParams.get("days") ?? "7");
   const serviceId = searchParams.get("serviceId");
+  // El profesional, desde el panel, puede agendar sin respetar el aviso mínimo
+  // (sí respeta el horario de atención y los calendarios ocupados).
+  const ignoreMinNotice = searchParams.get("admin") === "1" && !!(await getAdminSession());
 
   if (!slug) {
     return NextResponse.json({ error: "Falta el parámetro 'slug'." }, { status: 400 });
@@ -54,7 +58,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const slots = await getAvailableSlots({
-      professional: { ...professional, durationMinutes },
+      professional: { ...professional, durationMinutes, ...(ignoreMinNotice ? { minNoticeHours: 0 } : {}) },
       connections: professional.calendarConnections,
       fromDate,
       toDate,

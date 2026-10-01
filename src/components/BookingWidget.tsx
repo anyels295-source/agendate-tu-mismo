@@ -371,15 +371,18 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
               <div className="mx-auto mb-4 flex h-[66px] w-[66px] items-center justify-center rounded-full bg-[#e4f6ec]">
                 <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#22a05a" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
               </div>
-              <div className="text-[20px] font-extrabold text-[#1a7d45]">¡Turno confirmado!</div>
+              <div className="text-[20px] font-extrabold text-[#1a7d45]">¡Turno agendado!</div>
               <div className="mt-1.5 text-[14.5px] font-semibold text-[#3a8560]">
                 {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).setLocale("es").toFormat("cccc d 'de' LLLL")} a las{" "}
                 {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).toFormat("HH:mm")}
               </div>
               <div className="mt-3.5 text-[13px] leading-relaxed text-[#6b7890]">
-                Te enviamos la confirmación por email{form.clientPhone ? " y por WhatsApp" : ""}.
+                Te enviamos el detalle por email. El turno queda pendiente de confirmación y te avisaremos cuando se confirme.
                 <br />
                 Podés cancelar desde ese mismo mensaje.
+              </div>
+              <div className="mt-3 text-[13px] font-semibold text-[#2a3856]">
+                Si no vas a reservar más turnos, ya podés cerrar esta ventana.
               </div>
               <button
                 onClick={() => {

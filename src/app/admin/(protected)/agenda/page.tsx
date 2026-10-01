@@ -18,6 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
   CONFIRMED: "Confirmada",
   COMPLETED: "Completada",
   NO_SHOW: "Ausente",
+  CANCELLED: "Cancelada",
 };
 
 export default async function AgendaPage({
@@ -51,7 +52,7 @@ export default async function AgendaPage({
   const bookings = await prisma.booking.findMany({
     where: {
       professionalId: professional.id,
-      status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "NO_SHOW"] },
+      status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED"] },
       startTime: { gte: startOfWeek.toJSDate(), lt: endOfWeek.toJSDate() },
     },
     include: { service: true },

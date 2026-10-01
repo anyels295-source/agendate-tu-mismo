@@ -32,6 +32,7 @@ const STATUS_STYLE: Record<string, { bg: string; border: string; bar: string; fg
   PENDING: { bg: "#fdf1dc", border: "#f0d199", bar: "#a4700f", fg: "#8a5d0b" },
   COMPLETED: { bg: "#e7effb", border: "#b8cef0", bar: "#215a8f", fg: "#1c4d7a" },
   NO_SHOW: { bg: "#fbe7e7", border: "#f3c6c2", bar: "#b6382f", fg: "#a5342b" },
+  CANCELLED: { bg: "#eef1f7", border: "#d5dbe6", bar: "#8b95a8", fg: "#6b7280" },
 };
 
 const STATUS_BADGE: Record<string, { bg: string; fg: string }> = {
@@ -39,6 +40,7 @@ const STATUS_BADGE: Record<string, { bg: string; fg: string }> = {
   PENDING: { bg: "#fdf1dc", fg: "#a4700f" },
   COMPLETED: { bg: "#e7effb", fg: "#215a8f" },
   NO_SHOW: { bg: "#fbe7e7", fg: "#b6382f" },
+  CANCELLED: { bg: "#eef1f7", fg: "#6b7280" },
 };
 
 const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
@@ -47,6 +49,7 @@ const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: "CONFIRMED", label: "Confirmada" },
   { value: "COMPLETED", label: "Completada" },
   { value: "NO_SHOW", label: "Ausente" },
+  { value: "CANCELLED", label: "Cancelada" },
 ];
 
 function normalize(value: string): string {
@@ -113,7 +116,7 @@ function layoutOverlappingEvents(events: AgendaEvent[]): LaidOutEvent[] {
 }
 
 export default function AgendaWeekGrid({
-  days,
+  days: allDays,
   timeLabels,
   rowHeight,
   professionalSlug,
@@ -132,6 +135,13 @@ export default function AgendaWeekGrid({
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Los turnos cancelados liberan el horario (puede haber otro turno en el
+  // mismo hueco), así que solo se muestran cuando se filtra por "Cancelada".
+  const days = allDays.map((d) => ({
+    ...d,
+    events: d.events.filter((ev) => (statusFilter === "CANCELLED" ? ev.status === "CANCELLED" : ev.status !== "CANCELLED")),
+  }));
 
   // Búsqueda/filtro de turnos dentro de la semana visible: en vez de saltar
   // a otra semana o esconder turnos, resalta los que coinciden y atenúa el
@@ -157,7 +167,7 @@ export default function AgendaWeekGrid({
 
   const gridHeight = timeLabels.length * rowHeight;
 
-  async function setStatus(status: "COMPLETED" | "NO_SHOW" | "CANCELLED") {
+  async function setStatus(status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED") {
     if (!detail) return;
     setBusy(true);
     try {
@@ -381,6 +391,17 @@ export default function AgendaWeekGrid({
 
             {(detail.status === "PENDING" || detail.status === "CONFIRMED") && (
               <>
+                {detail.status === "PENDING" && (
+                  <div className="shrink-0 px-[22px] pt-2">
+                    <button
+                      disabled={busy}
+                      onClick={() => setStatus("CONFIRMED")}
+                      className="w-full rounded-[10px] border-none bg-[#1a7d45] py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                    >
+                      Confirmar turno
+                    </button>
+                  </div>
+                )}
                 <div className="flex shrink-0 gap-2 px-[22px] pb-2 pt-2">
                   <button
                     disabled={busy}

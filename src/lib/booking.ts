@@ -100,13 +100,16 @@ export async function createBooking(params: {
             attendeeEmail: params.clientEmail,
           });
 
-    const confirmed = await prisma.booking.update({
+    // Toda reserva nace PENDIENTE: nadie la confirmó todavía. Pasa a
+    // CONFIRMADA cuando el profesional la confirma (adminSetBookingStatus) o,
+    // más adelante, cuando el invitado acepta desde su calendario.
+    const created = await prisma.booking.update({
       where: { id: booking.id },
-      data: { status: "CONFIRMED", calendarProvider: bookingConnection.provider, externalEventId: eventId },
+      data: { calendarProvider: bookingConnection.provider, externalEventId: eventId },
     });
 
-    await notifyBookingConfirmed(confirmed, { ...professional, serviceName: serviceLabel });
-    return confirmed;
+    await notifyBookingConfirmed(created, { ...professional, serviceName: serviceLabel }, { pending: true });
+    return created;
   } catch (err) {
     // Si falla la creación del evento en el calendario, no dejamos una reserva
     // "fantasma": la marcamos como cancelada para no bloquear el horario y
@@ -178,7 +181,7 @@ export async function cancelBooking(cancelToken: string) {
 export async function adminSetBookingStatus(params: {
   professionalId: string;
   bookingId: string;
-  status: Extract<BookingStatus, "COMPLETED" | "NO_SHOW" | "CANCELLED">;
+  status: Extract<BookingStatus, "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED">;
 }) {
   const booking = await prisma.booking.findFirst({
     where: { id: params.bookingId, professionalId: params.professionalId },
@@ -186,6 +189,19 @@ export async function adminSetBookingStatus(params: {
   });
   if (!booking) {
     throw new AppError("Reserva no encontrada.");
+  }
+
+  if (params.status === "CONFIRMED") {
+    if (booking.status !== "PENDING") {
+      throw new AppError("Solo se puede confirmar un turno pendiente.");
+    }
+    const confirmed = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } });
+    await notifyBookingConfirmed(
+      confirmed,
+      { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName },
+      { skipOwner: true }
+    );
+    return confirmed;
   }
 
   if (params.status === "CANCELLED" && booking.status !== "CANCELLED") {
@@ -296,7 +312,6 @@ export async function rescheduleBooking(params: {
       endTime: new Date(params.endISO),
       externalEventId: newExternalEventId,
       calendarProvider: newProvider,
-      status: booking.status === "PENDING" ? "CONFIRMED" : booking.status,
     },
   });
 

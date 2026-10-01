@@ -55,7 +55,7 @@ export default function NewBookingModal({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const query = new URLSearchParams({ slug: professionalSlug, days: "10" });
+    const query = new URLSearchParams({ slug: professionalSlug, days: "10", admin: "1" });
     if (selectedServiceId) query.set("serviceId", selectedServiceId);
     fetch(`/api/availability?${query.toString()}`)
       .then(async (res) => {

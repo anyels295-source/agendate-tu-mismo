@@ -99,7 +99,7 @@ export default function BookingsTable({
     });
   }, [rows, q, filter]);
 
-  async function updateStatus(id: string, status: "COMPLETED" | "NO_SHOW" | "CANCELLED") {
+  async function updateStatus(id: string, status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED") {
     setBusyId(id);
     setMenuId(null);
     const res = await fetch(`/api/admin/bookings/${id}`, {
@@ -162,7 +162,7 @@ export default function BookingsTable({
       </div>
 
       <div className="overflow-visible rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
-        <div className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] rounded-t-[15px] bg-[var(--subtle)] p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">
+        <div className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] gap-x-4 rounded-t-[15px] bg-[var(--subtle)] p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">
           <span>Fecha</span>
           <span>Cliente</span>
           <span className="hidden sm:block">Teléfono</span>
@@ -185,7 +185,7 @@ export default function BookingsTable({
           return (
             <div
               key={b.id}
-              className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] items-center border-t border-[var(--line3)] p-[14px_20px] text-[13.5px]"
+              className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] items-center gap-x-4 border-t border-[var(--line3)] p-[14px_20px] text-[13.5px]"
             >
               <div className="min-w-0">
                 <div className="font-bold text-[var(--ink2)]">{b.dateLabel}</div>
@@ -242,6 +242,15 @@ export default function BookingsTable({
                           <IconReprogramar className="text-[var(--brand)]" />
                           Reprogramar
                         </button>
+                        {b.status === "PENDING" && (
+                          <button
+                            onClick={() => updateStatus(b.id, "CONFIRMED")}
+                            className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
+                          >
+                            <IconCheck className="text-[#1a7d45]" />
+                            Confirmar turno
+                          </button>
+                        )}
                         <button
                           onClick={() => updateStatus(b.id, "COMPLETED")}
                           className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
