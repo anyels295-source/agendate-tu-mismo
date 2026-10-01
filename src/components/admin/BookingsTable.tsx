@@ -11,6 +11,7 @@ export type BookingRow = {
   clientName: string;
   /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
   clientPhone: string | null;
+  notes: string | null;
   serviceName: string;
   dateLabel: string;
   timeLabel: string;
@@ -200,6 +201,11 @@ export default function BookingsTable({
                 <div className="min-w-0">
                   <div className="truncate font-semibold text-[var(--ink2)]">{b.clientName}</div>
                   <div className="truncate text-[12px] text-[var(--muted-nav)] sm:hidden">{b.clientPhone ?? "Sin WhatsApp"}</div>
+                  {b.notes && (
+                    <div className="truncate text-[12px] italic text-[var(--muted-nav)]" title={b.notes}>
+                      Nota: {b.notes}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="hidden text-[#5a6884] sm:block">{b.clientPhone ?? "—"}</div>

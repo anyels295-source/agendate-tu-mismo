@@ -23,6 +23,7 @@ export default async function ReservasPage() {
       id: b.id,
       clientName: b.clientName,
       clientPhone: b.clientPhone,
+      notes: b.notes,
       serviceName: b.service?.name ?? professional.serviceName,
       dateLabel: dt.toFormat("d LLL yyyy"),
       timeLabel: dt.toFormat("HH:mm"),

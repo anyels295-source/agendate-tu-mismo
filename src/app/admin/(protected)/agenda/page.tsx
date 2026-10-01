@@ -84,6 +84,8 @@ export default async function AgendaPage({
         id: b.id,
         clientName: b.clientName,
         phone: b.clientPhone,
+        email: b.clientEmail,
+        notes: b.notes,
         serviceName: b.service?.name ?? professional.serviceName,
         status: b.status,
         statusLabel: STATUS_LABEL[b.status] ?? b.status,

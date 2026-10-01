@@ -139,6 +139,20 @@ export function IconClock({ className }: { className?: string }) {
     </svg>
   );
 }
+export function IconMail({ className }: { className?: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m3.5 7 8.5 6 8.5-6" />
+    </svg>
+  );
+}
+export function IconNote({ className }: { className?: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M5 3.5h14a1 1 0 0 1 1 1V20l-4-3H5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z" /><path d="M8 8h8M8 12h5" />
+    </svg>
+  );
+}
 export function IconWhatsapp({ className }: { className?: string }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>

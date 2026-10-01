@@ -5,7 +5,7 @@ import { useState } from "react";
 import RescheduleModal from "./RescheduleModal";
 import ConfirmDialog from "./ConfirmDialog";
 import NewBookingModal from "./NewBookingModal";
-import { IconCalendarSmall, IconClock, IconWhatsapp, IconClose, IconSearch } from "./icons";
+import { IconCalendarSmall, IconClock, IconWhatsapp, IconMail, IconNote, IconClose, IconSearch } from "./icons";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 
 export type AgendaEvent = {
@@ -13,6 +13,8 @@ export type AgendaEvent = {
   clientName: string;
   /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
   phone: string | null;
+  email: string | null;
+  notes: string | null;
   serviceName: string;
   status: string;
   statusLabel: string;
@@ -300,13 +302,13 @@ export default function AgendaWeekGrid({
       {detail && badge && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-[var(--ink)]/45 p-5" onClick={() => setDetail(null)}>
           <div
-            className="max-h-[92vh] w-full max-w-[410px] overflow-y-auto rounded-[20px] bg-[var(--surface)] shadow-[0_30px_70px_-20px_rgba(22,35,61,0.5)]"
+            className="flex max-h-[90dvh] w-full max-w-[410px] flex-col overflow-hidden rounded-[20px] bg-[var(--surface)] shadow-[0_30px_70px_-20px_rgba(22,35,61,0.5)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={`Detalle del turno de ${detail.clientName}`}
           >
-            <div className="flex items-center gap-[13px] border-b border-[var(--line2)] bg-[var(--subtle)] p-[22px_22px_18px]">
+            <div className="flex shrink-0 items-center gap-[13px] border-b border-[var(--line2)] bg-[var(--subtle)] p-[22px_22px_18px]">
               <div
                 className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full text-[16px] font-bold"
                 style={{ background: avBg, color: avFg }}
@@ -331,7 +333,7 @@ export default function AgendaWeekGrid({
               </button>
             </div>
 
-            <div className="flex flex-col gap-0.5 p-[18px_22px_6px]">
+            <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-[18px_22px_6px]">
               <div className="flex items-center gap-3 border-b border-[var(--line3)] py-2.5">
                 <IconCalendarSmall className="shrink-0 text-[var(--muted-nav)]" />
                 <div>
@@ -348,8 +350,17 @@ export default function AgendaWeekGrid({
                   <div className="text-[14px] font-semibold text-[var(--ink2)]">{detail.serviceName}</div>
                 </div>
               </div>
+              {detail.email && (
+                <div className="flex items-center gap-3 border-b border-[var(--line3)] py-2.5">
+                  <IconMail className="shrink-0 text-[var(--muted-nav)]" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold text-[var(--muted-nav)]">Email</div>
+                    <div className="break-all text-[14px] font-semibold text-[var(--ink2)]">{detail.email}</div>
+                  </div>
+                </div>
+              )}
               {detail.phone && (
-                <div className="flex items-center gap-3 py-2.5">
+                <div className="flex items-center gap-3 border-b border-[var(--line3)] py-2.5 last:border-b-0">
                   <IconWhatsapp className="shrink-0 text-[var(--muted-nav)]" />
                   <div>
                     <div className="text-[11px] font-semibold text-[var(--muted-nav)]">WhatsApp</div>
@@ -357,11 +368,20 @@ export default function AgendaWeekGrid({
                   </div>
                 </div>
               )}
+              {detail.notes && (
+                <div className="flex items-start gap-3 py-2.5">
+                  <IconNote className="mt-0.5 shrink-0 text-[var(--muted-nav)]" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold text-[var(--muted-nav)]">Notas</div>
+                    <div className="whitespace-pre-wrap break-words text-[14px] font-semibold text-[var(--ink2)]">{detail.notes}</div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {(detail.status === "PENDING" || detail.status === "CONFIRMED") && (
               <>
-                <div className="flex gap-2 px-[22px] pb-2">
+                <div className="flex shrink-0 gap-2 px-[22px] pb-2 pt-2">
                   <button
                     disabled={busy}
                     onClick={() => setStatus("COMPLETED")}
@@ -377,7 +397,7 @@ export default function AgendaWeekGrid({
                     Marcar ausente
                   </button>
                 </div>
-                <div className="flex gap-2.5 p-[4px_22px_22px]">
+                <div className="flex shrink-0 gap-2.5 p-[4px_22px_22px]">
                   <button
                     disabled={busy}
                     onClick={() => setConfirmCancel(true)}
