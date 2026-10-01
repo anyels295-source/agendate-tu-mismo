@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         accessTokenEnc: encryptToken(tokens.accessToken),
         refreshTokenEnc: encryptToken(tokens.refreshToken),
         expiresAt: tokens.expiresAt,
+        isActive: true,
       },
       create: {
         professionalId,
