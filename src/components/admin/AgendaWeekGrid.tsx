@@ -2,7 +2,8 @@
 
 import { useAutoDismiss } from "@/lib/useAutoDismiss";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { statusToast, type BookingStatusValue } from "@/lib/bookingStatusToast";
 import RescheduleModal from "./RescheduleModal";
 import ConfirmDialog from "./ConfirmDialog";
 import NewBookingModal from "./NewBookingModal";
@@ -141,7 +142,12 @@ export default function AgendaWeekGrid({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [newBookingDay, setNewBookingDay] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  useAutoDismiss(toast, setToast);
+  // Estado anterior del último turno modificado, para ofrecer "Deshacer" en el aviso.
+  const [undo, setUndo] = useState<{ id: string; status: string } | null>(null);
+  useAutoDismiss(toast, setToast, undo ? 9000 : 6000);
+  useEffect(() => {
+    if (!toast) setUndo(null);
+  }, [toast]);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -177,11 +183,15 @@ export default function AgendaWeekGrid({
 
   const gridHeight = timeLabels.length * rowHeight;
 
-  async function setStatus(status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED") {
+  function setStatus(status: BookingStatusValue) {
     if (!detail) return;
+    changeStatus(detail.id, status, { previous: detail.status });
+  }
+
+  async function changeStatus(id: string, status: BookingStatusValue, opts: { previous?: string; undo?: boolean } = {}) {
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/bookings/${detail.id}`, {
+      const res = await fetch(`/api/admin/bookings/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -190,7 +200,13 @@ export default function AgendaWeekGrid({
       if (res.ok) {
         setDetail(null);
         setConfirmCancel(false);
-        setToast("Turno actualizado.");
+        if (opts.undo) {
+          setUndo(null);
+          setToast("Cambio deshecho.");
+        } else {
+          setToast(statusToast(status, opts.previous));
+          setUndo(status !== "CANCELLED" && opts.previous && opts.previous !== status ? { id, status: opts.previous } : null);
+        }
         router.refresh();
       } else {
         const json = await res.json().catch(() => ({}));
@@ -404,6 +420,18 @@ export default function AgendaWeekGrid({
               )}
             </div>
 
+            {(detail.status === "COMPLETED" || detail.status === "NO_SHOW") && (
+              <div className="shrink-0 px-[22px] pb-[22px] pt-2">
+                <button
+                  disabled={busy}
+                  onClick={() => setStatus("CONFIRMED")}
+                  className="w-full rounded-[10px] border border-[var(--line-in)] py-2.5 text-[13.5px] font-semibold text-[var(--ink2)] disabled:opacity-50"
+                >
+                  Volver a Confirmada
+                </button>
+              </div>
+            )}
+
             {(detail.status === "PENDING" || detail.status === "CONFIRMED") && (
               <>
                 {detail.status === "PENDING" && (
@@ -503,6 +531,14 @@ export default function AgendaWeekGrid({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
           </span>
           <span className="text-[13.5px] font-semibold leading-tight">{toast}</span>
+          {undo && (
+            <button
+              onClick={() => changeStatus(undo.id, undo.status as BookingStatusValue, { undo: true })}
+              className="shrink-0 rounded-md bg-white/15 px-2.5 py-1 text-[12.5px] font-bold text-white hover:bg-white/25"
+            >
+              Deshacer
+            </button>
+          )}
           <button onClick={() => setToast(null)} aria-label="Cerrar aviso" className="shrink-0 text-[var(--muted-nav)] hover:text-white">
             <IconClose />
           </button>

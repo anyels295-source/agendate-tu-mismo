@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
@@ -95,7 +96,23 @@ export default async function PanelPage() {
 
   const bookingUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/reservar/${professional.slug}`;
   const bookingUrlDisplay = bookingUrl.replace(/^https?:\/\//, "");
-  const connectedCount = await prisma.calendarConnection.count({ where: { professionalId: professional.id } });
+  const connections = await prisma.calendarConnection.findMany({
+    where: { professionalId: professional.id },
+    select: { id: true, isActive: true },
+  });
+  const activeConnections = connections.filter((c) => c.isActive);
+  const connectedCount = activeConnections.length;
+  const bookingCalendarChosen = !!professional.bookingCalendarId && activeConnections.some((c) => c.id === professional.bookingCalendarId);
+  const calendarStatus =
+    connectedCount === 0
+      ? { label: connections.length > 0 ? "Hay un calendario para reconectar" : "Sin calendarios conectados todavía", warn: true }
+      : !bookingCalendarChosen
+        ? { label: "Elegí el calendario de reservas", warn: true }
+        : { label: "Calendarios sincronizados", warn: false };
+  // Turnos que ya empezaron y siguen pendientes o confirmados: falta cerrarlos.
+  const toCloseCount = await prisma.booking.count({
+    where: { professionalId: professional.id, status: { in: ["PENDING", "CONFIRMED"] }, startTime: { lt: now.toJSDate() } },
+  });
 
   // Los envíos fallidos quedan registrados en NotificationLog pero antes no
   // se mostraban en ningún lado del panel — el profesional podía no enterarse
@@ -124,10 +141,20 @@ export default async function PanelPage() {
           <div className="mb-[3px] text-[13px] font-semibold text-[var(--muted-nav)]">Hola de nuevo, {professional.name.split(" ")[0]}</div>
           <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[var(--ink)]">Panel</h1>
         </div>
-        <div className="flex items-center gap-2.5 rounded-[11px] border border-[var(--line)] bg-[var(--surface)] px-[13px] py-[9px] text-[13px] text-[var(--ink4)]">
-          <span className="h-[9px] w-[9px] rounded-full bg-[var(--brand-lt)]" />
-          {connectedCount > 0 ? "Calendarios sincronizados" : "Sin calendarios conectados todavía"}
-        </div>
+        {calendarStatus.warn ? (
+          <Link
+            href="/admin/calendarios"
+            className="flex items-center gap-2.5 rounded-[11px] border border-[#f0d199] bg-[#fdf1dc] px-[13px] py-[9px] text-[13px] font-semibold text-[#8a5d0b]"
+          >
+            <span className="h-[9px] w-[9px] rounded-full bg-[#d9a21b]" />
+            {calendarStatus.label}
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2.5 rounded-[11px] border border-[var(--line)] bg-[var(--surface)] px-[13px] py-[9px] text-[13px] text-[var(--ink4)]">
+            <span className="h-[9px] w-[9px] rounded-full bg-[var(--brand-lt)]" />
+            {calendarStatus.label}
+          </div>
+        )}
       </div>
 
       {failedNotificationsTotal > 0 && (
@@ -146,6 +173,7 @@ export default async function PanelPage() {
                 <span key={n.id} className="truncate">
                   {NOTIF_CHANNEL_LABEL[n.channel] ?? n.channel} · {n.booking.clientName} ·{" "}
                   {DateTime.fromJSDate(n.sentAt).setZone(tz).setLocale("es").toFormat("d LLL, HH:mm")}
+                  {n.error ? ` · ${n.error.slice(0, 90)}` : ""}
                 </span>
               ))}
               {failedNotificationsTotal > failedNotifications.length && (
@@ -156,6 +184,21 @@ export default async function PanelPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {toCloseCount > 0 && (
+        <Link
+          href="/admin/reservas?filter=toClose"
+          className="mb-4 flex items-center gap-3 rounded-2xl border border-[#f0d199] bg-[#fdf1dc] px-5 py-3.5 text-[13.5px] font-semibold text-[#8a5d0b]"
+        >
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d9a21b] text-[12px] font-extrabold text-white">!</span>
+          <span className="min-w-0 flex-1">
+            {toCloseCount === 1
+              ? "1 turno ya pasó y sigue sin cerrar. Marcalo como completado o ausente."
+              : `${toCloseCount} turnos ya pasaron y siguen sin cerrar. Marcalos como completados o ausentes.`}
+          </span>
+          <span className="shrink-0 text-[12.5px] underline">Ver turnos</span>
+        </Link>
       )}
 
       <div className="mb-4 grid grid-cols-2 gap-3.5 md:grid-cols-4">

@@ -31,6 +31,8 @@ type Props = {
     photoUrl: string | null;
     theme: string;
   };
+  /** Si ya hay servicios cargados, el nombre/duración "legados" del perfil no se muestran. */
+  hasServices?: boolean;
 };
 
 const inputClass = "w-full rounded-[10px] border border-[var(--line-in)] px-3 py-2.5 text-[14px]";
@@ -48,7 +50,7 @@ function initialsOf(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "P";
 }
 
-export default function ConfiguracionForm({ initial }: Props) {
+export default function ConfiguracionForm({ initial, hasServices = false }: Props) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -218,14 +220,18 @@ export default function ConfiguracionForm({ initial }: Props) {
             <label htmlFor="cf-slug" className={labelClass}>Link de reserva (slug)</label>
             <input id="cf-slug" className={inputClass} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
           </div>
-          <div>
-            <label htmlFor="cf-serviceName" className={labelClass}>Nombre del servicio</label>
-            <input id="cf-serviceName" className={inputClass} value={form.serviceName} onChange={(e) => setForm({ ...form, serviceName: e.target.value })} />
-          </div>
-          <div>
-            <label htmlFor="cf-duration" className={labelClass}>Duración (minutos)</label>
-            <input id="cf-duration" type="number" className={inputClass} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} />
-          </div>
+          {!hasServices && (
+            <>
+              <div>
+                <label htmlFor="cf-serviceName" className={labelClass}>Nombre del servicio</label>
+                <input id="cf-serviceName" className={inputClass} value={form.serviceName} onChange={(e) => setForm({ ...form, serviceName: e.target.value })} />
+              </div>
+              <div>
+                <label htmlFor="cf-duration" className={labelClass}>Duración (minutos)</label>
+                <input id="cf-duration" type="number" className={inputClass} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} />
+              </div>
+            </>
+          )}
           <div>
             <label htmlFor="cf-buffer" className={labelClass}>Colchón entre turnos (min)</label>
             <input id="cf-buffer" type="number" className={inputClass} value={form.bufferMinutes} onChange={(e) => setForm({ ...form, bufferMinutes: Number(e.target.value) })} />

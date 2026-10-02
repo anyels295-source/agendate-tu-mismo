@@ -1,7 +1,8 @@
 "use client";
 
 import { useAutoDismiss } from "@/lib/useAutoDismiss";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { statusToast, type BookingStatusValue } from "@/lib/bookingStatusToast";
 import { useRouter } from "next/navigation";
 import RescheduleModal from "./RescheduleModal";
 import ConfirmDialog from "./ConfirmDialog";
@@ -42,9 +43,16 @@ const CHIPS: { key: string; label: string }[] = [
   { key: "all", label: "Todas" },
   { key: "CONFIRMED", label: "Confirmadas" },
   { key: "PENDING", label: "Pendientes" },
-  { key: "CANCELLED", label: "Canceladas" },
+  { key: "toClose", label: "Por cerrar" },
   { key: "COMPLETED", label: "Completadas" },
+  { key: "NO_SHOW", label: "Ausentes" },
+  { key: "CANCELLED", label: "Canceladas" },
 ];
+
+/** Turno que ya empezó y sigue pendiente o confirmado: falta cerrarlo (completado o ausente). */
+function isToClose(r: { status: string; startISO: string }): boolean {
+  return (r.status === "PENDING" || r.status === "CONFIRMED") && new Date(r.startISO).getTime() < Date.now();
+}
 
 function initialsOf(name: string): string {
   return name
@@ -92,25 +100,33 @@ function exportCsv(rows: BookingRow[]) {
 export default function BookingsTable({
   rows,
   professionalSlug,
+  initialFilter,
 }: {
   rows: BookingRow[];
   professionalSlug: string;
+  initialFilter?: string;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(CHIPS.some((c) => c.key === initialFilter) ? (initialFilter as string) : "all");
   const [menuId, setMenuId] = useState<string | null>(null);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  useAutoDismiss(toast, setToast);
+  // Estado anterior del último turno modificado, para ofrecer "Deshacer" en el aviso.
+  const [undo, setUndo] = useState<{ id: string; status: string } | null>(null);
+  useAutoDismiss(toast, setToast, undo ? 9000 : 6000);
+  useEffect(() => {
+    if (!toast) setUndo(null);
+  }, [toast]);
+  const toCloseCount = rows.filter(isToClose).length;
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const query = normalizeText(q.trim());
     const queryDigits = q.replace(/\D/g, "");
     return rows.filter((r) => {
-      const okFilter = filter === "all" || r.status === filter;
+      const okFilter = filter === "all" ? true : filter === "toClose" ? isToClose(r) : r.status === filter;
       // Sin acentos ni mayúsculas para el nombre, y solo dígitos para el teléfono.
       const okQuery =
         !query ||
@@ -120,7 +136,8 @@ export default function BookingsTable({
     });
   }, [rows, q, filter]);
 
-  async function updateStatus(id: string, status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED") {
+  async function updateStatus(id: string, status: BookingStatusValue, opts: { undo?: boolean } = {}) {
+    const previous = rows.find((r) => r.id === id)?.status;
     setBusyId(id);
     setMenuId(null);
     const res = await fetch(`/api/admin/bookings/${id}`, {
@@ -130,7 +147,13 @@ export default function BookingsTable({
     });
     setBusyId(null);
     if (res.ok) {
-      setToast("Turno actualizado.");
+      if (opts.undo) {
+        setUndo(null);
+        setToast("Cambio deshecho.");
+      } else {
+        setToast(statusToast(status, previous));
+        setUndo(status !== "CANCELLED" && previous && previous !== status ? { id, status: previous } : null);
+      }
       router.refresh();
     } else {
       const json = await res.json().catch(() => ({}));
@@ -168,7 +191,7 @@ export default function BookingsTable({
                   color: active ? "#fff" : "#5a6884",
                 }}
               >
-                {c.label}
+                {c.key === "toClose" && toCloseCount > 0 ? `Por cerrar (${toCloseCount})` : c.label}
               </button>
             );
           })}
@@ -203,6 +226,7 @@ export default function BookingsTable({
         {filtered.map((b, i) => {
           const meta = STATUS_META[b.status] ?? STATUS_META.PENDING;
           const canAct = b.status === "PENDING" || b.status === "CONFIRMED";
+          const canFix = b.status === "COMPLETED" || b.status === "NO_SHOW";
           const [avBg, avFg] = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
           return (
             <div
@@ -240,6 +264,38 @@ export default function BookingsTable({
                 </span>
               </div>
               <div className="relative text-right">
+                {canFix && (
+                  <>
+                    <button
+                      disabled={busyId === b.id}
+                      onClick={() => setMenuId(menuId === b.id ? null : b.id)}
+                      aria-label={`Más acciones para el turno de ${b.clientName}`}
+                      aria-haspopup="menu"
+                      aria-expanded={menuId === b.id}
+                      className="rounded-md p-1 text-[var(--muted-nav)] hover:bg-[var(--page)]"
+                    >
+                      <IconDots />
+                    </button>
+                    {menuId === b.id && (
+                      <div className="absolute right-0 top-9 z-30 w-[196px] rounded-[13px] border border-[var(--line)] bg-[var(--surface)] p-1.5 text-left shadow-[0_16px_36px_-12px_rgba(31,56,100,0.35)]">
+                        <button
+                          onClick={() => updateStatus(b.id, "CONFIRMED")}
+                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
+                        >
+                          <IconCheck className="text-[#1a7d45]" />
+                          Volver a Confirmada
+                        </button>
+                        <button
+                          onClick={() => updateStatus(b.id, b.status === "COMPLETED" ? "NO_SHOW" : "COMPLETED")}
+                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
+                        >
+                          <IconNoShow className="text-[#a4700f]" />
+                          {b.status === "COMPLETED" ? "Cambiar a ausente" : "Cambiar a completada"}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
                 {canAct && (
                   <>
                     <button
@@ -347,6 +403,14 @@ export default function BookingsTable({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
           </span>
           <span className="text-[13.5px] font-semibold leading-tight">{toast}</span>
+          {undo && (
+            <button
+              onClick={() => updateStatus(undo.id, undo.status as BookingStatusValue, { undo: true })}
+              className="shrink-0 rounded-md bg-white/15 px-2.5 py-1 text-[12.5px] font-bold text-white hover:bg-white/25"
+            >
+              Deshacer
+            </button>
+          )}
           <button onClick={() => setToast(null)} aria-label="Cerrar aviso" className="shrink-0 text-[var(--muted-nav)] hover:text-white">
             <IconClose />
           </button>

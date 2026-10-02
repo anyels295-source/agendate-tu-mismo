@@ -6,7 +6,7 @@ import { adminSetBookingStatus } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
 
 const patchSchema = z.object({
-  status: z.enum(["CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED"]),
+  status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED"]),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

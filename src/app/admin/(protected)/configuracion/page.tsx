@@ -19,6 +19,7 @@ export default async function ConfiguracionPage() {
       <h1 className="m-0 mb-[22px] text-[26px] font-extrabold tracking-tight text-[#16233d]">Configuración</h1>
 
       <ConfiguracionForm
+        hasServices={services.length > 0}
         initial={{
           name: professional.name,
           slug: professional.slug,

@@ -181,7 +181,7 @@ export async function cancelBooking(cancelToken: string) {
 export async function adminSetBookingStatus(params: {
   professionalId: string;
   bookingId: string;
-  status: Extract<BookingStatus, "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED">;
+  status: Extract<BookingStatus, "PENDING" | "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED">;
 }) {
   const booking = await prisma.booking.findFirst({
     where: { id: params.bookingId, professionalId: params.professionalId },
@@ -191,13 +191,22 @@ export async function adminSetBookingStatus(params: {
     throw new AppError("Reserva no encontrada.");
   }
 
+  if (booking.status === "CANCELLED" && params.status !== "CANCELLED") {
+    throw new AppError("Un turno cancelado no se puede modificar. Creá una reserva nueva.");
+  }
+  if (booking.status === params.status) {
+    return booking;
+  }
+
   if ((params.status === "COMPLETED" || params.status === "NO_SHOW") && booking.startTime.getTime() > Date.now()) {
     throw new AppError("No se puede marcar como completado o ausente un turno que todavía no empezó.");
   }
 
   if (params.status === "CONFIRMED") {
     if (booking.status !== "PENDING") {
-      throw new AppError("Solo se puede confirmar un turno pendiente.");
+      // Corrección de un turno ya cerrado (completado/ausente): vuelve a
+      // Confirmada sin avisarle de nuevo al cliente.
+      return prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } });
     }
     const confirmed = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } });
     await notifyBookingConfirmed(
