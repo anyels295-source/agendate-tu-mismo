@@ -171,6 +171,36 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
     }
   }
 
+  /** Descarga un archivo .ics con el turno, para agregarlo a Google Calendar, Outlook o Apple Calendar. */
+  function downloadIcs() {
+    if (!selectedSlot) return;
+    const stamp = (iso: string) => DateTime.fromISO(iso).toUTC().toFormat("yyyyLLdd'T'HHmmss'Z'");
+    const escapeText = (text: string) => text.replace(/\\/g, "\\\\").replace(/[,;]/g, (m) => `\\${m}`).replace(/\n/g, "\\n");
+    const title = `${serviceName} con ${professionalName} (pendiente de confirmación)`;
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Agendate Tu Mismo//ES",
+      "BEGIN:VEVENT",
+      `UID:${stamp(selectedSlot.startISO)}-${slug}@agendate-tu-mismo`,
+      `DTSTAMP:${stamp(new Date().toISOString())}`,
+      `DTSTART:${stamp(selectedSlot.startISO)}`,
+      `DTEND:${stamp(selectedSlot.endISO)}`,
+      `SUMMARY:${escapeText(title)}`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ];
+    const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "turno.ics";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   const curService = services?.find((s) => s.id === selectedServiceId);
   const serviceName = curService?.name ?? data?.professional.serviceName ?? "Servicio";
   const durationMinutes = curService?.durationMinutes ?? data?.professional.durationMinutes ?? 30;
@@ -253,7 +283,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                           className="rounded-[11px] border-[1.5px] px-[13px] py-[9px] text-[13px] font-bold"
                           style={{ borderColor: active ? "#215a8f" : "#e0e6f0", background: active ? "#eef4fb" : "#fff", color: active ? "#1f3864" : "#5a6884" }}
                         >
-                          {sv.name} · {sv.durationMinutes}m
+                          {sv.name} · {sv.durationMinutes}m{sv.price ? ` · ${/^\d/.test(sv.price) ? `$${sv.price}` : sv.price}` : ""}
                         </button>
                       );
                     })}
@@ -399,11 +429,14 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
               <div className="mx-auto mb-4 flex h-[66px] w-[66px] items-center justify-center rounded-full bg-[#e4f6ec]">
                 <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#22a05a" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
               </div>
-              <div className="text-[20px] font-extrabold text-[#1a7d45]">¡Turno agendado!</div>
+              <div className="text-[20px] font-extrabold text-[#1a7d45]">¡Reserva recibida!</div>
               <div className="mt-1.5 text-[14.5px] font-semibold text-[#3a8560]">
                 {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).setLocale("es").toFormat("cccc d 'de' LLLL")} a las{" "}
                 {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).toFormat("HH:mm")}
               </div>
+              <span className="mt-2.5 inline-block rounded-full bg-[#fdf1dc] px-3 py-1 text-[12px] font-bold text-[#a4700f]">
+                Pendiente de confirmación
+              </span>
               <div className="mt-3.5 text-[13px] leading-relaxed text-[#6b7890]">
                 Te enviamos el detalle por email. El turno queda pendiente de confirmación y te avisaremos cuando se confirme.
                 <br />
@@ -412,6 +445,13 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
               <div className="mt-3 text-[13px] font-semibold text-[#2a3856]">
                 Si no vas a reservar más turnos, ya podés cerrar esta ventana.
               </div>
+              <button
+                onClick={downloadIcs}
+                className="mt-4 rounded-[11px] border border-[#d6deeb] bg-white px-[18px] py-2.5 text-[13.5px] font-semibold text-[#2a3856]"
+              >
+                Agregar a mi calendario (.ics)
+              </button>
+              <br />
               <button
                 onClick={() => {
                   setStep("elegir");

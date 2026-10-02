@@ -41,6 +41,9 @@ export default function NewBookingModal({
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmNow, setConfirmNow] = useState(false);
+  // Fecha desde la que se buscan horarios (por defecto, hoy): permite agendar más allá de los primeros días.
+  const [fromDate, setFromDate] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/services?slug=${encodeURIComponent(professionalSlug)}`)
@@ -58,6 +61,7 @@ export default function NewBookingModal({
     setLoading(true);
     const query = new URLSearchParams({ slug: professionalSlug, days: "10", admin: "1" });
     if (selectedServiceId) query.set("serviceId", selectedServiceId);
+    if (fromDate) query.set("from", fromDate);
     fetch(`/api/availability?${query.toString()}`)
       .then(async (res) => {
         const json = await res.json();
@@ -76,7 +80,7 @@ export default function NewBookingModal({
     return () => {
       cancelled = true;
     };
-  }, [professionalSlug, selectedServiceId]);
+  }, [professionalSlug, selectedServiceId, fromDate]);
 
   const slotsByDay = useMemo(() => {
     const map = new Map<string, FreeSlot[]>();
@@ -130,6 +134,7 @@ export default function NewBookingModal({
           clientPhone: normalizedPhone ?? undefined,
           clientEmail: form.clientEmail.trim(),
           notes: form.notes.trim() || undefined,
+          confirmed: confirmNow || undefined,
           startISO: selectedSlot.startISO,
           endISO: selectedSlot.endISO,
         }),
@@ -194,6 +199,27 @@ export default function NewBookingModal({
               })}
             </div>
           </>
+        )}
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <label htmlFor="nb-from" className="text-[12.5px] font-semibold text-[var(--muted-nav)]">Buscar desde</label>
+          <input
+            id="nb-from"
+            type="date"
+            min={DateTime.now().toISODate() ?? undefined}
+            value={fromDate ?? ""}
+            onChange={(e) => setFromDate(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value) ? e.target.value : null)}
+            className="rounded-[10px] border-[1.5px] border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]"
+          />
+          {fromDate && (
+            <button type="button" onClick={() => setFromDate(null)} className="text-[12.5px] font-semibold text-[var(--brand)]">
+              Desde hoy
+            </button>
+          )}
+        </div>
+
+        {!loading && data && days.length === 0 && !error && (
+          <p className="mb-3 text-[13px] text-[var(--muted-nav)]">No hay horarios libres en esos días. Probá con otra fecha.</p>
         )}
 
         {!loading && data && days.length > 0 && (
@@ -296,6 +322,15 @@ export default function NewBookingModal({
                   />
                 </div>
               </div>
+              <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-[13px] text-[var(--ink2)]">
+                <input type="checkbox" checked={confirmNow} onChange={(e) => setConfirmNow(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--brand)]" />
+                <span>
+                  <span className="font-semibold">Dejar el turno confirmado</span>
+                  <span className="block text-[12px] text-[var(--muted-nav)]">
+                    Si no, queda Pendiente hasta que el cliente acepte o lo confirmes vos.
+                  </span>
+                </span>
+              </label>
               {formError && <p className="mt-3 text-[13px] text-red-600">{formError}</p>}
             </div>
 

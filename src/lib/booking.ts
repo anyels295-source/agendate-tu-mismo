@@ -23,6 +23,8 @@ export async function createBooking(params: {
   startISO: string;
   endISO: string;
   notes?: string;
+  /** Alta manual desde el panel: el cliente ya aceptó, así que nace Confirmada en vez de Pendiente. */
+  confirmed?: boolean;
 }) {
   const professional = await prisma.professional.findUnique({
     where: { id: params.professionalId },
@@ -105,10 +107,14 @@ export async function createBooking(params: {
     // más adelante, cuando el invitado acepta desde su calendario.
     const created = await prisma.booking.update({
       where: { id: booking.id },
-      data: { calendarProvider: bookingConnection.provider, externalEventId: eventId },
+      data: {
+        ...(params.confirmed ? { status: "CONFIRMED" as const } : {}),
+        calendarProvider: bookingConnection.provider,
+        externalEventId: eventId,
+      },
     });
 
-    await notifyBookingConfirmed(created, { ...professional, serviceName: serviceLabel }, { pending: true });
+    await notifyBookingConfirmed(created, { ...professional, serviceName: serviceLabel }, { pending: !params.confirmed });
     return created;
   } catch (err) {
     // Si falla la creación del evento en el calendario, no dejamos una reserva

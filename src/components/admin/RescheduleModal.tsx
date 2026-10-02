@@ -39,12 +39,13 @@ export default function RescheduleModal({
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<FreeSlot | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fromDate, setFromDate] = useState<string | null>(null);
   const [notify, setNotify] = useState<Record<ChannelKey, boolean>>({ whatsapp: true, email: true, telegram: false, teams: false });
   const [telegramNotice, setTelegramNotice] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/availability?slug=${encodeURIComponent(professionalSlug)}&days=10&admin=1&excludeBookingId=${encodeURIComponent(bookingId)}`)
+    fetch(`/api/availability?slug=${encodeURIComponent(professionalSlug)}&days=10&admin=1&excludeBookingId=${encodeURIComponent(bookingId)}${fromDate ? `&from=${fromDate}` : ""}`)
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "No se pudo cargar la disponibilidad.");
@@ -56,7 +57,7 @@ export default function RescheduleModal({
     return () => {
       cancelled = true;
     };
-  }, [professionalSlug, bookingId]);
+  }, [professionalSlug, bookingId, fromDate]);
 
   const slotsByDay = useMemo(() => {
     const map = new Map<string, FreeSlot[]>();
@@ -143,6 +144,27 @@ export default function RescheduleModal({
 
         {loading && <p className="text-sm text-[var(--muted-nav)]">Cargando horarios disponibles…</p>}
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <label htmlFor="rs-from" className="text-[12.5px] font-semibold text-[var(--muted-nav)]">Buscar desde</label>
+          <input
+            id="rs-from"
+            type="date"
+            min={DateTime.now().toISODate() ?? undefined}
+            value={fromDate ?? ""}
+            onChange={(e) => setFromDate(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value) ? e.target.value : null)}
+            className="rounded-[10px] border-[1.5px] border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]"
+          />
+          {fromDate && (
+            <button type="button" onClick={() => setFromDate(null)} className="text-[12.5px] font-semibold text-[var(--brand)]">
+              Desde hoy
+            </button>
+          )}
+        </div>
+
+        {!loading && data && days.length === 0 && !error && (
+          <p className="mb-3 text-[13px] text-[var(--muted-nav)]">No hay horarios libres en esos días. Probá con otra fecha.</p>
+        )}
 
         {!loading && data && days.length > 0 && (
           <>

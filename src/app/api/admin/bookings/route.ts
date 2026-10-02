@@ -16,6 +16,7 @@ const bookingSchema = z
     startISO: z.string().min(1),
     endISO: z.string().min(1),
     notes: z.string().max(500).optional(),
+    confirmed: z.boolean().optional(),
   })
   .superRefine(checkDateRange);
 
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
       startISO: parsed.data.startISO,
       endISO: parsed.data.endISO,
       notes: parsed.data.notes,
+      confirmed: parsed.data.confirmed,
     });
 
     return NextResponse.json({ bookingId: booking.id, status: booking.status });
