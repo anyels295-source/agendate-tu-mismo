@@ -101,13 +101,15 @@ export default function BookingsTable({
   rows,
   professionalSlug,
   initialFilter,
+  initialQuery,
 }: {
   rows: BookingRow[];
   professionalSlug: string;
   initialFilter?: string;
+  initialQuery?: string;
 }) {
   const router = useRouter();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState((initialQuery ?? "").slice(0, 100));
   const [filter, setFilter] = useState(CHIPS.some((c) => c.key === initialFilter) ? (initialFilter as string) : "all");
   const [menuId, setMenuId] = useState<string | null>(null);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
@@ -120,6 +122,15 @@ export default function BookingsTable({
     if (!toast) setUndo(null);
   }, [toast]);
   const toCloseCount = rows.filter(isToClose).length;
+
+  // Búsqueda y filtro quedan en la URL (sin navegar), para poder recargar o compartir la vista.
+  function syncUrl(nextQ: string, nextFilter: string) {
+    const params = new URLSearchParams();
+    if (nextQ.trim()) params.set("q", nextQ);
+    if (nextFilter !== "all") params.set("filter", nextFilter);
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -171,10 +182,26 @@ export default function BookingsTable({
           <IconSearch className="absolute left-[13px] top-1/2 -translate-y-1/2 text-[var(--muted-nav)]" />
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              syncUrl(e.target.value, filter);
+            }}
             placeholder="Buscar por nombre o teléfono…"
-            className="w-full rounded-[11px] border border-[var(--line-in)] bg-[var(--surface)] py-[10px] pl-[38px] pr-3 text-[14px]"
+            className="w-full rounded-[11px] border border-[var(--line-in)] bg-[var(--surface)] py-[10px] pl-[38px] pr-9 text-[14px]"
           />
+          {q && (
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+                syncUrl("", filter);
+              }}
+              aria-label="Limpiar búsqueda"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--muted-nav)] hover:bg-[var(--page)]"
+            >
+              <IconClose />
+            </button>
+          )}
         </div>
         <div className="flex flex-wrap gap-[7px]">
           {CHIPS.map((c) => {
@@ -183,7 +210,10 @@ export default function BookingsTable({
               <button
                 key={c.key}
                 aria-pressed={active}
-                onClick={() => setFilter(c.key)}
+                onClick={() => {
+                  setFilter(c.key);
+                  syncUrl(q, c.key);
+                }}
                 className="rounded-full border px-[13px] py-2 text-[12.5px] font-semibold"
                 style={{
                   borderColor: active ? "var(--brand)" : "var(--line-in)",

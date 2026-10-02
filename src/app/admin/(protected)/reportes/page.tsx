@@ -83,7 +83,7 @@ export default async function ReportesPage({
       startTime: { gte: from.toJSDate(), lt: to.toJSDate() },
     },
     include: { service: true },
-    orderBy: { startTime: "asc" },
+    orderBy: { startTime: "desc" },
   });
 
   const rows: (ReportRow & { id: string; status: string })[] = bookings.map((b) => {
@@ -104,7 +104,11 @@ export default async function ReportesPage({
   for (const r of rows) totalsByStatus[r.status] = (totalsByStatus[r.status] ?? 0) + 1;
 
   const totalsByService = new Map<string, number>();
-  for (const r of rows) totalsByService.set(r.serviceName, (totalsByService.get(r.serviceName) ?? 0) + 1);
+  // Los turnos cancelados no cuentan como servicio pedido.
+  for (const r of rows) {
+    if (r.status === "CANCELLED") continue;
+    totalsByService.set(r.serviceName, (totalsByService.get(r.serviceName) ?? 0) + 1);
+  }
   const topServices = [...totalsByService.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
   const maxServiceCount = topServices[0]?.[1] ?? 0;
 

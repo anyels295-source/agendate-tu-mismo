@@ -40,6 +40,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   // Cambiarlo fuerza a volver a pedir los horarios libres al servidor.
   const [reloadKey, setReloadKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  // Tras "Reservar otro turno" se conservan los datos de contacto; se avisa y se ofrece borrarlos (dispositivos compartidos).
+  const [reusingData, setReusingData] = useState(false);
 
   useEffect(() => {
     if (step === "datos") setNotice(null);
@@ -366,6 +368,21 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
               <button onClick={() => setStep("elegir")} className="mb-3.5 text-[13px] font-semibold text-[#215a8f]">
                 ← Elegir otro horario
               </button>
+              {reusingData && (form.clientName || form.clientEmail || form.clientPhone) && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[11px] bg-[#fdf1dc] px-3 py-2 text-[12.5px] text-[#8a5d0b]">
+                  <span>Usamos los datos de tu reserva anterior.</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
+                      setReusingData(false);
+                    }}
+                    className="font-bold underline"
+                  >
+                    Borrar mis datos
+                  </button>
+                </div>
+              )}
               <div className="mb-[18px] rounded-[13px] bg-[#eef4fb] p-3.5 text-center">
                 <div className="text-[14.5px] font-extrabold text-[#1f3864]">
                   {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).setLocale("es").toFormat("cccc d 'de' LLLL")} ·{" "}
@@ -457,6 +474,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                   setStep("elegir");
                   setSelectedSlot(null);
                   setReloadKey((k) => k + 1);
+                  setForm((f) => ({ ...f, notes: "" }));
+                  setReusingData(true);
                 }}
                 className="mt-5 rounded-[11px] border border-[#d6deeb] bg-white px-[18px] py-2.5 text-[13.5px] font-semibold text-[#2a3856]"
               >

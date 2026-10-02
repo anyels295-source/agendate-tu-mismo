@@ -7,8 +7,8 @@ import ShareWhatsAppButton from "@/components/admin/ShareWhatsAppButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReservasPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
-  const { filter } = await searchParams;
+export default async function ReservasPage({ searchParams }: { searchParams: Promise<{ filter?: string; q?: string }> }) {
+  const { filter, q } = await searchParams;
   const professional = await getActiveProfessional();
 
   const bookings = await prisma.booking.findMany({
@@ -48,7 +48,7 @@ export default async function ReservasPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <BookingsTable rows={rows} professionalSlug={professional.slug} initialFilter={filter} />
+      <BookingsTable rows={rows} professionalSlug={professional.slug} initialFilter={filter} initialQuery={q} />
     </div>
   );
 }
