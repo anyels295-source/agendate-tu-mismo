@@ -24,6 +24,7 @@ export default async function ReservasPage() {
       clientName: b.clientName,
       clientPhone: b.clientPhone,
       notes: b.notes,
+      startISO: b.startTime.toISOString(),
       serviceName: b.service?.name ?? professional.serviceName,
       dateLabel: dt.toFormat("d LLL yyyy"),
       timeLabel: dt.toFormat("HH:mm"),

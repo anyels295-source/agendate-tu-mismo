@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
+import { normalizePhone, PHONE_ERROR_MESSAGE } from "@/lib/validation";
 import { IconClose } from "./icons";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 
@@ -112,8 +113,9 @@ export default function NewBookingModal({
       return;
     }
     // El WhatsApp es opcional, pero si se completa que sea algo razonable.
-    if (form.clientPhone.trim() && form.clientPhone.trim().length < 8) {
-      setFormError("Si ingresás WhatsApp, poné uno válido con código de país, ej. +598 9x xxx xxx.");
+    const normalizedPhone = form.clientPhone.trim() ? normalizePhone(form.clientPhone) : null;
+    if (form.clientPhone.trim() && !normalizedPhone) {
+      setFormError(PHONE_ERROR_MESSAGE);
       return;
     }
 
@@ -125,7 +127,7 @@ export default function NewBookingModal({
         body: JSON.stringify({
           serviceId: selectedServiceId ?? undefined,
           clientName: form.clientName.trim(),
-          clientPhone: form.clientPhone.trim() || undefined,
+          clientPhone: normalizedPhone ?? undefined,
           clientEmail: form.clientEmail.trim(),
           notes: form.notes.trim() || undefined,
           startISO: selectedSlot.startISO,

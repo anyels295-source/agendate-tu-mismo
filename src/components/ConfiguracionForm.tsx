@@ -78,12 +78,33 @@ export default function ConfiguracionForm({ initial }: Props) {
     }));
   }
 
-  function updateRange(day: keyof WorkingHours, field: "start" | "end", value: string) {
+  function updateRange(day: keyof WorkingHours, index: number, field: "start" | "end", value: string) {
     setForm((f) => {
       const ranges = f.workingHours[day].length ? [...f.workingHours[day]] : [{ start: "09:00", end: "18:00" }];
-      ranges[0] = { ...ranges[0], [field]: value };
+      ranges[index] = { ...ranges[index], [field]: value };
       return { ...f, workingHours: { ...f.workingHours, [day]: ranges } };
     });
+  }
+
+  function addRange(day: keyof WorkingHours) {
+    setForm((f) => {
+      const ranges = [...f.workingHours[day]];
+      const last = ranges[ranges.length - 1];
+      // El nuevo tramo arranca donde terminó el anterior y dura hasta 4 h (sin pasar de las 23:59).
+      const [lh, lm] = (last?.end ?? "09:00").split(":").map(Number);
+      const startMin = Math.min(lh * 60 + lm, 23 * 60);
+      const endMin = Math.min(startMin + 4 * 60, 23 * 60 + 59);
+      const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+      ranges.push({ start: fmt(startMin), end: fmt(endMin) });
+      return { ...f, workingHours: { ...f.workingHours, [day]: ranges } };
+    });
+  }
+
+  function removeRange(day: keyof WorkingHours, index: number) {
+    setForm((f) => ({
+      ...f,
+      workingHours: { ...f.workingHours, [day]: f.workingHours[day].filter((_, i) => i !== index) },
+    }));
   }
 
   function pickPhoto() {
@@ -273,7 +294,7 @@ export default function ConfiguracionForm({ initial }: Props) {
         <div className="flex flex-col gap-2">
           {DAY_KEYS.map((day) => {
             const enabled = form.workingHours[day].length > 0;
-            const range = form.workingHours[day][0] ?? { start: "09:00", end: "18:00" };
+            const ranges = form.workingHours[day].length ? form.workingHours[day] : [{ start: "09:00", end: "18:00" }];
             return (
               <div key={day} className="flex flex-wrap items-center gap-3.5 rounded-[11px] px-3 py-2.5" style={{ background: enabled ? "var(--subtle)" : "transparent" }}>
                 <label className="flex w-[110px] shrink-0 items-center gap-2 text-[13.5px] font-semibold" style={{ color: enabled ? "var(--ink2)" : "var(--muted-nav)" }}>
@@ -281,17 +302,33 @@ export default function ConfiguracionForm({ initial }: Props) {
                   {DAY_LABEL[day]}
                 </label>
                 {enabled ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input type="time" value={range.start} onChange={(e) => updateRange(day, "start", e.target.value)} className="rounded-lg border border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]" />
-                    <span className="text-[13px] text-[var(--muted-nav)]">a</span>
-                    <input type="time" value={range.end} onChange={(e) => updateRange(day, "end", e.target.value)} className="rounded-lg border border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]" />
-                    <button
-                      type="button"
-                      title="Próximamente: agregar otro tramo horario en el mismo día"
-                      className="rounded-lg border border-dashed border-[var(--line-btn)] bg-[var(--surface)] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--brand)]"
-                    >
-                      + tramo
-                    </button>
+                  <div className="flex flex-col gap-2">
+                    {ranges.map((range, i) => (
+                      <div key={i} className="flex flex-wrap items-center gap-2">
+                        <input type="time" aria-label={`${DAY_LABEL[day]}, tramo ${i + 1}: desde`} value={range.start} onChange={(e) => updateRange(day, i, "start", e.target.value)} className="rounded-lg border border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]" />
+                        <span className="text-[13px] text-[var(--muted-nav)]">a</span>
+                        <input type="time" aria-label={`${DAY_LABEL[day]}, tramo ${i + 1}: hasta`} value={range.end} onChange={(e) => updateRange(day, i, "end", e.target.value)} className="rounded-lg border border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]" />
+                        {i > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => removeRange(day, i)}
+                            aria-label={`Quitar el tramo ${i + 1} de ${DAY_LABEL[day]}`}
+                            className="rounded-lg px-2 py-1.5 text-[13px] font-semibold text-[var(--muted-nav)] hover:bg-[var(--page)]"
+                          >
+                            ✕
+                          </button>
+                        )}
+                        {i === ranges.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => addRange(day)}
+                            className="rounded-lg border border-dashed border-[var(--line-btn)] bg-[var(--surface)] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--brand)]"
+                          >
+                            + tramo
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <span className="text-[13px] text-[var(--muted-nav)]">Cerrado</span>

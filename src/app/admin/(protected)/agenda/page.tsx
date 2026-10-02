@@ -86,6 +86,7 @@ export default async function AgendaPage({
         clientName: b.clientName,
         phone: b.clientPhone,
         email: b.clientEmail,
+        startISO: b.startTime.toISOString(),
         notes: b.notes,
         serviceName: b.service?.name ?? professional.serviceName,
         status: b.status,

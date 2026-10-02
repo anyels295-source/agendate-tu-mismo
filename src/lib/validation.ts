@@ -1,6 +1,35 @@
 import { z } from "zod";
 
 /**
+ * Normaliza un teléfono a formato E.164 (+<código de país><número>). Acepta
+ * espacios, guiones y paréntesis, y el prefijo internacional "00". Devuelve
+ * `null` si no tiene código de país o no tiene entre 8 y 15 dígitos. Es la
+ * misma regla para el formulario público, el del panel y la API.
+ */
+export function normalizePhone(input: string): string | null {
+  let value = input.replace(/[\s().-]/g, "");
+  if (value.startsWith("00")) value = `+${value.slice(2)}`;
+  return /^\+[1-9]\d{7,14}$/.test(value) ? value : null;
+}
+
+export const PHONE_ERROR_MESSAGE = "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.";
+export const CLIENT_NAME_MAX_LENGTH = 80;
+
+/** Teléfono opcional: vacío → undefined; si viene, se normaliza o se rechaza. */
+export const optionalPhoneSchema = z
+  .string()
+  .optional()
+  .transform((value, ctx) => {
+    if (!value || !value.trim()) return undefined;
+    const normalized = normalizePhone(value);
+    if (!normalized) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: PHONE_ERROR_MESSAGE });
+      return z.NEVER;
+    }
+    return normalized;
+  });
+
+/**
  * Para usar dentro de un `.superRefine()` de un esquema que tenga
  * `startISO`/`endISO`: valida que ambas sean fechas parseables y que el fin
  * sea estrictamente posterior al inicio. Sin esto, un request directo a la

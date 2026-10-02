@@ -191,6 +191,10 @@ export async function adminSetBookingStatus(params: {
     throw new AppError("Reserva no encontrada.");
   }
 
+  if ((params.status === "COMPLETED" || params.status === "NO_SHOW") && booking.startTime.getTime() > Date.now()) {
+    throw new AppError("No se puede marcar como completado o ausente un turno que todavía no empezó.");
+  }
+
   if (params.status === "CONFIRMED") {
     if (booking.status !== "PENDING") {
       throw new AppError("Solo se puede confirmar un turno pendiente.");

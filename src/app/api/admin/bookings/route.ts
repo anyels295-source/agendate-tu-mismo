@@ -4,19 +4,15 @@ import { getAdminSession } from "@/lib/auth";
 import { getActiveProfessional } from "@/lib/professional";
 import { createBooking, BookingConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
-import { checkDateRange } from "@/lib/validation";
+import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH } from "@/lib/validation";
 
 /** Alta manual de un turno desde el panel (botón "+ Nueva reserva" en Reservas). */
 const bookingSchema = z
   .object({
     serviceId: z.string().min(1).optional(),
-    clientName: z.string().min(2, "El nombre es obligatorio."),
+    clientName: z.string().trim().min(2, "El nombre es obligatorio.").max(CLIENT_NAME_MAX_LENGTH, "El nombre es demasiado largo."),
     clientEmail: z.string().min(1, "El email es obligatorio.").email("Ingresá un email válido."),
-    clientPhone: z
-      .string()
-      .min(8, "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.")
-      .optional()
-      .or(z.literal("")),
+    clientPhone: optionalPhoneSchema,
     startISO: z.string().min(1),
     endISO: z.string().min(1),
     notes: z.string().max(500).optional(),

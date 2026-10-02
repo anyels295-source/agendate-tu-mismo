@@ -3,23 +3,19 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createBooking, BookingConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
-import { checkDateRange } from "@/lib/validation";
+import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH } from "@/lib/validation";
 
 const bookingSchema = z
   .object({
     slug: z.string().min(1),
     serviceId: z.string().min(1).optional(),
-    clientName: z.string().min(2, "El nombre es obligatorio."),
+    clientName: z.string().trim().min(2, "El nombre es obligatorio.").max(CLIENT_NAME_MAX_LENGTH, "El nombre es demasiado largo."),
     // El email es el contacto obligatorio; WhatsApp quedó opcional — si el
     // cliente lo completa, además se le avisa por ahí. Ver
     // agendate_ideas_originales_gap_analysis en memoria del proyecto,
     // pedido el 2026-08-24.
     clientEmail: z.string().min(1, "El email es obligatorio.").email("Ingresá un email válido."),
-    clientPhone: z
-      .string()
-      .min(8, "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.")
-      .optional()
-      .or(z.literal("")),
+    clientPhone: optionalPhoneSchema,
     startISO: z.string().min(1),
     endISO: z.string().min(1),
     notes: z.string().max(500).optional(),

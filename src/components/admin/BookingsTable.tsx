@@ -12,6 +12,8 @@ export type BookingRow = {
   /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
   clientPhone: string | null;
   notes: string | null;
+  /** Inicio del turno (ISO): Completar/Ausente solo se habilitan una vez que empezó. */
+  startISO: string;
   serviceName: string;
   dateLabel: string;
   timeLabel: string;
@@ -253,14 +255,18 @@ export default function BookingsTable({
                         )}
                         <button
                           onClick={() => updateStatus(b.id, "COMPLETED")}
-                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
+                          disabled={new Date(b.startISO).getTime() > Date.now()}
+                          title={new Date(b.startISO).getTime() > Date.now() ? "Disponible cuando empiece el turno" : undefined}
+                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                         >
                           <IconCheck className="text-[#1a7d45]" />
                           Marcar completada
                         </button>
                         <button
                           onClick={() => updateStatus(b.id, "NO_SHOW")}
-                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)]"
+                          disabled={new Date(b.startISO).getTime() > Date.now()}
+                          title={new Date(b.startISO).getTime() > Date.now() ? "Disponible cuando empiece el turno" : undefined}
+                          className="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-[var(--ink2)] hover:bg-[var(--page)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                         >
                           <IconNoShow className="text-[#a4700f]" />
                           Marcar ausente

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
+import { normalizePhone, PHONE_ERROR_MESSAGE } from "@/lib/validation";
 import { TIMEZONES, timezoneLabel } from "@/lib/timezones";
 
 type FreeSlot = { startISO: string; endISO: string };
@@ -117,8 +118,9 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
       return;
     }
     // El WhatsApp es opcional, pero si lo escribió, que sea algo razonable.
-    if (form.clientPhone.trim() && form.clientPhone.trim().length < 8) {
-      setFormError("Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.");
+    const normalizedPhone = form.clientPhone.trim() ? normalizePhone(form.clientPhone) : null;
+    if (form.clientPhone.trim() && !normalizedPhone) {
+      setFormError(PHONE_ERROR_MESSAGE);
       return;
     }
 
@@ -131,7 +133,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
           slug,
           serviceId: selectedServiceId ?? undefined,
           clientName: form.clientName,
-          clientPhone: form.clientPhone.trim() || undefined,
+          clientPhone: normalizedPhone ?? undefined,
           clientEmail: form.clientEmail.trim(),
           notes: form.notes || undefined,
           startISO: selectedSlot.startISO,

@@ -14,6 +14,8 @@ export type AgendaEvent = {
   /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
   phone: string | null;
   email: string | null;
+  /** Inicio del turno (ISO): Completar/Ausente solo se habilitan una vez que empezó. */
+  startISO: string;
   notes: string | null;
   serviceName: string;
   status: string;
@@ -404,14 +406,16 @@ export default function AgendaWeekGrid({
                 )}
                 <div className="flex shrink-0 gap-2 px-[22px] pb-2 pt-2">
                   <button
-                    disabled={busy}
+                    disabled={busy || new Date(detail.startISO).getTime() > Date.now()}
+                    title={new Date(detail.startISO).getTime() > Date.now() ? "Disponible cuando empiece el turno" : undefined}
                     onClick={() => setStatus("COMPLETED")}
                     className="flex-1 rounded-[10px] border border-[var(--line-in)] py-2 text-[12.5px] font-semibold text-[var(--ink2)] disabled:opacity-50"
                   >
                     Completar
                   </button>
                   <button
-                    disabled={busy}
+                    disabled={busy || new Date(detail.startISO).getTime() > Date.now()}
+                    title={new Date(detail.startISO).getTime() > Date.now() ? "Disponible cuando empiece el turno" : undefined}
                     onClick={() => setStatus("NO_SHOW")}
                     className="flex-1 rounded-[10px] border border-[var(--line-in)] py-2 text-[12.5px] font-semibold text-[var(--ink2)] disabled:opacity-50"
                   >
