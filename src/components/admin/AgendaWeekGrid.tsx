@@ -246,7 +246,12 @@ export default function AgendaWeekGrid({
         <div className="border-r border-[var(--line2)]" />
         {days.map((d) => (
           <div key={d.label} className="p-[11px_4px] text-center">
+            <span className="sr-only">
+              {new Date(`${d.dateISO}T12:00:00`).toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })}
+              {d.isToday ? " (hoy)" : ""}
+            </span>
             <div
+              aria-hidden="true"
               className="inline-flex flex-col items-center gap-px rounded-[10px] px-[11px] py-[5px]"
               style={{ background: d.isToday ? "var(--brand)" : "transparent" }}
             >

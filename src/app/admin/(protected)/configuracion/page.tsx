@@ -48,3 +48,5 @@ export default async function ConfiguracionPage() {
     </div>
   );
 }
+
+export const metadata = { title: "Configuración" };

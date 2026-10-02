@@ -31,3 +31,5 @@ export default async function CalendariosPage({
     </div>
   );
 }
+
+export const metadata = { title: "Calendarios" };

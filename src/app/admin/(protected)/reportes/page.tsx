@@ -251,3 +251,5 @@ function StatCard({ label, value, highlight }: { label: string; value: number; h
     </div>
   );
 }
+
+export const metadata = { title: "Reportes" };

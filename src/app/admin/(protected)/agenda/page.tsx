@@ -126,6 +126,7 @@ export default async function AgendaPage({
           <div className="flex items-center gap-2">
             <Link
               href={`/admin/agenda?offset=${offset - 1}`}
+              aria-label="Semana anterior"
               className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
             >
               <IconChevronLeft />
@@ -138,6 +139,7 @@ export default async function AgendaPage({
             </Link>
             <Link
               href={`/admin/agenda?offset=${offset + 1}`}
+              aria-label="Semana siguiente"
               className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] text-[var(--ink4)]"
             >
               <IconChevronRight />
@@ -151,3 +153,5 @@ export default async function AgendaPage({
     </div>
   );
 }
+
+export const metadata = { title: "Agenda" };

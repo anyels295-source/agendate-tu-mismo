@@ -154,6 +154,8 @@ export default function RescheduleModal({
                 return (
                   <button
                     key={day}
+                    aria-pressed={active}
+                    aria-label={dt.toFormat("cccc d 'de' LLLL")}
                     onClick={() => {
                       setSelectedDay(day);
                       setSelectedSlot(null);
@@ -182,6 +184,7 @@ export default function RescheduleModal({
                 return (
                   <button
                     key={slot.startISO}
+                    aria-pressed={active}
                     onClick={() => setSelectedSlot(slot)}
                     className="rounded-[10px] border-[1.5px] py-[9px] text-[13.5px] font-bold"
                     style={{
@@ -206,6 +209,9 @@ export default function RescheduleModal({
                   return (
                     <button
                       key={k}
+                      aria-pressed={meta.disabled ? undefined : on}
+                      aria-disabled={meta.disabled || undefined}
+                      title={meta.disabled ? "Próximamente" : undefined}
                       onClick={() => toggleChannel(k)}
                       className="inline-flex items-center gap-[7px] rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-semibold"
                       style={{

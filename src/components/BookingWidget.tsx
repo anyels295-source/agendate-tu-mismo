@@ -248,6 +248,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                       return (
                         <button
                           key={sv.id}
+                          aria-pressed={active}
                           onClick={() => setSelectedServiceId(sv.id)}
                           className="rounded-[11px] border-[1.5px] px-[13px] py-[9px] text-[13px] font-bold"
                           style={{ borderColor: active ? "#215a8f" : "#e0e6f0", background: active ? "#eef4fb" : "#fff", color: active ? "#1f3864" : "#5a6884" }}
@@ -295,6 +296,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                   return (
                     <button
                       key={day}
+                      aria-pressed={active}
+                      aria-label={dt.toFormat("cccc d 'de' LLLL")}
                       onClick={() => setSelectedDay(day)}
                       className="shrink-0 rounded-[13px] border-[1.5px] py-2.5 text-center"
                       style={{ width: 62, borderColor: active ? "#215a8f" : "#e0e6f0", background: active ? "#215a8f" : "#fff", color: active ? "#fff" : "#2a3856" }}

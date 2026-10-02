@@ -179,6 +179,7 @@ export default function NewBookingModal({
                 return (
                   <button
                     key={sv.id}
+                    aria-pressed={active}
                     onClick={() => setSelectedServiceId(sv.id)}
                     className="rounded-[11px] border-[1.5px] px-3 py-2 text-[13px] font-bold"
                     style={{
@@ -205,6 +206,8 @@ export default function NewBookingModal({
                 return (
                   <button
                     key={day}
+                    aria-pressed={active}
+                    aria-label={dt.toFormat("cccc d 'de' LLLL")}
                     onClick={() => {
                       setSelectedDay(day);
                       setSelectedSlot(null);
@@ -233,6 +236,7 @@ export default function NewBookingModal({
                 return (
                   <button
                     key={slot.startISO}
+                    aria-pressed={active}
                     onClick={() => setSelectedSlot(slot)}
                     className="rounded-[10px] border-[1.5px] py-[9px] text-[13.5px] font-bold"
                     style={{

@@ -159,6 +159,7 @@ export default function BookingsTable({
             return (
               <button
                 key={c.key}
+                aria-pressed={active}
                 onClick={() => setFilter(c.key)}
                 className="rounded-full border px-[13px] py-2 text-[12.5px] font-semibold"
                 style={{
@@ -183,7 +184,7 @@ export default function BookingsTable({
       </div>
 
       <div className="overflow-visible rounded-2xl border border-[var(--line)] bg-[var(--surface)]">
-        <div className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] gap-x-4 rounded-t-[15px] bg-[var(--subtle)] p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">
+        <div className="grid grid-cols-[minmax(70px,.9fr)_minmax(0,1.5fr)_auto_32px] gap-x-2 sm:grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] sm:gap-x-4 rounded-t-[15px] bg-[var(--subtle)] p-[13px_12px] sm:p-[13px_20px] text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted-nav)]">
           <span>Fecha</span>
           <span>Cliente</span>
           <span className="hidden sm:block">Teléfono</span>
@@ -206,7 +207,7 @@ export default function BookingsTable({
           return (
             <div
               key={b.id}
-              className="grid grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] items-center gap-x-4 border-t border-[var(--line3)] p-[14px_20px] text-[13.5px]"
+              className="grid grid-cols-[minmax(70px,.9fr)_minmax(0,1.5fr)_auto_32px] gap-x-2 sm:grid-cols-[minmax(96px,1.3fr)_minmax(120px,1.4fr)_minmax(104px,1.1fr)_minmax(88px,.9fr)_40px] sm:gap-x-4 items-center border-t border-[var(--line3)] p-[14px_12px] text-[13.5px] sm:p-[14px_20px]"
             >
               <div className="min-w-0">
                 <div className="font-bold text-[var(--ink2)]">{b.dateLabel}</div>

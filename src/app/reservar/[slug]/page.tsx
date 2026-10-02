@@ -2,6 +2,13 @@ import { prisma } from "@/lib/prisma";
 import BookingWidget from "@/components/BookingWidget";
 import { notFound } from "next/navigation";
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const professional = await prisma.professional.findUnique({ where: { slug }, select: { name: true, active: true } });
+  if (!professional || !professional.active) return { title: "Página no encontrada" };
+  return { title: `Reservá tu turno con ${professional.name}` };
+}
+
 export default async function ReservarPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const professional = await prisma.professional.findUnique({ where: { slug } });

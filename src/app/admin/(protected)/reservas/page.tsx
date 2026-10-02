@@ -51,3 +51,5 @@ export default async function ReservasPage() {
     </div>
   );
 }
+
+export const metadata = { title: "Reservas" };

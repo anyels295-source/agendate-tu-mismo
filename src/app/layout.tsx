@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Agendate Tú Mismo",
+  title: { default: "Agendate Tú Mismo", template: "%s · Agendate Tú Mismo" },
   description: "Reservá tu turno en segundos, sin llamadas ni WhatsApp cruzados.",
 };
 

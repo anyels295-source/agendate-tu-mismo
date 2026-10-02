@@ -175,8 +175,8 @@ export default async function PanelPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[22px_24px]">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[22px_24px]">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <div className="text-[15px] font-bold text-[var(--ink3)]">Turnos por día</div>
@@ -184,9 +184,9 @@ export default async function PanelPage() {
             </div>
             <div className="rounded-lg bg-[var(--brand-soft)] px-[11px] py-[5px] text-[12px] font-semibold text-[var(--ink4)]">Ocupación {occupancy}%</div>
           </div>
-          <div className="flex h-[170px] items-end gap-3.5 pt-2">
+          <div className="flex h-[170px] items-end gap-2 pt-2 sm:gap-3.5">
             {chart.map((c) => (
-              <div key={c.label} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+              <div key={c.label} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
                 <span className="text-[12px] font-bold text-[var(--ink3)]">{c.count}</span>
                 <div
                   className="w-full max-w-[34px] rounded-t-[8px] rounded-b-[3px]"
@@ -201,7 +201,7 @@ export default async function PanelPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[22px_22px_8px]">
+        <div className="min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-[22px_22px_8px]">
           <div className="mb-1 text-[15px] font-bold text-[var(--ink3)]">Próximos turnos</div>
           <div className="mb-3.5 text-[12.5px] text-[var(--muted-nav)]">Hoy y los próximos días</div>
           {upcoming.length === 0 ? (
@@ -254,3 +254,5 @@ export default async function PanelPage() {
     </div>
   );
 }
+
+export const metadata = { title: "Panel" };
