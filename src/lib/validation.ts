@@ -15,6 +15,12 @@ export function normalizePhone(input: string): string | null {
 export const PHONE_ERROR_MESSAGE = "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.";
 export const CLIENT_NAME_MAX_LENGTH = 80;
 
+/** Precio de un servicio: un número con símbolo/código de moneda opcional ("39", "$ 39,50", "39 UYU"). */
+export const PRICE_ERROR_MESSAGE = "El precio debe ser un número, por ejemplo 39, $ 39,50 o 39 UYU.";
+export const PRICE_PATTERN = /^[^\d]{0,4}\s*\d+([.,]\d{1,2})?\s*[^\d]{0,4}$/;
+export const priceSchema = z.string().trim().max(50).regex(PRICE_PATTERN, PRICE_ERROR_MESSAGE);
+export const SERVICE_DURATION_ERROR_MESSAGE = "La duración debe estar entre 5 y 480 minutos.";
+
 /** Teléfono opcional: vacío → undefined; si viene, se normaliza o se rechaza. */
 export const optionalPhoneSchema = z
   .string()

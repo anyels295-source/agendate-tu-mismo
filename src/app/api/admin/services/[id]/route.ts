@@ -3,11 +3,12 @@ import { z } from "zod";
 import { getAdminSession } from "@/lib/auth";
 import { getActiveProfessional } from "@/lib/professional";
 import { prisma } from "@/lib/prisma";
+import { priceSchema, SERVICE_DURATION_ERROR_MESSAGE } from "@/lib/validation";
 
 const patchSchema = z.object({
-  name: z.string().min(1).optional(),
-  durationMinutes: z.number().int().min(5).max(480).optional(),
-  price: z.string().max(50).nullable().optional(),
+  name: z.string().trim().min(1, "El nombre es obligatorio.").max(80, "El nombre es demasiado largo.").optional(),
+  durationMinutes: z.number().int(SERVICE_DURATION_ERROR_MESSAGE).min(5, SERVICE_DURATION_ERROR_MESSAGE).max(480, SERVICE_DURATION_ERROR_MESSAGE).optional(),
+  price: priceSchema.nullable().optional(),
   active: z.boolean().optional(),
   order: z.number().int().min(0).optional(),
 });

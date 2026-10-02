@@ -16,10 +16,18 @@ export default function AgendaDateJump({ currentDate }: { currentDate: string })
     <label className="flex h-9 items-center gap-1.5 rounded-[10px] border border-[var(--line-btn)] bg-[var(--surface)] px-3 text-[13px] font-semibold text-[var(--ink2)]">
       <IconCalendarSmall className="shrink-0 text-[var(--muted-nav)]" />
       <input
+        key={currentDate}
         type="date"
+        min="2020-01-01"
+        max="2100-12-31"
         defaultValue={currentDate}
         onChange={(e) => {
-          if (e.target.value) router.push(`/admin/agenda?date=${e.target.value}`);
+          // Mientras se tipea el año, el navegador emite fechas intermedias
+          // (0002, 0020, 20265…): solo se navega con una fecha completa y razonable.
+          const value = e.target.value;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(value) && value >= "2020-01-01" && value <= "2100-12-31") {
+            router.push(`/admin/agenda?date=${value}`);
+          }
         }}
         aria-label="Ir a una fecha de la agenda"
         className="w-[122px] cursor-pointer border-none bg-transparent p-0 text-[13px] font-semibold text-[var(--ink2)] focus:outline-none"

@@ -56,12 +56,24 @@ export async function GET(req: NextRequest) {
   const requestedToDate = fromDate.plus({ days: Math.min(daysParam, 14) });
   const toDate = requestedToDate > maxToDate ? maxToDate : requestedToDate;
 
+  // Solo el panel puede pedir que el horario de un turno propio no cuente como ocupado.
+  let excludeInterval: { start: Date; end: Date } | undefined;
+  const excludeBookingId = searchParams.get("excludeBookingId");
+  if (excludeBookingId && ignoreMinNotice) {
+    const own = await prisma.booking.findFirst({
+      where: { id: excludeBookingId, professionalId: professional.id, status: { in: ["PENDING", "CONFIRMED"] } },
+      select: { startTime: true, endTime: true },
+    });
+    if (own) excludeInterval = { start: own.startTime, end: own.endTime };
+  }
+
   try {
     const slots = await getAvailableSlots({
       professional: { ...professional, durationMinutes, ...(ignoreMinNotice ? { minNoticeHours: 0 } : {}) },
       connections: professional.calendarConnections,
       fromDate,
       toDate,
+      excludeInterval,
     });
 
     return NextResponse.json({

@@ -44,7 +44,7 @@ export default function RescheduleModal({
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/availability?slug=${encodeURIComponent(professionalSlug)}&days=10`)
+    fetch(`/api/availability?slug=${encodeURIComponent(professionalSlug)}&days=10&admin=1&excludeBookingId=${encodeURIComponent(bookingId)}`)
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "No se pudo cargar la disponibilidad.");
@@ -56,7 +56,7 @@ export default function RescheduleModal({
     return () => {
       cancelled = true;
     };
-  }, [professionalSlug]);
+  }, [professionalSlug, bookingId]);
 
   const slotsByDay = useMemo(() => {
     const map = new Map<string, FreeSlot[]>();

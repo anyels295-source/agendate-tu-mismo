@@ -46,6 +46,7 @@ export default async function ReportesPage({
   let preset: Preset;
   let from: DateTime;
   let to: DateTime; // exclusivo
+  let rangeNotice: string | null = null;
 
   if (fromParam && toParam) {
     const parsedFrom = DateTime.fromISO(fromParam, { zone: tz });
@@ -55,6 +56,7 @@ export default async function ReportesPage({
       from = parsedFrom.startOf("day");
       to = parsedTo.startOf("day").plus({ days: 1 });
     } else {
+      rangeNotice = "El rango de fechas no es válido (la fecha final es anterior a la inicial). Se muestra el mes actual.";
       preset = "month";
       from = now.startOf("month");
       to = from.plus({ months: 1 });
@@ -120,6 +122,12 @@ export default async function ReportesPage({
         </div>
         <ReportExportButton rows={rows} rangeLabel={rangeLabel} />
       </div>
+
+      {rangeNotice && (
+        <p role="alert" className="mb-3 rounded-lg bg-[#fdf1dc] px-3 py-2 text-[13px] font-semibold text-[#8a5d0b]">
+          {rangeNotice}
+        </p>
+      )}
 
       <ReportPeriodPicker preset={preset} from={from.toISODate()!} to={to.minus({ days: 1 }).toISODate()!} />
 

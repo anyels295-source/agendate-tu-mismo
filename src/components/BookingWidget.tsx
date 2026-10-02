@@ -37,6 +37,13 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   // local (por defecto, la del negocio). No afecta lo que se guarda: los
   // slots siguen viajando como ISO/UTC, esto es solo de visualización.
   const [clientTz, setClientTz] = useState<string | null>(null);
+  // Cambiarlo fuerza a volver a pedir los horarios libres al servidor.
+  const [reloadKey, setReloadKey] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (step === "datos") setNotice(null);
+  }, [step]);
 
   useEffect(() => {
     fetch(`/api/services?slug=${encodeURIComponent(slug)}`)
@@ -76,7 +83,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
     return () => {
       cancelled = true;
     };
-  }, [slug, selectedServiceId]);
+  }, [slug, selectedServiceId, reloadKey]);
 
   const displayTz = clientTz ?? data?.professional.timezone ?? "UTC";
 
@@ -141,6 +148,16 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
         }),
       });
       const json = await res.json();
+      if (res.status === 409) {
+        // Alguien tomó el horario mientras se completaba el formulario:
+        // volvemos a la lista con los horarios actualizados.
+        setNotice("Ese horario ya no está disponible. Elegí otro de la lista.");
+        setSelectedSlot(null);
+        setStep("elegir");
+        setReloadKey((k) => k + 1);
+        setSubmitting(false);
+        return;
+      }
       if (!res.ok) {
         setFormError(json.error ?? "No se pudo confirmar la reserva.");
         setSubmitting(false);
@@ -211,6 +228,12 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
           {!loading && !error && data && days.length === 0 && step === "elegir" && (
             <div className="rounded-lg bg-[#fdf1dc] p-4 text-center text-[#8a5d0b]">
               No hay horarios disponibles en los próximos días. Volvé a intentar más tarde.
+            </div>
+          )}
+
+          {notice && step === "elegir" && (
+            <div role="alert" className="mb-3 rounded-lg bg-[#fdf1dc] p-3 text-center text-[13px] font-semibold text-[#8a5d0b]">
+              {notice}
             </div>
           )}
 
@@ -390,6 +413,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 onClick={() => {
                   setStep("elegir");
                   setSelectedSlot(null);
+                  setReloadKey((k) => k + 1);
                 }}
                 className="mt-5 rounded-[11px] border border-[#d6deeb] bg-white px-[18px] py-2.5 text-[13.5px] font-semibold text-[#2a3856]"
               >

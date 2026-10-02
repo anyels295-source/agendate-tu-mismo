@@ -1,5 +1,6 @@
 "use client";
 
+import { useAutoDismiss } from "@/lib/useAutoDismiss";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import RescheduleModal from "./RescheduleModal";
@@ -70,7 +71,13 @@ const AVATAR_PALETTE = [
 ];
 
 function initialsOf(name: string): string {
-  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  return name
+    .split(/\s+/)
+    .map((w) => w.replace(/^[^\p{L}\p{N}]+/u, "").charAt(0))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 type LaidOutEvent = AgendaEvent & { columnIndex: number; columnCount: number };
@@ -134,6 +141,7 @@ export default function AgendaWeekGrid({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [newBookingDay, setNewBookingDay] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  useAutoDismiss(toast, setToast);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -485,7 +493,7 @@ export default function AgendaWeekGrid({
       )}
 
       {toast && (
-        <div className="fixed bottom-[28px] left-1/2 z-40 flex max-w-[520px] -translate-x-1/2 items-center gap-3 rounded-[13px] bg-[var(--ink)] px-[18px] py-[13px] text-white shadow-[0_18px_40px_-14px_rgba(22,35,61,0.6)]">
+        <div role="status" aria-live="polite" className="fixed bottom-[28px] left-1/2 z-40 flex max-w-[520px] -translate-x-1/2 items-center gap-3 rounded-[13px] bg-[var(--ink)] px-[18px] py-[13px] text-white shadow-[0_18px_40px_-14px_rgba(22,35,61,0.6)]">
           <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-[#25d366]">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
           </span>

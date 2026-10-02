@@ -23,6 +23,7 @@ export default async function ReservasPage() {
       id: b.id,
       clientName: b.clientName,
       clientPhone: b.clientPhone,
+      clientEmail: b.clientEmail,
       notes: b.notes,
       startISO: b.startTime.toISOString(),
       serviceName: b.service?.name ?? professional.serviceName,

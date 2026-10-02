@@ -83,8 +83,10 @@ export async function getAvailableSlots(params: {
   connections: CalendarConnection[];
   fromDate: DateTime; // en la timezone del profesional
   toDate: DateTime;
+  /** Al reprogramar: el horario actual del propio turno no cuenta como ocupado. */
+  excludeInterval?: { start: Date; end: Date };
 }): Promise<FreeSlot[]> {
-  const { professional, connections, fromDate, toDate } = params;
+  const { professional, connections, fromDate, toDate, excludeInterval } = params;
   const timezone = professional.timezone;
 
   if (connections.length === 0) {
@@ -97,7 +99,11 @@ export async function getAvailableSlots(params: {
   const busyBlocksPerConnection = await Promise.all(
     connections.map((c) => fetchBusyBlocksForConnection(c, timeMinISO, timeMaxISO))
   );
-  const allBusy = mergeBusyBlocks(busyBlocksPerConnection.flat());
+  const mergedBusy = mergeBusyBlocks(busyBlocksPerConnection.flat());
+  const ownInterval = excludeInterval
+    ? Interval.fromDateTimes(DateTime.fromJSDate(excludeInterval.start), DateTime.fromJSDate(excludeInterval.end))
+    : null;
+  const allBusy = ownInterval ? mergedBusy.flatMap((b) => b.difference(ownInterval)) : mergedBusy;
 
   const workingHours = professional.workingHours as unknown as WorkingHours;
   const durationMin = professional.durationMinutes;

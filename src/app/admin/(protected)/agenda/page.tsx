@@ -118,7 +118,7 @@ export default async function AgendaPage({
         <div>
           <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[var(--ink)]">Agenda</h1>
           <div className="mt-[3px] text-[13.5px] font-semibold text-[var(--muted-nav)]">
-            {startOfWeek.toFormat("d LLL")} – {endOfWeek.minus({ days: 1 }).toFormat("d LLL yyyy")}
+            {startOfWeek.setLocale("es").toFormat("d LLL")} – {endOfWeek.minus({ days: 1 }).setLocale("es").toFormat("d LLL yyyy")}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4">

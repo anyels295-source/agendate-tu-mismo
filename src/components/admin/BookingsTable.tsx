@@ -1,5 +1,6 @@
 "use client";
 
+import { useAutoDismiss } from "@/lib/useAutoDismiss";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import RescheduleModal from "./RescheduleModal";
@@ -11,6 +12,7 @@ export type BookingRow = {
   clientName: string;
   /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
   clientPhone: string | null;
+  clientEmail: string | null;
   notes: string | null;
   /** Inicio del turno (ISO): Completar/Ausente solo se habilitan una vez que empezó. */
   startISO: string;
@@ -45,7 +47,17 @@ const CHIPS: { key: string; label: string }[] = [
 ];
 
 function initialsOf(name: string): string {
-  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  return name
+    .split(/\s+/)
+    .map((w) => w.replace(/^[^\p{L}\p{N}]+/u, "").charAt(0))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function normalizeText(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 function csvField(value: string): string {
@@ -57,19 +69,20 @@ function csvField(value: string): string {
 
 /** Exporta exactamente las filas visibles (ya filtradas por búsqueda/estado), nunca el listado completo sin filtrar. */
 function exportCsv(rows: BookingRow[]) {
-  const header = ["Fecha", "Hora", "Cliente", "Teléfono", "Servicio", "Estado"].map(csvField).join(",");
+  const header = ["Fecha", "Hora", "Cliente", "Email", "Teléfono", "Servicio", "Estado", "Notas"].map(csvField).join(",");
   const body = rows
     .map((r) =>
-      [r.dateLabel, r.timeLabel, r.clientName, r.clientPhone ?? "", r.serviceName, STATUS_META[r.status]?.label ?? r.status]
+      [r.dateLabel, r.timeLabel, r.clientName, r.clientEmail ?? "", r.clientPhone ?? "", r.serviceName, STATUS_META[r.status]?.label ?? r.status, r.notes ?? ""]
         .map(csvField)
         .join(",")
     )
     .join("\n");
-  const blob = new Blob([`${header}\n${body}`], { type: "text/csv;charset=utf-8;" });
+  // El BOM UTF-8 hace que Excel respete los acentos.
+  const blob = new Blob(["\uFEFF", `${header}\n${body}`], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "reservas.csv";
+  a.download = `reservas-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -90,13 +103,19 @@ export default function BookingsTable({
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  useAutoDismiss(toast, setToast);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    const query = q.trim().toLowerCase();
+    const query = normalizeText(q.trim());
+    const queryDigits = q.replace(/\D/g, "");
     return rows.filter((r) => {
       const okFilter = filter === "all" || r.status === filter;
-      const okQuery = !query || r.clientName.toLowerCase().includes(query) || (r.clientPhone ?? "").includes(query);
+      // Sin acentos ni mayúsculas para el nombre, y solo dígitos para el teléfono.
+      const okQuery =
+        !query ||
+        normalizeText(r.clientName).includes(query) ||
+        (queryDigits.length >= 3 && (r.clientPhone ?? "").replace(/\D/g, "").includes(queryDigits));
       return okFilter && okQuery;
     });
   }, [rows, q, filter]);
@@ -210,7 +229,7 @@ export default function BookingsTable({
                   )}
                 </div>
               </div>
-              <div className="hidden text-[#5a6884] sm:block">{b.clientPhone ?? "—"}</div>
+              <div className="hidden min-w-0 truncate text-[#5a6884] sm:block" title={b.clientPhone ?? undefined}>{b.clientPhone ?? "—"}</div>
               <div>
                 <span
                   className="inline-block whitespace-nowrap rounded-full px-[10px] py-1 text-[11.5px] font-bold"
@@ -322,7 +341,7 @@ export default function BookingsTable({
       )}
 
       {toast && (
-        <div className="fixed bottom-[28px] left-1/2 z-40 flex max-w-[520px] -translate-x-1/2 items-center gap-3 rounded-[13px] bg-[var(--ink)] px-[18px] py-[13px] text-white shadow-[0_18px_40px_-14px_rgba(22,35,61,0.6)]">
+        <div role="status" aria-live="polite" className="fixed bottom-[28px] left-1/2 z-40 flex max-w-[520px] -translate-x-1/2 items-center gap-3 rounded-[13px] bg-[var(--ink)] px-[18px] py-[13px] text-white shadow-[0_18px_40px_-14px_rgba(22,35,61,0.6)]">
           <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-[#25d366]">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
           </span>
