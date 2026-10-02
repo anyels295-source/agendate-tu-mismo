@@ -8,6 +8,17 @@ import { notifyBookingConfirmed, notifyBookingRescheduled, notifyBookingCancelle
 import { AppError } from "@/lib/errors";
 import type { BookingStatus, CalendarConnection } from "@prisma/client";
 
+/**
+ * Postgres rechazó un turno por la restricción "Booking_no_overlap" (exclusión
+ * por solapamiento, error 23P01; ver la migración booking_no_overlap): otro
+ * turno Pendiente o Confirmado del mismo profesional ocupa ese horario. Es lo
+ * que cierra la carrera entre dos pedidos simultáneos por el mismo hueco.
+ */
+function isOverlapError(err: unknown): boolean {
+  const message = String((err as { message?: string } | null)?.message ?? "");
+  return message.includes("Booking_no_overlap") || message.includes("23P01") || message.includes("exclusion constraint");
+}
+
 export class BookingConflictError extends AppError {
   constructor() {
     super("El horario elegido ya no está disponible. Por favor elegí otro horario.");
@@ -97,6 +108,9 @@ export async function createBooking(params: {
       notes: params.notes,
       status: "PENDING",
     },
+  }).catch((err: unknown) => {
+    if (isOverlapError(err)) throw new BookingConflictError();
+    throw err;
   });
 
   try {
@@ -261,7 +275,7 @@ export async function adminSetBookingStatus(params: {
     if (booking.status !== "PENDING") {
       // Corrección de un turno ya cerrado (completado/ausente): vuelve a
       // Confirmada sin avisarle de nuevo al cliente.
-      return prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } });
+      return prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } }).catch(overlapOnReactivation);
     }
     const confirmed = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } });
     await notifyBookingConfirmed(
@@ -280,7 +294,15 @@ export async function adminSetBookingStatus(params: {
     return cancelled;
   }
 
-  return prisma.booking.update({ where: { id: booking.id }, data: { status: params.status } });
+  return prisma.booking.update({ where: { id: booking.id }, data: { status: params.status } }).catch(overlapOnReactivation);
+}
+
+/** Volver a dejar activo (Pendiente/Confirmado) un turno cuyo horario otro turno ya ocupó. */
+function overlapOnReactivation(err: unknown): never {
+  if (isOverlapError(err)) {
+    throw new AppError("No se puede volver a activar este turno: su horario ya lo ocupa otro turno.");
+  }
+  throw err;
 }
 
 export class RescheduleConflictError extends AppError {
@@ -386,6 +408,9 @@ export async function rescheduleBooking(params: {
       externalEventId: newExternalEventId,
       calendarProvider: newProvider,
     },
+  }).catch((err: unknown) => {
+    if (isOverlapError(err)) throw new RescheduleConflictError();
+    throw err;
   });
 
   const notifyProfessional = params.channels

@@ -117,6 +117,10 @@ model CalendarConnection {
   @@unique([professionalId, provider, accountEmail])
 }
 
+// OJO: además de lo que se ve acá, la tabla tiene una restricción de exclusión
+// ("Booking_no_overlap", migración 20261002140000_booking_no_overlap) que impide
+// dos turnos Pendiente/Confirmado solapados del mismo profesional. Prisma no la
+// puede expresar, pero la respeta: un conflicto llega como error 23P01.
 model Booking {
   id               String            @id @default(cuid())
   professionalId   String
