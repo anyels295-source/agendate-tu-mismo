@@ -78,6 +78,46 @@ function subtractBusy(window: Interval, busy: Interval[]): Interval[] {
 
 export type FreeSlot = { startISO: string; endISO: string };
 
+/** Resta un intervalo (ej. el horario del propio turno que se reprograma) de una lista de bloques ocupados. */
+function subtractInterval(busy: Interval[], own: { start: Date; end: Date } | undefined): Interval[] {
+  if (!own) return busy;
+  const ownInterval = Interval.fromDateTimes(DateTime.fromJSDate(own.start), DateTime.fromJSDate(own.end));
+  return busy.flatMap((b) => b.difference(ownInterval));
+}
+
+/**
+ * Valida en el servidor que un turno pedido sea realmente reservable, sin
+ * confiar en lo que mande el navegador: dentro de un tramo del horario de
+ * atención, no en el pasado y, para reservas públicas, respetando la
+ * anticipación mínima y la máxima. Devuelve el motivo del rechazo, o null si
+ * es válido. Desde el panel (origin "ADMIN") no se exige el aviso mínimo ni
+ * se limita la anticipación máxima.
+ */
+export function checkSlotAllowed(params: {
+  professional: Professional;
+  start: DateTime;
+  end: DateTime;
+  origin: "PUBLIC" | "ADMIN";
+}): string | null {
+  const { professional, start, end, origin } = params;
+  const timezone = professional.timezone;
+  if (!start.isValid || !end.isValid || end <= start) return "Fecha u hora inválida.";
+
+  const now = DateTime.now();
+  if (origin === "PUBLIC") {
+    if (start < now.plus({ hours: professional.minNoticeHours })) return "Falta la anticipación mínima para reservar ese horario.";
+    if (start > now.plus({ days: professional.maxAdvanceDays })) return "Ese horario está más allá de la anticipación máxima permitida.";
+  } else if (start < now.minus({ minutes: 1 })) {
+    return "No se puede agendar un turno en el pasado.";
+  }
+
+  const day = start.setZone(timezone).startOf("day");
+  const windows = getWorkingWindowsForDay(professional.workingHours as unknown as WorkingHours, day, timezone);
+  const requested = Interval.fromDateTimes(start, end);
+  if (!windows.some((w) => w.isValid && w.engulfs(requested))) return "Ese horario está fuera del horario de atención.";
+  return null;
+}
+
 export async function getAvailableSlots(params: {
   professional: Professional;
   connections: CalendarConnection[];
@@ -99,11 +139,7 @@ export async function getAvailableSlots(params: {
   const busyBlocksPerConnection = await Promise.all(
     connections.map((c) => fetchBusyBlocksForConnection(c, timeMinISO, timeMaxISO))
   );
-  const mergedBusy = mergeBusyBlocks(busyBlocksPerConnection.flat());
-  const ownInterval = excludeInterval
-    ? Interval.fromDateTimes(DateTime.fromJSDate(excludeInterval.start), DateTime.fromJSDate(excludeInterval.end))
-    : null;
-  const allBusy = ownInterval ? mergedBusy.flatMap((b) => b.difference(ownInterval)) : mergedBusy;
+  const allBusy = subtractInterval(mergeBusyBlocks(busyBlocksPerConnection.flat()), excludeInterval);
 
   const workingHours = professional.workingHours as unknown as WorkingHours;
   const durationMin = professional.durationMinutes;
@@ -146,12 +182,14 @@ export async function isSlotStillFree(params: {
   startISO: string;
   endISO: string;
   excludeBookingId?: string;
+  /** Al reprogramar: el horario actual del propio turno (su evento en el calendario) no cuenta como ocupado. */
+  ignoreInterval?: { start: Date; end: Date };
 }): Promise<boolean> {
-  const { professional, connections, startISO, endISO, excludeBookingId } = params;
+  const { professional, connections, startISO, endISO, excludeBookingId, ignoreInterval } = params;
   const busyBlocksPerConnection = await Promise.all(
     connections.map((c) => fetchBusyBlocksForConnection(c, startISO, endISO))
   );
-  const allBusy = mergeBusyBlocks(busyBlocksPerConnection.flat());
+  const allBusy = subtractInterval(mergeBusyBlocks(busyBlocksPerConnection.flat()), ignoreInterval);
   const requested = Interval.fromDateTimes(DateTime.fromISO(startISO), DateTime.fromISO(endISO));
   const overlaps = allBusy.some((b) => b.overlaps(requested));
   if (overlaps) return false;

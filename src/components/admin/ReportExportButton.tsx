@@ -9,6 +9,11 @@ export type ReportRow = {
   statusLabel: string;
 };
 
+/** Evita que Excel/Sheets interprete como fórmula un texto cargado por un cliente (=, +, -, @ al inicio). */
+function csvText(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 function csvField(value: string): string {
   if (/[",\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
@@ -26,7 +31,7 @@ export default function ReportExportButton({ rows, rangeLabel }: { rows: ReportR
     const header = ["Fecha", "Hora", "Cliente", "Teléfono", "Servicio", "Estado"].map(csvField).join(",");
     const body = rows
       .map((r) =>
-        [r.dateLabel, r.timeLabel, r.clientName, r.clientPhone ?? "", r.serviceName, r.statusLabel].map(csvField).join(",")
+        [r.dateLabel, r.timeLabel, csvText(r.clientName), r.clientPhone ?? "", csvText(r.serviceName), r.statusLabel].map(csvField).join(",")
       )
       .join("\n");
     const blob = new Blob(["\uFEFF", `${header}\n${body}`], { type: "text/csv;charset=utf-8;" });

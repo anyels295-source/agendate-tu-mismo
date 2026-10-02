@@ -27,6 +27,16 @@ type BookingEmailParams = {
   pending?: boolean;
 };
 
+/** Escapa texto que viene de personas (nombres, notas) antes de insertarlo en el HTML de un email. */
+function esc(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function sendEmail(params: { toEmail: string; subject: string; html: string }): Promise<EmailSendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.SMTP_FROM ?? "Agendate Tú Mismo <no-responder@tudominio.com>";
@@ -60,19 +70,19 @@ export async function sendBookingConfirmationEmail(params: BookingEmailParams): 
       toEmail: params.toEmail,
       subject: `Turno pendiente de confirmación: ${params.dateLabel} ${params.timeLabel}`,
       html: `
-    <p>Hola ${params.clientName},</p>
-    <p>Registramos tu turno de <strong>${params.serviceName}</strong> con <strong>${params.professionalName}</strong>:</p>
-    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
+    <p>Hola ${esc(params.clientName)},</p>
+    <p>Registramos tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong>:</p>
+    <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
     <p>El turno queda pendiente de confirmación; te avisaremos cuando se confirme.</p>
-    <p>Si no te queda bien, podés cancelarlo acá: <a href="${params.cancelUrl}">${params.cancelUrl}</a></p>
+    <p>Si no te queda bien, podés cancelarlo acá: <a href="${esc(params.cancelUrl)}">${esc(params.cancelUrl)}</a></p>
   `,
     });
   }
   const html = `
-    <p>Hola ${params.clientName},</p>
-    <p>Tu turno de <strong>${params.serviceName}</strong> con <strong>${params.professionalName}</strong> quedó confirmado:</p>
-    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
-    <p>Si necesitás cancelar, podés hacerlo acá: <a href="${params.cancelUrl}">${params.cancelUrl}</a></p>
+    <p>Hola ${esc(params.clientName)},</p>
+    <p>Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> quedó confirmado:</p>
+    <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
+    <p>Si necesitás cancelar, podés hacerlo acá: <a href="${esc(params.cancelUrl)}">${esc(params.cancelUrl)}</a></p>
   `;
   return sendEmail({
     toEmail: params.toEmail,
@@ -83,10 +93,10 @@ export async function sendBookingConfirmationEmail(params: BookingEmailParams): 
 
 export async function sendBookingRescheduledEmail(params: BookingEmailParams): Promise<EmailSendResult> {
   const html = `
-    <p>Hola ${params.clientName},</p>
-    <p>Tu turno de <strong>${params.serviceName}</strong> con <strong>${params.professionalName}</strong> se reprogramó. La nueva fecha es:</p>
-    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
-    <p>Si no te queda bien, podés cancelarlo acá: <a href="${params.cancelUrl}">${params.cancelUrl}</a></p>
+    <p>Hola ${esc(params.clientName)},</p>
+    <p>Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> se reprogramó. La nueva fecha es:</p>
+    <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
+    <p>Si no te queda bien, podés cancelarlo acá: <a href="${esc(params.cancelUrl)}">${esc(params.cancelUrl)}</a></p>
   `;
   return sendEmail({
     toEmail: params.toEmail,
@@ -99,10 +109,10 @@ export async function sendBookingCancelledEmail(
   params: Omit<BookingEmailParams, "cancelUrl">
 ): Promise<EmailSendResult> {
   const html = `
-    <p>Hola ${params.clientName},</p>
-    <p>Tu turno de <strong>${params.serviceName}</strong> con <strong>${params.professionalName}</strong>
-    del ${params.dateLabel} a las ${params.timeLabel} fue cancelado.</p>
-    <p>Si querés reservar un nuevo horario, escribile a ${params.professionalName}.</p>
+    <p>Hola ${esc(params.clientName)},</p>
+    <p>Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong>
+    del ${esc(params.dateLabel)} a las ${esc(params.timeLabel)} fue cancelado.</p>
+    <p>Si querés reservar un nuevo horario, escribile a ${esc(params.professionalName)}.</p>
   `;
   return sendEmail({
     toEmail: params.toEmail,
@@ -139,9 +149,9 @@ function phoneSuffix(clientPhone: string | null): string {
 
 export async function sendOwnerNewBookingEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
   const html = `
-    <p>Hola ${params.professionalName},</p>
-    <p>Tenés un turno nuevo: <strong>${params.serviceName}</strong> con <strong>${params.clientName}</strong>${phoneSuffix(params.clientPhone)}.</p>
-    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
+    <p>Hola ${esc(params.professionalName)},</p>
+    <p>Tenés un turno nuevo: <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.clientName)}</strong>${esc(phoneSuffix(params.clientPhone))}.</p>
+    <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
   `;
   return sendEmail({
     toEmail: params.toEmail,
@@ -152,9 +162,9 @@ export async function sendOwnerNewBookingEmail(params: OwnerNoticeParams): Promi
 
 export async function sendOwnerBookingRescheduledEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
   const html = `
-    <p>Hola ${params.professionalName},</p>
-    <p>El turno de <strong>${params.clientName}</strong>${phoneSuffix(params.clientPhone)} se reprogramó a:</p>
-    <p><strong>${params.dateLabel} a las ${params.timeLabel}</strong></p>
+    <p>Hola ${esc(params.professionalName)},</p>
+    <p>El turno de <strong>${esc(params.clientName)}</strong>${esc(phoneSuffix(params.clientPhone))} se reprogramó a:</p>
+    <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
   `;
   return sendEmail({
     toEmail: params.toEmail,
@@ -183,33 +193,33 @@ export async function sendDailySummaryEmail(params: {
   const rows = params.bookingsToday
     .map(
       (b) =>
-        `<li><strong>${b.timeLabel}</strong> — ${b.clientName} (${b.serviceName}, ${STATUS_LABEL[b.status] ?? b.status})</li>`
+        `<li><strong>${esc(b.timeLabel)}</strong> — ${esc(b.clientName)} (${esc(b.serviceName)}, ${esc(STATUS_LABEL[b.status] ?? b.status)})</li>`
     )
     .join("");
 
   const alertHtml =
     params.failedNotificationsYesterday > 0
-      ? `<p style="color:#b6382f;"><strong>Atención:</strong> ${params.failedNotificationsYesterday} notificación(es) a clientes no se pudieron enviar ayer. Revisá el Panel.</p>`
+      ? `<p style="color:#b6382f;"><strong>Atención:</strong> ${esc(params.failedNotificationsYesterday)} notificación(es) a clientes no se pudieron enviar ayer. Revisá el Panel.</p>`
       : "";
 
   const html = `
-    <p>Hola ${params.professionalName},</p>
-    <p>Tu agenda de hoy (${params.dateLabel}):</p>
+    <p>Hola ${esc(params.professionalName)},</p>
+    <p>Tu agenda de hoy (${esc(params.dateLabel)}):</p>
     ${
       params.totalToday === 0
         ? "<p>No tenés turnos agendados para hoy.</p>"
-        : `<ul>${rows}</ul><p>${params.totalToday} turno(s) en total.</p>`
+        : `<ul>${rows}</ul><p>${esc(params.totalToday)} turno(s) en total.</p>`
     }
     
     <h3>Resumen de la semana</h3>
     <ul>
-      <li><strong>Turnos confirmados esta semana:</strong> ${params.bookingsThisWeekCount}</li>
-      <li><strong>Ocupación semanal:</strong> ${params.occupancyThisWeek}%</li>
-      <li><strong>Cancelaciones este mes:</strong> ${params.cancelledThisMonthCount}</li>
+      <li><strong>Turnos confirmados esta semana:</strong> ${esc(params.bookingsThisWeekCount)}</li>
+      <li><strong>Ocupación semanal:</strong> ${esc(params.occupancyThisWeek)}%</li>
+      <li><strong>Cancelaciones este mes:</strong> ${esc(params.cancelledThisMonthCount)}</li>
     </ul>
 
     ${alertHtml}
-    <p><a href="${params.panelUrl}">Ver el Panel completo</a></p>
+    <p><a href="${esc(params.panelUrl)}">Ver el Panel completo</a></p>
   `;
   return sendEmail({
     toEmail: params.toEmail,
@@ -220,9 +230,9 @@ export async function sendDailySummaryEmail(params: {
 
 export async function sendOwnerBookingCancelledEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
   const html = `
-    <p>Hola ${params.professionalName},</p>
-    <p><strong>${params.clientName}</strong>${phoneSuffix(params.clientPhone)} canceló su turno de
-    <strong>${params.serviceName}</strong> del ${params.dateLabel} a las ${params.timeLabel}.</p>
+    <p>Hola ${esc(params.professionalName)},</p>
+    <p><strong>${esc(params.clientName)}</strong>${esc(phoneSuffix(params.clientPhone))} canceló su turno de
+    <strong>${esc(params.serviceName)}</strong> del ${esc(params.dateLabel)} a las ${esc(params.timeLabel)}.</p>
     <p>Ese horario ya quedó libre en tu agenda.</p>
   `;
   return sendEmail({

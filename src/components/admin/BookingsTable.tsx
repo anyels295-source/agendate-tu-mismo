@@ -68,6 +68,11 @@ function normalizeText(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+/** Evita que Excel/Sheets interprete como fórmula un texto cargado por un cliente (=, +, -, @ al inicio). */
+function csvText(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 function csvField(value: string): string {
   if (/[",\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
@@ -80,7 +85,7 @@ function exportCsv(rows: BookingRow[]) {
   const header = ["Fecha", "Hora", "Cliente", "Email", "Teléfono", "Servicio", "Estado", "Notas"].map(csvField).join(",");
   const body = rows
     .map((r) =>
-      [r.dateLabel, r.timeLabel, r.clientName, r.clientEmail ?? "", r.clientPhone ?? "", r.serviceName, STATUS_META[r.status]?.label ?? r.status, r.notes ?? ""]
+      [r.dateLabel, r.timeLabel, csvText(r.clientName), csvText(r.clientEmail ?? ""), r.clientPhone ?? "", csvText(r.serviceName), STATUS_META[r.status]?.label ?? r.status, csvText(r.notes ?? "")]
         .map(csvField)
         .join(",")
     )

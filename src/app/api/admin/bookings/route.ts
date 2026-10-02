@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       endISO: parsed.data.endISO,
       notes: parsed.data.notes,
       confirmed: parsed.data.confirmed,
+      origin: "ADMIN",
     });
 
     return NextResponse.json({ bookingId: booking.id, status: booking.status });

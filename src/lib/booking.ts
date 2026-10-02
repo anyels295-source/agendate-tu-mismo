@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { isSlotStillFree } from "@/lib/availability";
-import { getValidAccessToken } from "@/lib/calendar/tokenManager";
+import { DateTime } from "luxon";
+import { isSlotStillFree, checkSlotAllowed } from "@/lib/availability";
+import { getValidAccessToken, CalendarTokenExpiredError } from "@/lib/calendar/tokenManager";
 import { createGoogleEvent, deleteGoogleEvent } from "@/lib/calendar/google";
 import { createOutlookEvent, deleteOutlookEvent } from "@/lib/calendar/outlook";
 import { notifyBookingConfirmed, notifyBookingRescheduled, notifyBookingCancelled } from "@/lib/notifications";
 import { AppError } from "@/lib/errors";
-import type { BookingStatus } from "@prisma/client";
+import type { BookingStatus, CalendarConnection } from "@prisma/client";
 
 export class BookingConflictError extends AppError {
   constructor() {
@@ -25,16 +26,23 @@ export async function createBooking(params: {
   notes?: string;
   /** Alta manual desde el panel: el cliente ya aceptó, así que nace Confirmada en vez de Pendiente. */
   confirmed?: boolean;
+  /**
+   * Quién crea la reserva. "PUBLIC" (por defecto) es la página de reservas:
+   * se exige aviso mínimo y anticipación máxima. "ADMIN" es el panel.
+   */
+  origin?: "PUBLIC" | "ADMIN";
 }) {
+  const origin = params.origin ?? "PUBLIC";
   const professional = await prisma.professional.findUnique({
     where: { id: params.professionalId },
-    include: { calendarConnections: true },
+    // Solo conexiones activas: una conexión vencida o desconectada no debe tumbar las reservas.
+    include: { calendarConnections: { where: { isActive: true } } },
   });
   if (!professional || !professional.active) {
     throw new AppError("Profesional no encontrado o inactivo.");
   }
   if (professional.calendarConnections.length === 0) {
-    throw new AppError("El profesional todavía no conectó ningún calendario.");
+    throw new AppError("El profesional todavía no tiene un calendario conectado y activo.");
   }
 
   const service = params.serviceId
@@ -45,11 +53,26 @@ export async function createBooking(params: {
   }
   const serviceLabel = service?.name ?? professional.serviceName;
 
+  // El fin del turno se calcula acá a partir de la duración del servicio: lo que
+  // mande el navegador en `endISO` no se usa, y el inicio se valida contra el
+  // horario de atención y los límites de anticipación.
+  const start = DateTime.fromISO(params.startISO);
+  if (!start.isValid) {
+    throw new AppError("Fecha u hora inválida.");
+  }
+  const end = start.plus({ minutes: service?.durationMinutes ?? professional.durationMinutes });
+  const endISO = end.toISO()!;
+  const notAllowedReason = checkSlotAllowed({ professional, start, end, origin });
+  if (notAllowedReason) {
+    // Para el público, cualquier horario no reservable se trata como "ya no disponible".
+    throw origin === "PUBLIC" ? new BookingConflictError() : new AppError(notAllowedReason);
+  }
+
   const stillFree = await isSlotStillFree({
     professional,
     connections: professional.calendarConnections,
     startISO: params.startISO,
-    endISO: params.endISO,
+    endISO: endISO,
   });
   if (!stillFree) {
     throw new BookingConflictError();
@@ -70,7 +93,7 @@ export async function createBooking(params: {
       clientEmail: params.clientEmail,
       clientPhone: params.clientPhone,
       startTime: new Date(params.startISO),
-      endTime: new Date(params.endISO),
+      endTime: new Date(endISO),
       notes: params.notes,
       status: "PENDING",
     },
@@ -88,7 +111,7 @@ export async function createBooking(params: {
             summary: `${serviceLabel} — ${params.clientName}`,
             description: eventDescription,
             startISO: params.startISO,
-            endISO: params.endISO,
+            endISO: endISO,
             timezone: professional.timezone,
             attendeeEmail: params.clientEmail,
           })
@@ -97,7 +120,7 @@ export async function createBooking(params: {
             summary: `${serviceLabel} — ${params.clientName}`,
             description: eventDescription,
             startISO: params.startISO,
-            endISO: params.endISO,
+            endISO: endISO,
             timezone: professional.timezone,
             attendeeEmail: params.clientEmail,
           });
@@ -125,6 +148,48 @@ export async function createBooking(params: {
   }
 }
 
+/** El proveedor respondió que el evento ya no existe (404/410): para una cancelación equivale a "ya está borrado". */
+function isEventGoneError(err: unknown): boolean {
+  const e = err as { code?: number | string; status?: number; response?: { status?: number }; message?: string } | null;
+  const status = e?.response?.status ?? e?.status ?? Number(e?.code);
+  if (status === 404 || status === 410) return true;
+  return /\b(404|410)\b/.test(String(e?.message ?? ""));
+}
+
+/**
+ * Borra el evento de una reserva en el calendario real. Es "mejor esfuerzo"
+ * para los casos que nunca van a poder resolverse (el evento ya no existe, o
+ * la conexión está desconectada/vencida): ahí la cancelación sigue igual en
+ * vez de quedar bloqueada para siempre. Los errores transitorios (red,
+ * 5xx del proveedor) sí se propagan para que se pueda reintentar.
+ */
+async function deleteBookingEvent(booking: {
+  externalEventId: string | null;
+  calendarProvider: "GOOGLE" | "OUTLOOK" | null;
+  professional: { calendarConnections: CalendarConnection[] };
+}): Promise<void> {
+  if (!booking.externalEventId || !booking.calendarProvider) return;
+  const connection = booking.professional.calendarConnections.find((c) => c.provider === booking.calendarProvider);
+  if (!connection || !connection.isActive) {
+    console.warn("No se pudo borrar el evento del calendario: la conexión no está activa.");
+    return;
+  }
+  try {
+    const accessToken = await getValidAccessToken(connection);
+    if (booking.calendarProvider === "GOOGLE") {
+      await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId: booking.externalEventId });
+    } else {
+      await deleteOutlookEvent({ accessToken, eventId: booking.externalEventId });
+    }
+  } catch (err) {
+    if (err instanceof CalendarTokenExpiredError || isEventGoneError(err)) {
+      console.warn("El evento del calendario no se pudo borrar (ya no existe o la conexión venció); se cancela igual.");
+      return;
+    }
+    throw err;
+  }
+}
+
 export async function cancelBooking(cancelToken: string) {
   const booking = await prisma.booking.findUnique({
     where: { cancelToken },
@@ -143,23 +208,7 @@ export async function cancelBooking(cancelToken: string) {
     throw new AppError("Este enlace de cancelación ya no está disponible.");
   }
 
-  if (booking.externalEventId && booking.calendarProvider) {
-    const connection = booking.professional.calendarConnections.find(
-      (c) => c.provider === booking.calendarProvider
-    );
-    if (connection) {
-      const accessToken = await getValidAccessToken(connection);
-      if (booking.calendarProvider === "GOOGLE") {
-        await deleteGoogleEvent({
-          accessToken,
-          calendarId: connection.externalCalendarId,
-          eventId: booking.externalEventId,
-        });
-      } else {
-        await deleteOutlookEvent({ accessToken, eventId: booking.externalEventId });
-      }
-    }
-  }
+  await deleteBookingEvent(booking);
 
   const cancelled = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
 
@@ -224,19 +273,7 @@ export async function adminSetBookingStatus(params: {
   }
 
   if (params.status === "CANCELLED" && booking.status !== "CANCELLED") {
-    if (booking.externalEventId && booking.calendarProvider) {
-      const connection = booking.professional.calendarConnections.find(
-        (c) => c.provider === booking.calendarProvider
-      );
-      if (connection) {
-        const accessToken = await getValidAccessToken(connection);
-        if (booking.calendarProvider === "GOOGLE") {
-          await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId: booking.externalEventId });
-        } else {
-          await deleteOutlookEvent({ accessToken, eventId: booking.externalEventId });
-        }
-      }
-    }
+    await deleteBookingEvent(booking);
 
     const cancelled = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
     await notifyBookingCancelled(cancelled, { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName });
@@ -274,12 +311,26 @@ export async function rescheduleBooking(params: {
 
   const professional = booking.professional;
   const serviceLabel = booking.service?.name ?? professional.serviceName;
+  const activeConnections = professional.calendarConnections.filter((c) => c.isActive);
+
+  // Se conserva la duración original del turno y se valida el nuevo inicio
+  // contra el horario de atención (lo que mande el navegador en `endISO` no se usa).
+  const start = DateTime.fromISO(params.startISO);
+  const end = start.plus({ milliseconds: booking.endTime.getTime() - booking.startTime.getTime() });
+  const notAllowedReason = checkSlotAllowed({ professional, start, end, origin: "ADMIN" });
+  if (notAllowedReason) {
+    throw new AppError(notAllowedReason);
+  }
+  const endISO = end.toISO()!;
+
   const stillFree = await isSlotStillFree({
     professional,
-    connections: professional.calendarConnections,
+    connections: activeConnections,
     startISO: params.startISO,
-    endISO: params.endISO,
+    endISO,
     excludeBookingId: booking.id,
+    // El evento actual del propio turno figura como ocupado en el calendario: no debe bloquear su nuevo horario.
+    ignoreInterval: { start: booking.startTime, end: booking.endTime },
   });
   if (!stillFree) {
     throw new RescheduleConflictError();
@@ -289,8 +340,11 @@ export async function rescheduleBooking(params: {
   let newProvider = booking.calendarProvider;
 
   if (booking.externalEventId && booking.calendarProvider) {
-    const connection = professional.calendarConnections.find((c) => c.provider === booking.calendarProvider);
-    if (connection) {
+    const connection = activeConnections.find((c) => c.provider === booking.calendarProvider);
+    if (!connection) {
+      throw new AppError("El calendario de este turno está desconectado. Reconectalo en Calendarios antes de reprogramar.");
+    }
+    {
       const accessToken = await getValidAccessToken(connection);
       const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}${booking.clientPhone ? `\nTeléfono: ${booking.clientPhone}` : ""}`;
 
@@ -302,7 +356,7 @@ export async function rescheduleBooking(params: {
           summary: `${serviceLabel} — ${booking.clientName}`,
           description: eventDescription,
           startISO: params.startISO,
-          endISO: params.endISO,
+          endISO: endISO,
           timezone: professional.timezone,
           attendeeEmail: booking.clientEmail ?? undefined,
         });
@@ -314,7 +368,7 @@ export async function rescheduleBooking(params: {
           summary: `${serviceLabel} — ${booking.clientName}`,
           description: eventDescription,
           startISO: params.startISO,
-          endISO: params.endISO,
+          endISO: endISO,
           timezone: professional.timezone,
           attendeeEmail: booking.clientEmail ?? undefined,
         });
@@ -328,7 +382,7 @@ export async function rescheduleBooking(params: {
     where: { id: booking.id },
     data: {
       startTime: new Date(params.startISO),
-      endTime: new Date(params.endISO),
+      endTime: new Date(endISO),
       externalEventId: newExternalEventId,
       calendarProvider: newProvider,
     },
