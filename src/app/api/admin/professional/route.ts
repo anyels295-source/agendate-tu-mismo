@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getAdminSession } from "@/lib/auth";
 import { getOrCreateActiveProfessional } from "@/lib/professional";
 import { prisma } from "@/lib/prisma";
+import { validateWorkingHours, isValidTimezone } from "@/lib/validation";
 
 const dayRange = z.object({ start: z.string(), end: z.string() });
 const workingHoursSchema = z
@@ -15,17 +16,25 @@ const workingHoursSchema = z
     sat: z.array(dayRange),
     sun: z.array(dayRange),
   })
-  .partial();
+  .partial()
+  .superRefine((workingHours, ctx) => {
+    const message = validateWorkingHours(workingHours);
+    if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  });
 
 const patchSchema = z.object({
-  name: z.string().min(1).optional(),
-  slug: z.string().min(2).regex(/^[a-z0-9-]+$/).optional(),
-  serviceName: z.string().min(1).optional(),
-  durationMinutes: z.number().int().min(5).max(480).optional(),
-  bufferMinutes: z.number().int().min(0).max(120).optional(),
-  minNoticeHours: z.number().int().min(0).max(168).optional(),
-  maxAdvanceDays: z.number().int().min(1).max(365).optional(),
-  timezone: z.string().optional(),
+  name: z.string().trim().min(1, "El nombre es obligatorio.").max(80, "El nombre es demasiado largo.").optional(),
+  slug: z
+    .string()
+    .min(2, "El link de reserva necesita al menos 2 caracteres.")
+    .regex(/^[a-z0-9-]+$/, "El link de reserva solo puede tener minúsculas, números y guiones.")
+    .optional(),
+  serviceName: z.string().trim().min(1, "El nombre del servicio es obligatorio.").max(80, "El nombre del servicio es demasiado largo.").optional(),
+  durationMinutes: z.number().int("La duración debe ser un número entero.").min(5, "La duración debe estar entre 5 y 480 minutos.").max(480, "La duración debe estar entre 5 y 480 minutos.").optional(),
+  bufferMinutes: z.number().int("El colchón debe ser un número entero.").min(0, "El colchón debe estar entre 0 y 120 minutos.").max(120, "El colchón debe estar entre 0 y 120 minutos.").optional(),
+  minNoticeHours: z.number().int("La anticipación debe ser un número entero.").min(0, "La anticipación debe estar entre 0 y 168 horas.").max(168, "La anticipación debe estar entre 0 y 168 horas.").optional(),
+  maxAdvanceDays: z.number().int("Los días de anticipación máxima deben ser un número entero.").min(1, "La anticipación máxima debe estar entre 1 y 365 días.").max(365, "La anticipación máxima debe estar entre 1 y 365 días.").optional(),
+  timezone: z.string().refine(isValidTimezone, "La zona horaria no es válida.").optional(),
   bookingCalendarId: z.string().optional(),
   workingHours: workingHoursSchema.optional(),
   // Data URL base64 (ya comprimida en el cliente antes de subir). El límite

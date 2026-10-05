@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { validateWorkingHours } from "@/lib/validation";
 import { DateTime } from "luxon";
 import type { WorkingHours } from "@/lib/types";
 import { TIMEZONES } from "@/lib/timezones";
@@ -55,6 +56,7 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Si el valor guardado no está en la lista curada (ej. se cargó por otra
@@ -159,16 +161,35 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
   }
 
   async function handleSave() {
-    setSaving(true);
     setSaved(false);
-    await fetch("/api/admin/professional", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setSaving(false);
-    setSaved(true);
-    router.refresh();
+    setSaveError(null);
+
+    // Aviso inmediato si el horario no es válido (la API lo vuelve a comprobar).
+    const hoursError = validateWorkingHours(form.workingHours);
+    if (hoursError) {
+      setSaveError(hoursError);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/professional", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setSaveError(json.error ?? "No se pudieron guardar los cambios. Intentá nuevamente.");
+        return;
+      }
+      setSaved(true);
+      router.refresh();
+    } catch {
+      setSaveError("No se pudo conectar con el servidor. Revisá tu conexión e intentá nuevamente.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -354,6 +375,7 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
           {saving ? "Guardando…" : "Guardar cambios"}
         </button>
         {saved && <span className="text-[13px] text-[#1a7d45]">Guardado ✓</span>}
+        {saveError && <span role="alert" className="text-[13px] text-red-600">{saveError}</span>}
       </div>
     </>
   );

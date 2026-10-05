@@ -113,6 +113,7 @@ export async function createBooking(params: {
     throw err;
   });
 
+  let createdEventId: string | null = null;
   try {
     const accessToken = await getValidAccessToken(bookingConnection);
     const eventDescription = `Reserva creada vía Agendate Tú Mismo.\nCliente: ${params.clientName}${params.clientPhone ? `\nTeléfono: ${params.clientPhone}` : ""}${params.notes ? `\nNotas: ${params.notes}` : ""}`;
@@ -139,6 +140,8 @@ export async function createBooking(params: {
             attendeeEmail: params.clientEmail,
           });
 
+    createdEventId = eventId;
+
     // Toda reserva nace PENDIENTE: nadie la confirmó todavía. Pasa a
     // CONFIRMADA cuando el profesional la confirma (adminSetBookingStatus) o,
     // más adelante, cuando el invitado acepta desde su calendario.
@@ -154,12 +157,45 @@ export async function createBooking(params: {
     await notifyBookingConfirmed(created, { ...professional, serviceName: serviceLabel }, { pending: !params.confirmed });
     return created;
   } catch (err) {
-    // Si falla la creación del evento en el calendario, no dejamos una reserva
-    // "fantasma": la marcamos como cancelada para no bloquear el horario y
-    // para que quede visible en el panel del profesional que algo falló.
-    await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+    // Si algo falla después de reservar el horario, se deshace todo: se borra el evento
+    // si ya se había creado (para no dejarlo huérfano en el calendario) y se elimina la
+    // reserva, que nunca llegó a existir de verdad. Antes quedaba como "Cancelada" y
+    // aparecía en el panel y en las métricas de cancelaciones.
+    if (createdEventId) await deleteEventSafely(bookingConnection, createdEventId);
+    await prisma.booking.delete({ where: { id: booking.id } }).catch((deleteErr: unknown) => {
+      console.error("No se pudo eliminar la reserva fallida:", deleteErr);
+    });
     throw err;
   }
+}
+
+/** Borra un evento del calendario real (puede lanzar error). */
+async function removeCalendarEvent(connection: CalendarConnection, eventId: string): Promise<void> {
+  const accessToken = await getValidAccessToken(connection);
+  if (connection.provider === "GOOGLE") {
+    await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId });
+  } else {
+    await deleteOutlookEvent({ accessToken, eventId });
+  }
+}
+
+/** Igual que removeCalendarEvent pero sin lanzar nunca: para compensaciones, donde un fallo no debe tapar el error original. */
+async function deleteEventSafely(connection: CalendarConnection, eventId: string): Promise<void> {
+  try {
+    await removeCalendarEvent(connection, eventId);
+  } catch (err) {
+    console.warn("No se pudo borrar un evento del calendario durante una compensación:", err);
+  }
+}
+
+/**
+ * Cambia el estado de un turno solo si todavía tiene el estado esperado. Devuelve
+ * false si otro proceso ya lo cambió: evita avisos y borrados de calendario duplicados
+ * cuando llegan dos pedidos a la vez (doble clic, o cliente y panel al mismo tiempo).
+ */
+async function changeStatusIf(bookingId: string, from: BookingStatus | { not: BookingStatus }, to: BookingStatus): Promise<boolean> {
+  const result = await prisma.booking.updateMany({ where: { id: bookingId, status: from }, data: { status: to } });
+  return result.count === 1;
 }
 
 /** El proveedor respondió que el evento ya no existe (404/410): para una cancelación equivale a "ya está borrado". */
@@ -189,12 +225,7 @@ async function deleteBookingEvent(booking: {
     return;
   }
   try {
-    const accessToken = await getValidAccessToken(connection);
-    if (booking.calendarProvider === "GOOGLE") {
-      await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId: booking.externalEventId });
-    } else {
-      await deleteOutlookEvent({ accessToken, eventId: booking.externalEventId });
-    }
+    await removeCalendarEvent(connection, booking.externalEventId);
   } catch (err) {
     if (err instanceof CalendarTokenExpiredError || isEventGoneError(err)) {
       console.warn("El evento del calendario no se pudo borrar (ya no existe o la conexión venció); se cancela igual.");
@@ -224,7 +255,11 @@ export async function cancelBooking(cancelToken: string) {
 
   await deleteBookingEvent(booking);
 
-  const cancelled = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+  // Si otro pedido ya canceló el turno entre medio, no se vuelve a avisar.
+  if (!(await changeStatusIf(booking.id, { not: "CANCELLED" }, "CANCELLED"))) {
+    return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+  }
+  const cancelled = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
 
   // Hasta ahora, si el cliente cancelaba desde su propio link, el
   // profesional no se enteraba de ninguna forma salvo entrando al Panel a
@@ -275,9 +310,13 @@ export async function adminSetBookingStatus(params: {
     if (booking.status !== "PENDING") {
       // Corrección de un turno ya cerrado (completado/ausente): vuelve a
       // Confirmada sin avisarle de nuevo al cliente.
-      return prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } }).catch(overlapOnReactivation);
+      return reapplyStatus(booking.id, booking.status, "CONFIRMED");
     }
-    const confirmed = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CONFIRMED" } });
+    // Si otro pedido ya lo confirmó, no se vuelve a avisar al cliente.
+    if (!(await changeStatusIf(booking.id, "PENDING", "CONFIRMED"))) {
+      return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    }
+    const confirmed = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     await notifyBookingConfirmed(
       confirmed,
       { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName },
@@ -289,12 +328,29 @@ export async function adminSetBookingStatus(params: {
   if (params.status === "CANCELLED" && booking.status !== "CANCELLED") {
     await deleteBookingEvent(booking);
 
-    const cancelled = await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+    if (!(await changeStatusIf(booking.id, { not: "CANCELLED" }, "CANCELLED"))) {
+      return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    }
+    const cancelled = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     await notifyBookingCancelled(cancelled, { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName });
     return cancelled;
   }
 
-  return prisma.booking.update({ where: { id: booking.id }, data: { status: params.status } }).catch(overlapOnReactivation);
+  return reapplyStatus(booking.id, booking.status, params.status);
+}
+
+/** Cambia el estado esperando que siga siendo `from`; si otro proceso lo cambió antes, avisa en vez de pisarlo. */
+async function reapplyStatus(bookingId: string, from: BookingStatus, to: BookingStatus) {
+  let changed: boolean;
+  try {
+    changed = await changeStatusIf(bookingId, from, to);
+  } catch (err) {
+    return overlapOnReactivation(err);
+  }
+  if (!changed) {
+    throw new AppError("El turno cambió mientras tanto. Actualizá la página y volvé a intentar.");
+  }
+  return prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
 }
 
 /** Volver a dejar activo (Pendiente/Confirmado) un turno cuyo horario otro turno ya ocupó. */
@@ -360,58 +416,67 @@ export async function rescheduleBooking(params: {
 
   let newExternalEventId = booking.externalEventId;
   let newProvider = booking.calendarProvider;
+  const oldEventId = booking.externalEventId;
+  let eventConnection: CalendarConnection | null = null;
+  let createdEventId: string | null = null;
 
   if (booking.externalEventId && booking.calendarProvider) {
     const connection = activeConnections.find((c) => c.provider === booking.calendarProvider);
     if (!connection) {
       throw new AppError("El calendario de este turno está desconectado. Reconectalo en Calendarios antes de reprogramar.");
     }
-    {
-      const accessToken = await getValidAccessToken(connection);
-      const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}${booking.clientPhone ? `\nTeléfono: ${booking.clientPhone}` : ""}`;
+    eventConnection = connection;
+    const accessToken = await getValidAccessToken(connection);
+    const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}${booking.clientPhone ? `\nTeléfono: ${booking.clientPhone}` : ""}`;
 
-      if (booking.calendarProvider === "GOOGLE") {
-        await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId: booking.externalEventId });
-        const created = await createGoogleEvent({
-          accessToken,
-          calendarId: connection.externalCalendarId,
-          summary: `${serviceLabel} — ${booking.clientName}`,
-          description: eventDescription,
-          startISO: params.startISO,
-          endISO: endISO,
-          timezone: professional.timezone,
-          attendeeEmail: booking.clientEmail ?? undefined,
-        });
-        newExternalEventId = created.eventId;
-      } else {
-        await deleteOutlookEvent({ accessToken, eventId: booking.externalEventId });
-        const created = await createOutlookEvent({
-          accessToken,
-          summary: `${serviceLabel} — ${booking.clientName}`,
-          description: eventDescription,
-          startISO: params.startISO,
-          endISO: endISO,
-          timezone: professional.timezone,
-          attendeeEmail: booking.clientEmail ?? undefined,
-        });
-        newExternalEventId = created.eventId;
-      }
-      newProvider = connection.provider;
-    }
+    // Primero se crea el evento nuevo y recién al final se borra el viejo: si algo falla
+    // en el medio, el turno nunca queda sin evento en el calendario.
+    const created =
+      connection.provider === "GOOGLE"
+        ? await createGoogleEvent({
+            accessToken,
+            calendarId: connection.externalCalendarId,
+            summary: `${serviceLabel} — ${booking.clientName}`,
+            description: eventDescription,
+            startISO: params.startISO,
+            endISO: endISO,
+            timezone: professional.timezone,
+            attendeeEmail: booking.clientEmail ?? undefined,
+          })
+        : await createOutlookEvent({
+            accessToken,
+            summary: `${serviceLabel} — ${booking.clientName}`,
+            description: eventDescription,
+            startISO: params.startISO,
+            endISO: endISO,
+            timezone: professional.timezone,
+            attendeeEmail: booking.clientEmail ?? undefined,
+          });
+    createdEventId = created.eventId;
+    newExternalEventId = created.eventId;
+    newProvider = connection.provider;
   }
 
-  const updated = await prisma.booking.update({
-    where: { id: booking.id },
-    data: {
-      startTime: new Date(params.startISO),
-      endTime: new Date(endISO),
-      externalEventId: newExternalEventId,
-      calendarProvider: newProvider,
-    },
-  }).catch((err: unknown) => {
-    if (isOverlapError(err)) throw new RescheduleConflictError();
-    throw err;
-  });
+  const updated = await prisma.booking
+    .update({
+      where: { id: booking.id },
+      data: {
+        startTime: new Date(params.startISO),
+        endTime: new Date(endISO),
+        externalEventId: newExternalEventId,
+        calendarProvider: newProvider,
+      },
+    })
+    .catch(async (err: unknown) => {
+      // No se pudo guardar el cambio: el evento nuevo que se acababa de crear queda de más y se borra.
+      if (createdEventId && eventConnection) await deleteEventSafely(eventConnection, createdEventId);
+      if (isOverlapError(err)) throw new RescheduleConflictError();
+      throw err;
+    });
+
+  // Con el cambio ya guardado, se borra el evento viejo. Si esto fallara, el turno
+  // queda bien en la base y solo sobra un evento antiguo en el calendario.
+  if (oldEventId && eventConnection) await deleteEventSafely(eventConnection, oldEventId);
 
   const notifyProfessional = params.channels
     ? {

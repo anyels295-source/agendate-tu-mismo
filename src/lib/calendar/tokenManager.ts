@@ -47,6 +47,13 @@ export async function getValidAccessToken(connection: CalendarConnection): Promi
         (err as { status?: number }).status === 400);
 
     if (isInvalidGrant) {
+      // Si otro pedido ya renovó el token mientras este intentaba (con tokens que rotan,
+      // el que llega segundo recibe invalid_grant), se usa el token ya renovado en vez
+      // de marcar la conexión como rota.
+      const fresh = await prisma.calendarConnection.findUnique({ where: { id: connection.id } });
+      if (fresh && fresh.isActive && fresh.refreshTokenEnc !== connection.refreshTokenEnc && fresh.expiresAt.getTime() - Date.now() > EXPIRY_SAFETY_MARGIN_MS) {
+        return decryptToken(fresh.accessTokenEnc);
+      }
       await prisma.calendarConnection.update({
         where: { id: connection.id },
         data: { isActive: false },
@@ -56,8 +63,10 @@ export async function getValidAccessToken(connection: CalendarConnection): Promi
     throw err;
   }
 
-  await prisma.calendarConnection.update({
-    where: { id: connection.id },
+  // Se guarda solo si nadie renovó antes (mismo refresh token que leímos): así dos pedidos
+  // simultáneos no se pisan. El access token recién obtenido sirve igual en cualquier caso.
+  await prisma.calendarConnection.updateMany({
+    where: { id: connection.id, refreshTokenEnc: connection.refreshTokenEnc },
     data: {
       accessTokenEnc: encryptToken(refreshed.accessToken),
       refreshTokenEnc: encryptToken(refreshed.refreshToken),

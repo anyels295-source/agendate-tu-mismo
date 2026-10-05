@@ -148,6 +148,10 @@ El **token de acceso** es una llave temporal (dura cerca de una hora). El **toke
 Dirección a la que Google o Microsoft devuelven a la persona después de autorizar. Tiene que estar registrada en la consola del proveedor, exactamente igual.
 - **En el proyecto:** `.../api/auth/google/callback` y `.../api/auth/outlook/callback`.
 
+### Firma de un webhook
+Un código que acompaña a cada aviso que llega a un webhook y prueba que lo mandó el servicio verdadero. Se calcula con un HMAC y una clave secreta que solo conocen ambos lados.
+- **En el proyecto:** el webhook de WhatsApp rechaza cualquier aviso cuya firma (`X-Hub-Signature-256`) no coincida, para que nadie pueda inventar avisos.
+
 ### Azure / Microsoft Entra
 Plataforma de Microsoft donde se registra la app para poder conectar Outlook.
 
@@ -237,6 +241,20 @@ Forma de contar peticiones: el tiempo se divide en tramos iguales (por ejemplo, 
 Decisión de qué hacer cuando un control de seguridad se rompe: dejar pasar a todos (fail-open) o bloquear a todos (fail-closed).
 - **En el proyecto:** si la base falla al contar peticiones, se deja pasar y se registra el error, porque es peor dejar a todos sin poder reservar.
 
+### Compensación (deshacer lo ya hecho)
+Cuando un proceso tiene varios pasos en sistemas distintos (la base y el calendario de Google) y falla uno a la mitad, no se puede "volver atrás" todo de golpe. Entonces se hacen pasos inversos a mano para dejar todo como estaba.
+- **Parecido en Java:** un `rollback` de transacción, pero escrito a mano porque abarca más de un sistema.
+- **En el proyecto:** si falla algo después de crear el evento en Google, se borra ese evento y la reserva fallida; al reprogramar, se crea el evento nuevo antes de borrar el viejo.
+
+### Evento huérfano
+Un evento que quedó en el calendario sin ninguna reserva asociada en la base, por un fallo a mitad de camino. Ocupa tiempo en el calendario y no lo ve nadie en el panel.
+- **En el proyecto:** las compensaciones existen justamente para evitar que queden.
+
+### Bloqueo optimista (optimistic locking)
+En vez de bloquear un dato mientras se trabaja, se actualiza solo si sigue como se lo leyó. Si otro proceso lo cambió antes, la actualización no se aplica y se avisa.
+- **Parecido en Java:** `@Version` en JPA.
+- **En el proyecto:** al cambiar el estado de un turno se exige que siga en el estado esperado (`updateMany` con condición). Así un doble clic no manda dos avisos al cliente, y dos pedidos que renuevan un token a la vez no se pisan.
+
 ### Caché
 Guardar una respuesta por un rato para no repetir un trabajo costoso.
 
@@ -271,3 +289,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Primera versión: piezas del proyecto, base de datos, publicación, servicios externos, seguridad, problemas típicos y formatos. |
 | 2026-10-05 | Seguridad: bot, dirección IP, campo trampa (honeypot). |
 | 2026-10-05 | Límite de peticiones: código de estado HTTP, upsert, HMAC, operación atómica, ventana fija y fail-open. |
+| 2026-10-05 | Robustez: compensación, evento huérfano, bloqueo optimista y firma de un webhook. |

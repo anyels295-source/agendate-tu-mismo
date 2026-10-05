@@ -15,6 +15,47 @@ export function normalizePhone(input: string): string | null {
 export const PHONE_ERROR_MESSAGE = "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.";
 export const CLIENT_NAME_MAX_LENGTH = 80;
 
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DAY_LABELS: Record<string, string> = {
+  mon: "Lunes", tue: "Martes", wed: "Miércoles", thu: "Jueves", fri: "Viernes", sat: "Sábado", sun: "Domingo",
+};
+
+/**
+ * Valida el horario de atención: horas con formato HH:mm, fin posterior al inicio
+ * y tramos del mismo día sin superponerse. Devuelve el mensaje de error, o null si está bien.
+ * Lo usan la pantalla de Configuración (aviso inmediato) y la API (validación real).
+ */
+export function validateWorkingHours(workingHours: Partial<Record<string, { start: string; end: string }[]>>): string | null {
+  const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+  for (const [day, ranges] of Object.entries(workingHours)) {
+    if (!ranges) continue;
+    const label = DAY_LABELS[day] ?? day;
+    const parsed: [number, number][] = [];
+    for (const range of ranges) {
+      if (!TIME_PATTERN.test(range.start) || !TIME_PATTERN.test(range.end)) return `${label}: hay una hora inválida.`;
+      const start = toMinutes(range.start);
+      const end = toMinutes(range.end);
+      if (end <= start) return `${label}: la hora de fin tiene que ser posterior a la de inicio.`;
+      parsed.push([start, end]);
+    }
+    parsed.sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < parsed.length; i++) {
+      if (parsed[i][0] < parsed[i - 1][1]) return `${label}: hay tramos horarios que se superponen.`;
+    }
+  }
+  return null;
+}
+
+/** Comprueba que sea una zona horaria IANA válida (por ejemplo, America/Montevideo). */
+export function isValidTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("es", { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Precio de un servicio: un número con símbolo/código de moneda opcional ("39", "$ 39,50", "39 UYU"). */
 export const PRICE_ERROR_MESSAGE = "El precio debe ser un número, por ejemplo 39, $ 39,50 o 39 UYU.";
 export const PRICE_PATTERN = /^[^\d]{0,4}\s*\d+([.,]\d{1,2})?\s*[^\d]{0,4}$/;
