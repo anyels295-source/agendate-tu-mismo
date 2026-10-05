@@ -173,6 +173,10 @@ Entrar a muchas aplicaciones con la misma cuenta de la empresa (por ejemplo, la 
 Herramienta para armar automatizaciones conectando servicios, uniendo bloques en un diagrama en vez de programar.
 - **En el proyecto:** la idea 5C2F5 la proponía como stack. Se construyó una aplicación propia en su lugar, que cubre el mismo objetivo.
 
+### Actualizar un evento (`patch`) en vez de borrarlo y crearlo
+Cambiar solo lo que cambió de un evento (por ejemplo, su horario) conserva todo lo demás: el link de la videollamada, los invitados y su historial. Borrar y volver a crear genera un evento distinto, con otro link, y los invitados reciben una cancelación y una invitación nueva.
+- **En el proyecto:** al reprogramar un turno se mueve el mismo evento del calendario. Si el evento ya no existe porque se borró a mano, recién ahí se crea uno nuevo.
+
 ### Invitación del calendario (`sendUpdates`)
 Cuando un evento tiene invitados, el calendario puede enviarles por su cuenta el aviso de invitación, de cambio o de cancelación. En Google se controla con el parámetro `sendUpdates`.
 - **En el proyecto:** al crear una reserva, el cliente recibe también la invitación de Google o de Outlook, además del email de la app. Al cancelar, recibe el aviso de evento cancelado.
@@ -342,3 +346,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Cabeceras de seguridad, clickjacking, SSRF y caché por pedido. |
 | 2026-10-05 | Ideas originales: IMAP y CalDAV, SSO y n8n. |
 | 2026-10-05 | Videollamada y recordatorios: migración aditiva, cron, invitación del calendario, videollamada en el evento y freebusy. |
+| 2026-10-05 | Reprogramar moviendo el mismo evento (patch). |

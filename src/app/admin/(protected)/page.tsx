@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
@@ -94,7 +95,7 @@ export default async function PanelPage() {
     CONFIRMED: { bg: "#e4f6ec", fg: "#1a7d45" },
   };
 
-  const bookingUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/reservar/${professional.slug}`;
+  const bookingUrl = `${await getPublicBaseUrl()}/reservar/${professional.slug}`;
   const bookingUrlDisplay = bookingUrl.replace(/^https?:\/\//, "");
   const connections = await prisma.calendarConnection.findMany({
     where: { professionalId: professional.id },

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       origin: "ADMIN",
     });
 
-    return NextResponse.json({ bookingId: booking.id, status: booking.status });
+    return NextResponse.json({ bookingId: booking.id, status: booking.status, emailSent: booking.clientEmailStatus === "SENT" });
   } catch (err) {
     if (err instanceof BookingConflictError) {
       return NextResponse.json({ error: err.message }, { status: 409 });

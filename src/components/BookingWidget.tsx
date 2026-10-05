@@ -34,6 +34,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   const [form, setForm] = useState({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
   // Campo trampa (honeypot): invisible para personas; si un bot lo rellena, el servidor descarta la reserva.
   const [honeypot, setHoneypot] = useState("");
+  // Si el email de confirmación realmente se pudo enviar (para no prometer algo que no pasó).
+  const [emailSent, setEmailSent] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   // Zona horaria elegida por el cliente para ver los horarios en su hora
   // local (por defecto, la del negocio). No afecta lo que se guarda: los
@@ -174,6 +176,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
         setSubmitting(false);
         return;
       }
+      setEmailSent(json.emailSent !== false);
       setStep("confirmado");
     } catch {
       setFormError("Error de conexión. Intentá nuevamente.");
@@ -468,7 +471,9 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 Pendiente de confirmación
               </span>
               <div className="mt-3.5 text-[13px] leading-relaxed text-[#6b7890]">
-                Te enviamos el detalle por email. El turno queda pendiente de confirmación y te avisaremos cuando se confirme.
+                {emailSent
+                  ? "Te enviamos el detalle por email. El turno queda pendiente de confirmación y te avisaremos cuando se confirme."
+                  : "Tu turno quedó registrado y pendiente de confirmación. No pudimos enviarte el email en este momento, así que anotá la fecha y el horario."}
                 <br />
                 Podés cancelar desde ese mismo mensaje.
               </div>

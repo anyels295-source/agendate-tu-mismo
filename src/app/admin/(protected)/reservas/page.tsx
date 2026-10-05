@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
 import { DateTime } from "luxon";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 import BookingsTable, { type BookingRow } from "@/components/admin/BookingsTable";
 import NewBookingButton from "@/components/admin/NewBookingButton";
 import ShareWhatsAppButton from "@/components/admin/ShareWhatsAppButton";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function ReservasPage({ searchParams }: { searchParams: Promise<{ filter?: string; q?: string }> }) {
   const { filter, q } = await searchParams;
   const professional = await getActiveProfessional();
+  const baseUrl = await getPublicBaseUrl();
 
   const bookings = await prisma.booking.findMany({
     where: { professionalId: professional.id },
@@ -40,7 +42,7 @@ export default async function ReservasPage({ searchParams }: { searchParams: Pro
         <h1 className="m-0 text-[26px] font-extrabold tracking-tight text-[var(--ink)]">Reservas</h1>
         <div className="flex flex-wrap gap-2.5">
           <ShareWhatsAppButton
-            url={`${process.env.APP_URL ?? "http://localhost:3000"}/reservar/${professional.slug}`}
+            url={`${baseUrl}/reservar/${professional.slug}`}
             professionalName={professional.name}
             className="flex items-center gap-1.5 rounded-[10px] bg-[#25d366] px-[15px] py-[9px] text-[13px] font-semibold text-white"
           />

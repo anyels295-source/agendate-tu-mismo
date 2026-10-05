@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { DateTime } from "luxon";
 import { isSlotStillFree, checkSlotAllowed } from "@/lib/availability";
 import { getValidAccessToken, CalendarTokenExpiredError } from "@/lib/calendar/tokenManager";
-import { createGoogleEvent, deleteGoogleEvent } from "@/lib/calendar/google";
-import { createOutlookEvent, deleteOutlookEvent } from "@/lib/calendar/outlook";
+import { createGoogleEvent, deleteGoogleEvent, moveGoogleEvent } from "@/lib/calendar/google";
+import { createOutlookEvent, deleteOutlookEvent, moveOutlookEvent } from "@/lib/calendar/outlook";
 import { notifyBookingConfirmed, notifyBookingRescheduled, notifyBookingCancelled } from "@/lib/notifications";
 import { AppError } from "@/lib/errors";
 import type { BookingStatus, CalendarConnection } from "@prisma/client";
@@ -157,8 +157,8 @@ export async function createBooking(params: {
       },
     });
 
-    await notifyBookingConfirmed(created, { ...professional, serviceName: serviceLabel }, { pending: !params.confirmed });
-    return created;
+    const { clientEmailStatus } = await notifyBookingConfirmed(created, { ...professional, serviceName: serviceLabel }, { pending: !params.confirmed });
+    return { ...created, clientEmailStatus };
   } catch (err) {
     // Si algo falla después de reservar el horario, se deshace todo: se borra el evento
     // si ya se había creado (para no dejarlo huérfano en el calendario) y se elimina la
@@ -179,6 +179,20 @@ async function removeCalendarEvent(connection: CalendarConnection, eventId: stri
     await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId, notifyAttendees });
   } else {
     await deleteOutlookEvent({ accessToken, eventId, notifyAttendees });
+  }
+}
+
+/** Cambia el horario de un evento ya creado (conserva el link de la videollamada). Puede lanzar error. */
+async function moveCalendarEvent(
+  connection: CalendarConnection,
+  eventId: string,
+  when: { startISO: string; endISO: string; timezone: string }
+): Promise<void> {
+  const accessToken = await getValidAccessToken(connection);
+  if (connection.provider === "GOOGLE") {
+    await moveGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId, ...when });
+  } else {
+    await moveOutlookEvent({ accessToken, eventId, ...when });
   }
 }
 
@@ -418,75 +432,73 @@ export async function rescheduleBooking(params: {
     throw new RescheduleConflictError();
   }
 
-  let newExternalEventId = booking.externalEventId;
-  let newProvider = booking.calendarProvider;
-  let newMeetingUrl = booking.meetingUrl;
-  const oldEventId = booking.externalEventId;
-  let eventConnection: CalendarConnection | null = null;
-  let createdEventId: string | null = null;
-
-  if (booking.externalEventId && booking.calendarProvider) {
-    const connection = activeConnections.find((c) => c.provider === booking.calendarProvider);
-    if (!connection) {
-      throw new AppError("El calendario de este turno está desconectado. Reconectalo en Calendarios antes de reprogramar.");
-    }
-    eventConnection = connection;
-    const accessToken = await getValidAccessToken(connection);
-    const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}${booking.clientPhone ? `\nTeléfono: ${booking.clientPhone}` : ""}`;
-
-    // Primero se crea el evento nuevo y recién al final se borra el viejo: si algo falla
-    // en el medio, el turno nunca queda sin evento en el calendario.
-    const created =
-      connection.provider === "GOOGLE"
-        ? await createGoogleEvent({
-            accessToken,
-            calendarId: connection.externalCalendarId,
-            summary: `${serviceLabel} — ${booking.clientName}`,
-            description: eventDescription,
-            startISO: params.startISO,
-            endISO: endISO,
-            timezone: professional.timezone,
-            attendeeEmail: booking.clientEmail ?? undefined,
-            withMeeting: professional.videoCallEnabled,
-          })
-        : await createOutlookEvent({
-            accessToken,
-            summary: `${serviceLabel} — ${booking.clientName}`,
-            description: eventDescription,
-            startISO: params.startISO,
-            endISO: endISO,
-            timezone: professional.timezone,
-            attendeeEmail: booking.clientEmail ?? undefined,
-            withMeeting: professional.videoCallEnabled,
-          });
-    createdEventId = created.eventId;
-    newExternalEventId = created.eventId;
-    newProvider = connection.provider;
-    // El evento nuevo trae su propia videollamada: el link anterior deja de servir.
-    newMeetingUrl = created.meetingUrl;
+  const eventConnection =
+    booking.externalEventId && booking.calendarProvider
+      ? activeConnections.find((c) => c.provider === booking.calendarProvider) ?? null
+      : null;
+  if (booking.externalEventId && booking.calendarProvider && !eventConnection) {
+    throw new AppError("El calendario de este turno está desconectado. Reconectalo en Calendarios antes de reprogramar.");
   }
 
-  const updated = await prisma.booking
+  // Primero se guarda el nuevo horario en la base: si otro turno lo ocupa, la restricción lo
+  // rechaza y no se toca el calendario.
+  await prisma.booking
     .update({
       where: { id: booking.id },
-      data: {
-        startTime: new Date(params.startISO),
-        endTime: new Date(endISO),
-        externalEventId: newExternalEventId,
-        calendarProvider: newProvider,
-        meetingUrl: newMeetingUrl,
-      },
+      data: { startTime: new Date(params.startISO), endTime: new Date(endISO) },
     })
-    .catch(async (err: unknown) => {
-      // No se pudo guardar el cambio: el evento nuevo que se acababa de crear queda de más y se borra.
-      if (createdEventId && eventConnection) await deleteEventSafely(eventConnection, createdEventId);
+    .catch((err: unknown) => {
       if (isOverlapError(err)) throw new RescheduleConflictError();
       throw err;
     });
 
-  // Con el cambio ya guardado, se borra el evento viejo. Si esto fallara, el turno
-  // queda bien en la base y solo sobra un evento antiguo en el calendario.
-  if (oldEventId && eventConnection) await deleteEventSafely(eventConnection, oldEventId);
+  let replacedEvent: { externalEventId: string; calendarProvider: CalendarConnection["provider"]; meetingUrl: string | null } | null = null;
+  if (booking.externalEventId && eventConnection) {
+    try {
+      // Se MUEVE el mismo evento en vez de borrarlo y crear otro: conserva el link de la
+      // videollamada y el invitado recibe una actualización, no una cancelación más una invitación.
+      await moveCalendarEvent(eventConnection, booking.externalEventId, { startISO: params.startISO, endISO, timezone: professional.timezone });
+    } catch (err) {
+      if (!isEventGoneError(err)) {
+        // No se pudo mover: el turno vuelve a su horario anterior para que base y calendario coincidan.
+        await prisma.booking
+          .update({ where: { id: booking.id }, data: { startTime: booking.startTime, endTime: booking.endTime } })
+          .catch((revertErr: unknown) => console.error("No se pudo restaurar el horario anterior del turno:", revertErr));
+        throw err;
+      }
+      // El evento ya no existe (se borró a mano en el calendario): se crea uno nuevo.
+      const accessToken = await getValidAccessToken(eventConnection);
+      const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}${booking.clientPhone ? `\nTeléfono: ${booking.clientPhone}` : ""}`;
+      const created =
+        eventConnection.provider === "GOOGLE"
+          ? await createGoogleEvent({
+              accessToken,
+              calendarId: eventConnection.externalCalendarId,
+              summary: `${serviceLabel} — ${booking.clientName}`,
+              description: eventDescription,
+              startISO: params.startISO,
+              endISO: endISO,
+              timezone: professional.timezone,
+              attendeeEmail: booking.clientEmail ?? undefined,
+              withMeeting: professional.videoCallEnabled,
+            })
+          : await createOutlookEvent({
+              accessToken,
+              summary: `${serviceLabel} — ${booking.clientName}`,
+              description: eventDescription,
+              startISO: params.startISO,
+              endISO: endISO,
+              timezone: professional.timezone,
+              attendeeEmail: booking.clientEmail ?? undefined,
+              withMeeting: professional.videoCallEnabled,
+            });
+      replacedEvent = { externalEventId: created.eventId, calendarProvider: eventConnection.provider, meetingUrl: created.meetingUrl };
+    }
+  }
+
+  const updated = replacedEvent
+    ? await prisma.booking.update({ where: { id: booking.id }, data: replacedEvent })
+    : await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
 
   const notifyProfessional = params.channels
     ? {

@@ -178,3 +178,30 @@ export async function deleteGoogleEvent(params: {
     sendUpdates: params.notifyAttendees ? "all" : "none",
   });
 }
+
+/**
+ * Cambia el horario de un evento existente en lugar de borrarlo y crear otro: el evento
+ * conserva su link de Meet y los invitados reciben una actualización (no una cancelación
+ * más una invitación nueva).
+ */
+export async function moveGoogleEvent(params: {
+  accessToken: string;
+  calendarId: string;
+  eventId: string;
+  startISO: string;
+  endISO: string;
+  timezone: string;
+}): Promise<void> {
+  const client = getOAuthClient();
+  client.setCredentials({ access_token: params.accessToken });
+  const calendar = google.calendar({ version: "v3", auth: client });
+  await calendar.events.patch({
+    calendarId: params.calendarId,
+    eventId: params.eventId,
+    sendUpdates: "all",
+    requestBody: {
+      start: { dateTime: params.startISO, timeZone: params.timezone },
+      end: { dateTime: params.endISO, timeZone: params.timezone },
+    },
+  });
+}

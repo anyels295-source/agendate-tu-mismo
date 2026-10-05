@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth";
 import { getActiveProfessional, getProfessionalsForOwner } from "@/lib/professional";
 import AdminShell from "@/components/admin/AdminShell";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getAdminSession();
@@ -10,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const [professionals, active] = await Promise.all([getProfessionalsForOwner(), getActiveProfessional()]);
-  const bookingUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/reservar/${active.slug}`;
+  const bookingUrl = `${await getPublicBaseUrl()}/reservar/${active.slug}`;
 
   return (
     <AdminShell

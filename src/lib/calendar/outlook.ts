@@ -210,3 +210,20 @@ export async function deleteOutlookEvent(params: {
     throw new Error(`Microsoft Graph error al eliminar evento: ${body}`);
   }
 }
+
+/** Cambia el horario de un evento existente (Outlook avisa a los invitados de la actualización por su cuenta). */
+export async function moveOutlookEvent(params: {
+  accessToken: string;
+  eventId: string;
+  startISO: string;
+  endISO: string;
+  timezone: string;
+}): Promise<void> {
+  await graphFetch(`/me/events/${params.eventId}`, params.accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      start: { dateTime: params.startISO, timeZone: params.timezone },
+      end: { dateTime: params.endISO, timeZone: params.timezone },
+    }),
+  });
+}

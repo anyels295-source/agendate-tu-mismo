@@ -60,6 +60,8 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
   // llamada externa puede tardar 1-3 s) al tiempo que el cliente espera la
   // confirmación de su turno.
   const tasks: Promise<unknown>[] = [];
+  // Resultado del email al cliente: sirve para decirle la verdad en la pantalla de confirmación.
+  let clientEmailStatus: "SENT" | "FAILED" | "SKIPPED" | null = null;
 
   if (professional.notifyWhatsapp && opts.pending) {
     // La plantilla de WhatsApp aprobada dice "turno confirmado"; no sirve para uno pendiente.
@@ -99,7 +101,10 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         cancelUrl,
         pending: opts.pending,
         meetingUrl: booking.meetingUrl,
-      }).then((result) => logNotification(booking.id, "EMAIL", result))
+      }).then((result) => {
+        clientEmailStatus = result.status;
+        return logNotification(booking.id, "EMAIL", result);
+      })
     );
   }
 
@@ -130,6 +135,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
   }
 
   await Promise.allSettled(tasks);
+  return { clientEmailStatus };
 }
 
 export async function notifyBookingRescheduled(booking: Booking, professional: Professional) {

@@ -146,7 +146,10 @@ export default function NewBookingModal({
         return;
       }
       const dt = DateTime.fromISO(selectedSlot.startISO).setZone(data.professional.timezone).setLocale("es");
-      onDone(`Reserva creada para ${form.clientName.trim()} · ${dt.toFormat("d LLL yyyy")} · ${dt.toFormat("HH:mm")}`);
+      onDone(
+        `Reserva creada para ${form.clientName.trim()} · ${dt.toFormat("d LLL yyyy")} · ${dt.toFormat("HH:mm")}` +
+          (json.emailSent === false ? ". No se pudo enviar el email al cliente." : "")
+      );
     } catch {
       setFormError("Error de conexión. Intentá nuevamente.");
       setSaving(false);
