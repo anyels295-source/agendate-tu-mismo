@@ -8,7 +8,19 @@ const schema = z.object({
   notifyWhatsapp: z.boolean().optional(),
   notifyEmail: z.boolean().optional(),
   notifyTeams: z.boolean().optional(),
-  teamsWebhookUrl: z.string().url().max(500).nullable().optional().or(z.literal("")),
+  teamsWebhookUrl: z
+    .string()
+    .url("Ingresá una URL válida.")
+    .max(500)
+    .refine((value) => {
+      // Solo https y un nombre de dominio (no una IP ni localhost): evita que el servidor sea usado para llamar a direcciones internas.
+      const url = new URL(value);
+      const isIp = /^[\d.]+$/.test(url.hostname) || url.hostname.includes(":");
+      return url.protocol === "https:" && !isIp && url.hostname.includes(".") && url.hostname !== "localhost";
+    }, "La URL del webhook de Teams debe ser https y de un dominio público.")
+    .nullable()
+    .optional()
+    .or(z.literal("")),
 });
 
 export async function PATCH(req: NextRequest) {

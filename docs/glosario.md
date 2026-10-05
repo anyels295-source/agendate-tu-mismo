@@ -192,6 +192,22 @@ Si un nombre empieza con `=`, `+`, `-` o `@`, Excel puede ejecutarlo como una f�
 Cortar a quien hace demasiadas peticiones en poco tiempo, para frenar abuso y fuerza bruta.
 - **En el proyecto:** en preparación (punto 6 de la revisión de código).
 
+### Cabeceras HTTP y cabeceras de seguridad
+Las **cabeceras** son datos extra que acompañan cada respuesta del servidor y le dan instrucciones al navegador. Las de seguridad le piden que sea más estricto.
+- **En el proyecto:** se definen en `next.config.mjs`. Por ejemplo, `X-Content-Type-Options` evita que el navegador adivine el tipo de un archivo, y `Strict-Transport-Security` obliga a usar HTTPS.
+
+### Clickjacking
+Un ataque donde una página maliciosa incrusta la tuya dentro de un marco invisible y engaña a la persona para que haga clic en un botón sin darse cuenta (por ejemplo, "Cancelar turno").
+- **En el proyecto:** `X-Frame-Options: DENY` impide que el panel y la API se muestren dentro de otro sitio. La página pública de reservas sí se puede incrustar.
+
+### SSRF (petición falsificada desde el servidor)
+Un ataque donde se logra que el servidor haga una llamada a una dirección que el atacante elige, por ejemplo una interna que desde afuera no se ve.
+- **En el proyecto:** la URL del webhook de Teams, que el servidor llama, solo se acepta si es `https` y de un dominio público (no una IP ni `localhost`).
+
+### Caché por pedido (`cache` de React)
+Guarda el resultado de una función durante un mismo pedido, para no repetir el trabajo cuando varias partes de la página la llaman.
+- **En el proyecto:** buscar al profesional activo se hace una sola vez por página, aunque lo pidan el menú, la página y la API.
+
 ### Bot
 Programa que usa una web de forma automática, sin una persona detrás. Algunos son útiles (los buscadores) y otros hacen abuso: llenar formularios con basura, probar contraseñas, mandar spam.
 - **En el proyecto:** un bot podría reservar cientos de turnos falsos o hacer que la app mande emails masivos desde tu dominio.
@@ -290,3 +306,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Seguridad: bot, dirección IP, campo trampa (honeypot). |
 | 2026-10-05 | Límite de peticiones: código de estado HTTP, upsert, HMAC, operación atómica, ventana fija y fail-open. |
 | 2026-10-05 | Robustez: compensación, evento huérfano, bloqueo optimista y firma de un webhook. |
+| 2026-10-05 | Cabeceras de seguridad, clickjacking, SSRF y caché por pedido. |

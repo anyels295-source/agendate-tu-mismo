@@ -53,10 +53,16 @@ export async function GET(req: NextRequest) {
     durationMinutes = service.durationMinutes;
   }
 
-  const fromDate = fromParam
-    ? DateTime.fromISO(fromParam, { zone: professional.timezone })
-    : DateTime.now().setZone(professional.timezone);
-  const maxToDate = fromDate.plus({ days: professional.maxAdvanceDays });
+  const today = DateTime.now().setZone(professional.timezone).startOf("day");
+  let fromDate = fromParam ? DateTime.fromISO(fromParam, { zone: professional.timezone }) : DateTime.now().setZone(professional.timezone);
+  if (!fromDate.isValid) fromDate = DateTime.now().setZone(professional.timezone);
+  if (!ignoreMinNotice) {
+    // Público: no se pueden pedir horarios del pasado ni más allá de la anticipación máxima.
+    const lastAllowed = today.plus({ days: professional.maxAdvanceDays });
+    if (fromDate < today) fromDate = today;
+    if (fromDate > lastAllowed) fromDate = lastAllowed;
+  }
+  const maxToDate = (ignoreMinNotice ? fromDate : today).plus({ days: professional.maxAdvanceDays });
   const requestedToDate = fromDate.plus({ days: Math.min(daysParam, 14) });
   const toDate = requestedToDate > maxToDate ? maxToDate : requestedToDate;
 

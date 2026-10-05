@@ -145,7 +145,7 @@ model Booking {
   notes            String?
   calendarProvider CalendarProvider?
   externalEventId  String?
-  cancelToken      String            @unique @default(cuid())
+  cancelToken      String            @unique @default(uuid())
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 

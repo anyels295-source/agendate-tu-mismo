@@ -48,7 +48,7 @@ export default async function ReservasPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <BookingsTable rows={rows} professionalSlug={professional.slug} initialFilter={filter} initialQuery={q} />
+      <BookingsTable rows={rows} professionalSlug={professional.slug} initialFilter={filter} initialQuery={q} limited={bookings.length >= 200} />
     </div>
   );
 }

@@ -7,3 +7,5 @@ out
 .DS_Store
 /prisma/dev.db
 *.tsbuildinfo
+.claude/settings.local.json
+_to_delete/

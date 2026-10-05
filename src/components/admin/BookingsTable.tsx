@@ -107,11 +107,14 @@ export default function BookingsTable({
   professionalSlug,
   initialFilter,
   initialQuery,
+  limited = false,
 }: {
   rows: BookingRow[];
   professionalSlug: string;
   initialFilter?: string;
   initialQuery?: string;
+  /** El listado se cortó en las 200 reservas más recientes. */
+  limited?: boolean;
 }) {
   const router = useRouter();
   const [q, setQ] = useState((initialQuery ?? "").slice(0, 100));
@@ -258,6 +261,11 @@ export default function BookingsTable({
           </div>
         )}
 
+        {limited && (
+          <div className="border-t border-[var(--line3)] bg-[var(--subtle)] px-5 py-2.5 text-[12.5px] text-[var(--muted-nav)]">
+            Se muestran las 200 reservas más recientes. Para ver períodos anteriores, usá Reportes.
+          </div>
+        )}
         {filtered.map((b, i) => {
           const meta = STATUS_META[b.status] ?? STATUS_META.PENDING;
           const canAct = b.status === "PENDING" || b.status === "CONFIRMED";

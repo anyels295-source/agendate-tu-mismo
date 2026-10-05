@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_WORKING_HOURS } from "@/lib/types";
@@ -55,7 +56,7 @@ async function createProfessional(ownerEmail: string, opts?: { name?: string; em
 }
 
 /** Todos los profesionales que administra la cuenta admin actual, creando el primero si hace falta. */
-export async function getProfessionalsForOwner() {
+export const getProfessionalsForOwner = cache(async () => {
   const owner = getOwnerEmail();
   const list = await prisma.professional.findMany({
     where: { ownerEmail: owner },
@@ -64,16 +65,16 @@ export async function getProfessionalsForOwner() {
   if (list.length > 0) return list;
   const created = await createProfessional(owner);
   return [created];
-}
+});
 
 /** El profesional "activo" en el panel (según cookie), o el primero si no hay selección o no es válida. */
-export async function getActiveProfessional() {
+export const getActiveProfessional = cache(async () => {
   const professionals = await getProfessionalsForOwner();
   const cookieStore = await cookies();
   const activeId = cookieStore.get(ACTIVE_PROFESSIONAL_COOKIE)?.value;
   const found = activeId ? professionals.find((p) => p.id === activeId) : undefined;
   return found ?? professionals[0];
-}
+});
 
 // Alias por compatibilidad con el código ya escrito antes de sumar multi-profesional.
 export const getOrCreateActiveProfessional = getActiveProfessional;
