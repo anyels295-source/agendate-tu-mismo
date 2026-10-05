@@ -31,6 +31,7 @@ export default async function ConfiguracionPage() {
           timezone: professional.timezone,
           photoUrl: professional.photoUrl,
           theme: professional.theme,
+          videoCallEnabled: professional.videoCallEnabled,
         }}
       />
 

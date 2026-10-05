@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { google } from "googleapis";
 import type { BusyBlock, CalendarConnectorTokens } from "@/lib/types";
 
@@ -103,36 +104,77 @@ export async function createGoogleEvent(params: {
   endISO: string;
   timezone: string;
   attendeeEmail?: string;
-}): Promise<{ eventId: string }> {
+  /** Agrega una videollamada de Google Meet al evento. */
+  withMeeting?: boolean;
+}): Promise<{ eventId: string; meetingUrl: string | null }> {
   const client = getOAuthClient();
   client.setCredentials({ access_token: params.accessToken });
   const calendar = google.calendar({ version: "v3", auth: client });
 
-  const res = await calendar.events.insert({
-    calendarId: params.calendarId,
-    requestBody: {
-      summary: params.summary,
-      description: params.description,
-      start: { dateTime: params.startISO, timeZone: params.timezone },
-      end: { dateTime: params.endISO, timeZone: params.timezone },
-      attendees: params.attendeeEmail ? [{ email: params.attendeeEmail }] : undefined,
-      reminders: { useDefault: true },
-    },
-  });
+  const insert = (withMeeting: boolean) =>
+    calendar.events.insert({
+      calendarId: params.calendarId,
+      // Con un invitado, Google le envía la invitación del calendario. Con videollamada,
+      // hay que pedir la versión 1 de los datos de conferencia.
+      sendUpdates: params.attendeeEmail ? "all" : "none",
+      conferenceDataVersion: withMeeting ? 1 : 0,
+      requestBody: {
+        summary: params.summary,
+        description: params.description,
+        start: { dateTime: params.startISO, timeZone: params.timezone },
+        end: { dateTime: params.endISO, timeZone: params.timezone },
+        attendees: params.attendeeEmail ? [{ email: params.attendeeEmail }] : undefined,
+        reminders: { useDefault: true },
+        ...(withMeeting
+          ? { conferenceData: { createRequest: { requestId: randomUUID(), conferenceSolutionKey: { type: "hangoutsMeet" } } } }
+          : {}),
+      },
+    });
+
+  let res: Awaited<ReturnType<typeof insert>>;
+  try {
+    res = await insert(!!params.withMeeting);
+  } catch (err) {
+    // Algunas cuentas (por ejemplo, ciertos Workspace) no permiten crear Meet: se reserva igual, sin videollamada.
+    if (!params.withMeeting) throw err;
+    console.warn("No se pudo crear la videollamada de Google Meet; se crea el evento sin ella:", err);
+    res = await insert(false);
+  }
 
   if (!res.data.id) {
     throw new Error("Google Calendar no devolvió un id de evento al crearlo.");
   }
-  return { eventId: res.data.id };
+
+  const readMeetingUrl = (data: {
+    hangoutLink?: string | null;
+    conferenceData?: { entryPoints?: { entryPointType?: string | null; uri?: string | null }[] | null } | null;
+  }) =>
+    data.hangoutLink ?? data.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ?? null;
+
+  let meetingUrl = readMeetingUrl(res.data);
+  // El link de Meet a veces se termina de generar unos instantes después de crear el evento.
+  for (let attempt = 0; params.withMeeting && !meetingUrl && attempt < 2; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const fresh = await calendar.events.get({ calendarId: params.calendarId, eventId: res.data.id });
+    meetingUrl = readMeetingUrl(fresh.data);
+  }
+
+  return { eventId: res.data.id, meetingUrl };
 }
 
 export async function deleteGoogleEvent(params: {
   accessToken: string;
   calendarId: string;
   eventId: string;
+  /** Avisa a los invitados de la cancelación (Google les manda el aviso de evento cancelado). */
+  notifyAttendees?: boolean;
 }): Promise<void> {
   const client = getOAuthClient();
   client.setCredentials({ access_token: params.accessToken });
   const calendar = google.calendar({ version: "v3", auth: client });
-  await calendar.events.delete({ calendarId: params.calendarId, eventId: params.eventId });
+  await calendar.events.delete({
+    calendarId: params.calendarId,
+    eventId: params.eventId,
+    sendUpdates: params.notifyAttendees ? "all" : "none",
+  });
 }

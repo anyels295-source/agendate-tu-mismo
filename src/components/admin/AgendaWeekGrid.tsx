@@ -7,7 +7,7 @@ import { statusToast, type BookingStatusValue } from "@/lib/bookingStatusToast";
 import RescheduleModal from "./RescheduleModal";
 import ConfirmDialog from "./ConfirmDialog";
 import NewBookingModal from "./NewBookingModal";
-import { IconCalendarSmall, IconClock, IconWhatsapp, IconMail, IconNote, IconClose, IconSearch } from "./icons";
+import { IconCalendarSmall, IconClock, IconWhatsapp, IconMail, IconNote, IconVideo, IconClose, IconSearch } from "./icons";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 
 export type AgendaEvent = {
@@ -16,6 +16,8 @@ export type AgendaEvent = {
   /** Opcional: el cliente puede no haber dejado WhatsApp (el email es el contacto obligatorio). */
   phone: string | null;
   email: string | null;
+  /** Link de la videollamada (Meet o Teams), si el turno tiene una. */
+  meetingUrl: string | null;
   /** Inicio del turno (ISO): Completar/Ausente solo se habilitan una vez que empezó. */
   startISO: string;
   notes: string | null;
@@ -29,7 +31,15 @@ export type AgendaEvent = {
   height: number;
 };
 
-type Day = { label: string; dateNum: number; dateISO: string; isToday: boolean; events: AgendaEvent[] };
+type Day = {
+  label: string;
+  dateNum: number;
+  dateISO: string;
+  isToday: boolean;
+  events: AgendaEvent[];
+  /** Eventos de otros calendarios conectados (solo "ocupado"). */
+  busy: { top: number; height: number; label: string }[];
+};
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; bar: string; fg: string }> = {
   CONFIRMED: { bg: "#e4f6ec", border: "#a8e0bd", bar: "#1a7d45", fg: "#166b3b" },
@@ -130,13 +140,19 @@ export default function AgendaWeekGrid({
   timeLabels,
   rowHeight,
   professionalSlug,
+  hasConnections,
+  busyFailed,
 }: {
   days: Day[];
   timeLabels: string[];
   rowHeight: number;
   professionalSlug: string;
+  hasConnections: boolean;
+  busyFailed: boolean;
 }) {
   const router = useRouter();
+  // Mostrar u ocultar los eventos de otros calendarios en la grilla.
+  const [showBusy, setShowBusy] = useState(true);
   const [detail, setDetail] = useState<AgendaEvent | null>(null);
   const [showReschedule, setShowReschedule] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -249,6 +265,15 @@ export default function AgendaWeekGrid({
             </option>
           ))}
         </select>
+        {hasConnections && (
+          <label className="flex cursor-pointer items-center gap-1.5 text-[12.5px] font-semibold text-[var(--muted-nav)]">
+            <input type="checkbox" checked={showBusy} onChange={(e) => setShowBusy(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--brand)]" />
+            Mostrar otros calendarios
+          </label>
+        )}
+        {hasConnections && showBusy && busyFailed && (
+          <span role="status" className="text-[12px] font-semibold text-[#a4700f]">No se pudieron cargar algunos calendarios.</span>
+        )}
         {hasFilter && (
           <span className="text-[12.5px] font-semibold text-[var(--muted-nav)]">
             {matchCount === 0
@@ -305,6 +330,22 @@ export default function AgendaWeekGrid({
               background: `repeating-linear-gradient(var(--surface), var(--surface) ${rowHeight - 1}px, var(--line3) ${rowHeight - 1}px, var(--line3) ${rowHeight}px)`,
             }}
           >
+            {showBusy &&
+              d.busy.map((b, i) => (
+                <div
+                  key={`busy-${i}`}
+                  aria-hidden="true"
+                  title={`Ocupado en otro calendario · ${b.label}`}
+                  className="pointer-events-none absolute left-[2px] right-[2px] overflow-hidden rounded-md border border-dashed border-[var(--line-btn)] px-1.5 py-0.5 text-[10.5px] font-semibold text-[var(--muted-nav)]"
+                  style={{
+                    top: b.top,
+                    height: b.height,
+                    background: "repeating-linear-gradient(135deg, var(--page), var(--page) 5px, var(--line3) 5px, var(--line3) 10px)",
+                  }}
+                >
+                  {b.height >= 26 ? "Ocupado · otro calendario" : ""}
+                </div>
+              ))}
             {layoutOverlappingEvents(d.events).map((ev) => {
               const style = STATUS_STYLE[ev.status] ?? STATUS_STYLE.CONFIRMED;
               const widthPct = 100 / ev.columnCount;
@@ -391,6 +432,22 @@ export default function AgendaWeekGrid({
                   <div className="text-[14px] font-semibold text-[var(--ink2)]">{detail.serviceName}</div>
                 </div>
               </div>
+              {detail.meetingUrl && detail.meetingUrl.startsWith("https://") && (
+                <div className="flex items-center gap-3 border-b border-[var(--line3)] py-2.5">
+                  <IconVideo className="shrink-0 text-[var(--muted-nav)]" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold text-[var(--muted-nav)]">Videollamada</div>
+                    <a
+                      href={detail.meetingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="break-all text-[14px] font-semibold text-[var(--brand)] underline"
+                    >
+                      Unirse a la reunión
+                    </a>
+                  </div>
+                </div>
+              )}
               {detail.email && (
                 <div className="flex items-center gap-3 border-b border-[var(--line3)] py-2.5">
                   <IconMail className="shrink-0 text-[var(--muted-nav)]" />

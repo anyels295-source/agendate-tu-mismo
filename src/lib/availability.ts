@@ -79,6 +79,25 @@ function subtractBusy(window: Interval, busy: Interval[]): Interval[] {
 export type FreeSlot = { startISO: string; endISO: string };
 
 /**
+ * Bloques ocupados de los calendarios conectados en un rango, para mostrarlos en
+ * la Agenda. No lanza nunca: si un calendario falla (o tarda más de 6 segundos), se
+ * muestra lo que se pudo y se devuelve failed = true para avisarlo.
+ */
+export async function getExternalBusyIntervals(
+  connections: CalendarConnection[],
+  fromISO: string,
+  toISO: string
+): Promise<{ intervals: Interval[]; failed: boolean }> {
+  if (connections.length === 0) return { intervals: [], failed: false };
+  const work = Promise.allSettled(connections.map((c) => fetchBusyBlocksForConnection(c, fromISO, toISO)));
+  const timeout = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 6000));
+  const outcome = await Promise.race([work, timeout]);
+  if (outcome === "timeout") return { intervals: [], failed: true };
+  const blocks = outcome.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+  return { intervals: mergeBusyBlocks(blocks), failed: outcome.some((r) => r.status === "rejected") };
+}
+
+/**
  * Agranda cada bloque ocupado con el "colchón entre turnos" configurado, hacia
  * adelante y hacia atrás: así, entre un evento del calendario y el turno
  * siguiente queda siempre ese margen. Los bordes del horario de atención no

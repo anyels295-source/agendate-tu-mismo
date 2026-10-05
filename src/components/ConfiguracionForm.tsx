@@ -31,6 +31,7 @@ type Props = {
     timezone: string;
     photoUrl: string | null;
     theme: string;
+    videoCallEnabled: boolean;
   };
   /** Si ya hay servicios cargados, el nombre/duración "legados" del perfil no se muestran. */
   hasServices?: boolean;
@@ -253,6 +254,20 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
               </div>
             </>
           )}
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-[11px] border border-[var(--line)] bg-[var(--subtle)] px-3.5 py-3 text-[13.5px] text-[var(--ink2)] sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.videoCallEnabled}
+              onChange={(e) => setForm({ ...form, videoCallEnabled: e.target.checked })}
+              className="mt-0.5 h-4 w-4 accent-[var(--brand)]"
+            />
+            <span>
+              <span className="font-semibold">Agregar una videollamada a cada reserva</span>
+              <span className="block text-[12.5px] text-[var(--muted-nav)]">
+                Se crea un link de Google Meet (o de Teams, si el calendario es de Outlook) junto con el evento, y se incluye en los emails al cliente.
+              </span>
+            </span>
+          </label>
           <div>
             <label htmlFor="cf-buffer" className={labelClass}>Colchón entre turnos (min)</label>
             <input id="cf-buffer" type="number" className={inputClass} value={form.bufferMinutes} onChange={(e) => setForm({ ...form, bufferMinutes: Number(e.target.value) })} />

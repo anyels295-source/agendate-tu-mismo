@@ -41,6 +41,7 @@ const patchSchema = z.object({
   // es un resguardo por si algo llega sin comprimir; en uso normal una foto
   // 320x320 JPEG pesa muchísimo menos que esto.
   photoUrl: z.string().max(400_000).nullable().optional(),
+  videoCallEnabled: z.boolean().optional(),
   theme: z.enum(["claro", "arena", "bosque", "noche"]).optional(),
 });
 

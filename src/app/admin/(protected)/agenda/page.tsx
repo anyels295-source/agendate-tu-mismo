@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { DateTime } from "luxon";
+import { DateTime, Interval } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
 import type { WorkingHours } from "@/lib/types";
 import AgendaWeekGrid, { type AgendaEvent } from "@/components/admin/AgendaWeekGrid";
 import AgendaDateJump from "@/components/admin/AgendaDateJump";
+import { getExternalBusyIntervals } from "@/lib/availability";
+import { buildDayBusyBlocks } from "@/lib/agendaBusy";
 import NewBookingButton from "@/components/admin/NewBookingButton";
 import { IconChevronLeft, IconChevronRight } from "@/components/admin/icons";
 
@@ -72,6 +74,13 @@ export default async function AgendaPage({
   }
   const ROW = 56;
 
+  // Eventos de los otros calendarios conectados (solo "ocupado", sin detalle), para ver la semana completa.
+  const connections = await prisma.calendarConnection.findMany({ where: { professionalId: professional.id, isActive: true } });
+  const external = await getExternalBusyIntervals(connections, startOfWeek.toUTC().toISO()!, endOfWeek.toUTC().toISO()!);
+  const ownIntervals = bookings
+    .filter((b) => b.status !== "CANCELLED")
+    .map((b) => Interval.fromDateTimes(DateTime.fromJSDate(b.startTime), DateTime.fromJSDate(b.endTime)));
+
   const days = Array.from({ length: 7 }).map((_, i) => {
     const day = startOfWeek.plus({ days: i });
     const dayBookings = bookings.filter((b) => DateTime.fromJSDate(b.startTime).setZone(tz).hasSame(day, "day"));
@@ -86,6 +95,7 @@ export default async function AgendaPage({
         clientName: b.clientName,
         phone: b.clientPhone,
         email: b.clientEmail,
+        meetingUrl: b.meetingUrl,
         startISO: b.startTime.toISOString(),
         notes: b.notes,
         serviceName: b.service?.name ?? professional.serviceName,
@@ -105,6 +115,7 @@ export default async function AgendaPage({
       dateISO: day.toISODate()!,
       isToday: day.hasSame(now, "day"),
       events,
+      busy: buildDayBusyBlocks({ day, gridStartHour, gridEndHour, rowHeight: ROW, external: external.intervals, own: ownIntervals }),
     };
   });
 
@@ -149,7 +160,14 @@ export default async function AgendaPage({
         </div>
       </div>
 
-      <AgendaWeekGrid days={days} timeLabels={timeLabels} rowHeight={ROW} professionalSlug={professional.slug} />
+      <AgendaWeekGrid
+        days={days}
+        timeLabels={timeLabels}
+        rowHeight={ROW}
+        professionalSlug={professional.slug}
+        hasConnections={connections.length > 0}
+        busyFailed={external.failed}
+      />
     </div>
   );
 }

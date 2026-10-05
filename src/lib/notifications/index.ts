@@ -98,6 +98,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         timeLabel,
         cancelUrl,
         pending: opts.pending,
+        meetingUrl: booking.meetingUrl,
       }).then((result) => logNotification(booking.id, "EMAIL", result))
     );
   }
@@ -165,6 +166,7 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
         dateLabel,
         timeLabel,
         cancelUrl,
+        meetingUrl: booking.meetingUrl,
       }).then((result) => logNotification(booking.id, "EMAIL", result))
     );
   }

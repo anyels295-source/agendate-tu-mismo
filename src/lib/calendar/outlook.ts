@@ -157,23 +157,50 @@ export async function createOutlookEvent(params: {
   endISO: string;
   timezone: string;
   attendeeEmail?: string;
-}): Promise<{ eventId: string }> {
-  const data = await graphFetch(`/me/events`, params.accessToken, {
-    method: "POST",
-    body: JSON.stringify({
-      subject: params.summary,
-      body: { contentType: "text", content: params.description ?? "" },
-      start: { dateTime: params.startISO, timeZone: params.timezone },
-      end: { dateTime: params.endISO, timeZone: params.timezone },
-      attendees: params.attendeeEmail
-        ? [{ emailAddress: { address: params.attendeeEmail }, type: "required" }]
-        : [],
-    }),
-  });
-  return { eventId: data.id };
+  /** Agrega una reunión de Microsoft Teams al evento. */
+  withMeeting?: boolean;
+}): Promise<{ eventId: string; meetingUrl: string | null }> {
+  const base = {
+    subject: params.summary,
+    body: { contentType: "text", content: params.description ?? "" },
+    start: { dateTime: params.startISO, timeZone: params.timezone },
+    end: { dateTime: params.endISO, timeZone: params.timezone },
+    // Outlook envía la invitación al crear el evento con invitados.
+    attendees: params.attendeeEmail ? [{ emailAddress: { address: params.attendeeEmail }, type: "required" }] : [],
+  };
+  const create = (withMeeting: boolean) =>
+    graphFetch(`/me/events`, params.accessToken, {
+      method: "POST",
+      body: JSON.stringify(withMeeting ? { ...base, isOnlineMeeting: true, onlineMeetingProvider: "teamsForBusiness" } : base),
+    });
+
+  let data;
+  try {
+    data = await create(!!params.withMeeting);
+  } catch (err) {
+    // Las cuentas personales de Microsoft no admiten Teams: se reserva igual, sin la reunión.
+    if (!params.withMeeting) throw err;
+    console.warn("No se pudo crear la reunión de Teams; se crea el evento sin ella:", err);
+    data = await create(false);
+  }
+  return { eventId: data.id, meetingUrl: data.onlineMeeting?.joinUrl ?? null };
 }
 
-export async function deleteOutlookEvent(params: { accessToken: string; eventId: string }): Promise<void> {
+export async function deleteOutlookEvent(params: {
+  accessToken: string;
+  eventId: string;
+  /** Avisa a los invitados de la cancelación (envía el aviso de reunión cancelada). */
+  notifyAttendees?: boolean;
+}): Promise<void> {
+  if (params.notifyAttendees) {
+    const cancel = await fetch(`${GRAPH_BASE}/me/events/${params.eventId}/cancel`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${params.accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ Comment: "El turno fue cancelado." }),
+    });
+    if (cancel.ok || cancel.status === 404) return;
+    // Si no se puede cancelar con aviso (por ejemplo, el evento no tiene invitados), se borra igual.
+  }
   const res = await fetch(`${GRAPH_BASE}/me/events/${params.eventId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${params.accessToken}` },

@@ -59,6 +59,8 @@ model Professional {
   notifyEmail       Boolean  @default(true)
   notifyTeams       Boolean  @default(false)
   teamsWebhookUrl   String?
+  // Si está activo, cada reserva crea también una videollamada (Meet o Teams) en el evento del calendario.
+  videoCallEnabled  Boolean  @default(false)
   // Foto de perfil como data URL (base64), comprimida en el cliente antes de
   // subirla — no hay almacenamiento de archivos/blob en este MVP, así que
   // guardarla como texto en la propia fila es la opción sin infraestructura
@@ -145,6 +147,10 @@ model Booking {
   notes            String?
   calendarProvider CalendarProvider?
   externalEventId  String?
+  // Link de la videollamada creada junto con el evento (Google Meet o Teams), si el profesional la tiene activada.
+  meetingUrl       String?
+  // Cuándo se mandó el recordatorio del día anterior (evita enviarlo dos veces).
+  reminderSentAt   DateTime?
   cancelToken      String            @unique @default(uuid())
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt

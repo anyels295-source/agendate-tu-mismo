@@ -118,7 +118,7 @@ export async function createBooking(params: {
     const accessToken = await getValidAccessToken(bookingConnection);
     const eventDescription = `Reserva creada vía Agendate Tú Mismo.\nCliente: ${params.clientName}${params.clientPhone ? `\nTeléfono: ${params.clientPhone}` : ""}${params.notes ? `\nNotas: ${params.notes}` : ""}`;
 
-    const { eventId } =
+    const { eventId, meetingUrl } =
       bookingConnection.provider === "GOOGLE"
         ? await createGoogleEvent({
             accessToken,
@@ -129,6 +129,7 @@ export async function createBooking(params: {
             endISO: endISO,
             timezone: professional.timezone,
             attendeeEmail: params.clientEmail,
+            withMeeting: professional.videoCallEnabled,
           })
         : await createOutlookEvent({
             accessToken,
@@ -138,6 +139,7 @@ export async function createBooking(params: {
             endISO: endISO,
             timezone: professional.timezone,
             attendeeEmail: params.clientEmail,
+            withMeeting: professional.videoCallEnabled,
           });
 
     createdEventId = eventId;
@@ -151,6 +153,7 @@ export async function createBooking(params: {
         ...(params.confirmed ? { status: "CONFIRMED" as const } : {}),
         calendarProvider: bookingConnection.provider,
         externalEventId: eventId,
+        meetingUrl,
       },
     });
 
@@ -170,12 +173,12 @@ export async function createBooking(params: {
 }
 
 /** Borra un evento del calendario real (puede lanzar error). */
-async function removeCalendarEvent(connection: CalendarConnection, eventId: string): Promise<void> {
+async function removeCalendarEvent(connection: CalendarConnection, eventId: string, notifyAttendees = false): Promise<void> {
   const accessToken = await getValidAccessToken(connection);
   if (connection.provider === "GOOGLE") {
-    await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId });
+    await deleteGoogleEvent({ accessToken, calendarId: connection.externalCalendarId, eventId, notifyAttendees });
   } else {
-    await deleteOutlookEvent({ accessToken, eventId });
+    await deleteOutlookEvent({ accessToken, eventId, notifyAttendees });
   }
 }
 
@@ -225,7 +228,8 @@ async function deleteBookingEvent(booking: {
     return;
   }
   try {
-    await removeCalendarEvent(connection, booking.externalEventId);
+    // Es una cancelación real: el calendario le avisa al invitado que el evento se canceló.
+    await removeCalendarEvent(connection, booking.externalEventId, true);
   } catch (err) {
     if (err instanceof CalendarTokenExpiredError || isEventGoneError(err)) {
       console.warn("El evento del calendario no se pudo borrar (ya no existe o la conexión venció); se cancela igual.");
@@ -416,6 +420,7 @@ export async function rescheduleBooking(params: {
 
   let newExternalEventId = booking.externalEventId;
   let newProvider = booking.calendarProvider;
+  let newMeetingUrl = booking.meetingUrl;
   const oldEventId = booking.externalEventId;
   let eventConnection: CalendarConnection | null = null;
   let createdEventId: string | null = null;
@@ -442,6 +447,7 @@ export async function rescheduleBooking(params: {
             endISO: endISO,
             timezone: professional.timezone,
             attendeeEmail: booking.clientEmail ?? undefined,
+            withMeeting: professional.videoCallEnabled,
           })
         : await createOutlookEvent({
             accessToken,
@@ -451,10 +457,13 @@ export async function rescheduleBooking(params: {
             endISO: endISO,
             timezone: professional.timezone,
             attendeeEmail: booking.clientEmail ?? undefined,
+            withMeeting: professional.videoCallEnabled,
           });
     createdEventId = created.eventId;
     newExternalEventId = created.eventId;
     newProvider = connection.provider;
+    // El evento nuevo trae su propia videollamada: el link anterior deja de servir.
+    newMeetingUrl = created.meetingUrl;
   }
 
   const updated = await prisma.booking
@@ -465,6 +474,7 @@ export async function rescheduleBooking(params: {
         endTime: new Date(endISO),
         externalEventId: newExternalEventId,
         calendarProvider: newProvider,
+        meetingUrl: newMeetingUrl,
       },
     })
     .catch(async (err: unknown) => {

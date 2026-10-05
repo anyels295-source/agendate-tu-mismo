@@ -25,7 +25,15 @@ type BookingEmailParams = {
   cancelUrl: string;
   /** Turno registrado que todavía nadie confirmó. */
   pending?: boolean;
+  /** Link de la videollamada (Meet o Teams), si el turno tiene una. */
+  meetingUrl?: string | null;
 };
+
+/** Bloque de HTML con el link de la videollamada (vacío si el turno no tiene). Solo se muestran links https. */
+function meetingBlock(meetingUrl?: string | null): string {
+  if (!meetingUrl || !meetingUrl.startsWith("https://")) return "";
+  return `<p><strong>Videollamada:</strong> <a href="${esc(meetingUrl)}">${esc(meetingUrl)}</a></p>`;
+}
 
 /** Escapa texto que viene de personas (nombres, notas) antes de insertarlo en el HTML de un email. */
 function esc(value: unknown): string {
@@ -73,6 +81,7 @@ export async function sendBookingConfirmationEmail(params: BookingEmailParams): 
     <p>Hola ${esc(params.clientName)},</p>
     <p>Registramos tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong>:</p>
     <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
+    ${meetingBlock(params.meetingUrl)}
     <p>El turno queda pendiente de confirmación; te avisaremos cuando se confirme.</p>
     <p>Si no te queda bien, podés cancelarlo acá: <a href="${esc(params.cancelUrl)}">${esc(params.cancelUrl)}</a></p>
   `,
@@ -82,6 +91,7 @@ export async function sendBookingConfirmationEmail(params: BookingEmailParams): 
     <p>Hola ${esc(params.clientName)},</p>
     <p>Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> quedó confirmado:</p>
     <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
+    ${meetingBlock(params.meetingUrl)}
     <p>Si necesitás cancelar, podés hacerlo acá: <a href="${esc(params.cancelUrl)}">${esc(params.cancelUrl)}</a></p>
   `;
   return sendEmail({
@@ -96,11 +106,28 @@ export async function sendBookingRescheduledEmail(params: BookingEmailParams): P
     <p>Hola ${esc(params.clientName)},</p>
     <p>Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> se reprogramó. La nueva fecha es:</p>
     <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
+    ${meetingBlock(params.meetingUrl)}
     <p>Si no te queda bien, podés cancelarlo acá: <a href="${esc(params.cancelUrl)}">${esc(params.cancelUrl)}</a></p>
   `;
   return sendEmail({
     toEmail: params.toEmail,
     subject: `Turno reprogramado: ${params.dateLabel} ${params.timeLabel}`,
+    html,
+  });
+}
+
+/** Recordatorio que se envía el día anterior al turno. */
+export async function sendBookingReminderEmail(params: BookingEmailParams): Promise<EmailSendResult> {
+  const html = `
+    <p>Hola ${esc(params.clientName)},</p>
+    <p>Te recordamos tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong>:</p>
+    <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
+    ${meetingBlock(params.meetingUrl)}
+    <p>Si no podés asistir, podés cancelarlo acá: <a href="${esc(params.cancelUrl)}">${esc(params.cancelUrl)}</a></p>
+  `;
+  return sendEmail({
+    toEmail: params.toEmail,
+    subject: `Recordatorio: tu turno es mañana, ${params.dateLabel} a las ${params.timeLabel}`,
     html,
   });
 }

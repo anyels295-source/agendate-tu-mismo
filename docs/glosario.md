@@ -78,6 +78,10 @@ Un archivo con los cambios a la estructura de la base (crear una tabla, agregar 
 - **Parecido en Java:** Flyway o Liquibase.
 - **En el proyecto:** carpeta `prisma/migrations`. Se aplican con `npx prisma migrate deploy`. Las migraciones **no** corren solas al desplegar: hay que ejecutarlas a mano contra cada base.
 
+### Migración aditiva (columnas opcionales)
+Una migración que solo **agrega** columnas opcionales o con un valor por defecto. No toca los datos que ya existen, así que es la más segura de aplicar.
+- **En el proyecto:** las columnas de videollamada y de recordatorio se agregaron así. Importa el orden: la migración se aplica **antes** de publicar el código que las usa.
+
 ### Restricción de exclusión (EXCLUDE)
 Regla dentro de la base que impide que dos filas se "pisen". En nuestro caso, dos turnos del mismo profesional en horarios que se solapan.
 - **En el proyecto:** la restricción `Booking_no_overlap` evita la doble reserva aunque dos personas reserven a la vez.
@@ -111,6 +115,11 @@ Git guarda el historial del código. Una **rama** es una línea de trabajo; un *
 Un dato de configuración que no va dentro del código (claves, direcciones, contraseñas). En tu computadora vive en el archivo `.env`; en Vercel, en Settings → Environment Variables.
 - **Parecido en Java:** `application.properties` o `System.getenv()`.
 - **En el proyecto:** `DATABASE_URL`, `APP_URL`, `GOOGLE_CLIENT_ID`, `RESEND_API_KEY`, etc. **Nunca se suben a Git.**
+
+### Cron (tarea programada)
+Una tarea que el sistema ejecuta sola a una hora fija, todos los días.
+- **Parecido en Java:** `@Scheduled(cron = "...")` de Spring.
+- **En el proyecto:** Vercel llama a una dirección de la app cada día (se configura en `vercel.json`). Una manda el resumen diario y otra los recordatorios del día anterior. Cada llamada lleva un secreto (`CRON_SECRET`) para que nadie más pueda dispararla.
 
 ### Build (compilar)
 Convertir el código en la versión final lista para publicar. `npm run build` lo hace.
@@ -163,6 +172,18 @@ Entrar a muchas aplicaciones con la misma cuenta de la empresa (por ejemplo, la 
 ### n8n
 Herramienta para armar automatizaciones conectando servicios, uniendo bloques en un diagrama en vez de programar.
 - **En el proyecto:** la idea 5C2F5 la proponía como stack. Se construyó una aplicación propia en su lugar, que cubre el mismo objetivo.
+
+### Invitación del calendario (`sendUpdates`)
+Cuando un evento tiene invitados, el calendario puede enviarles por su cuenta el aviso de invitación, de cambio o de cancelación. En Google se controla con el parámetro `sendUpdates`.
+- **En el proyecto:** al crear una reserva, el cliente recibe también la invitación de Google o de Outlook, además del email de la app. Al cancelar, recibe el aviso de evento cancelado.
+
+### Videollamada en el evento (Meet y Teams)
+Al crear el evento se le puede pedir al calendario que genere una sala de videollamada: Google Meet en Google, Microsoft Teams en Outlook. El link queda dentro del evento.
+- **En el proyecto:** se activa en Configuración. El link se guarda en la reserva, se ve en el detalle del turno en la Agenda y viaja en los emails al cliente.
+
+### `freebusy` (consulta de ocupado y libre)
+Una pregunta que se le hace al calendario: "¿en qué momentos está ocupada esta persona?". Devuelve solo los horarios, sin título ni detalles.
+- **En el proyecto:** así se calculan los horarios libres de la página pública, y así se dibujan los bloques "Ocupado" de otros calendarios en la Agenda.
 
 ### Azure / Microsoft Entra
 Plataforma de Microsoft donde se registra la app para poder conectar Outlook.
@@ -320,3 +341,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Robustez: compensación, evento huérfano, bloqueo optimista y firma de un webhook. |
 | 2026-10-05 | Cabeceras de seguridad, clickjacking, SSRF y caché por pedido. |
 | 2026-10-05 | Ideas originales: IMAP y CalDAV, SSO y n8n. |
+| 2026-10-05 | Videollamada y recordatorios: migración aditiva, cron, invitación del calendario, videollamada en el evento y freebusy. |
