@@ -1,0 +1,195 @@
+<title>Glosario Agendate Tú Mismo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Distribución: columna de lectura única; cada término es una fila con su nombre a la izquierda y tres bloques a la derecha (qué es, parecido en Java, en el proyecto). */
+  :root {
+    --bg: #f3f6f7;
+    --surface: #ffffff;
+    --fg: #14232b;
+    --muted: #55666f;
+    --line: #d6dfe3;
+    --accent: #0b6e66;
+    --accent-soft: #ddf0ed;
+    --java: #8f4f08;
+    --java-soft: #fbecd6;
+    --mark: #ffe58a;
+    --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e191e; --surface: #15252b; --fg: #e5eef1; --muted: #93a7b0; --line: #26393f;
+      --accent: #4fd1c0; --accent-soft: #11332f; --java: #f0b765; --java-soft: #382a12; --mark: #6b5a12;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e191e; --surface: #15252b; --fg: #e5eef1; --muted: #93a7b0; --line: #26393f;
+    --accent: #4fd1c0; --accent-soft: #11332f; --java: #f0b765; --java-soft: #382a12; --mark: #6b5a12;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+  .wrap { max-width: 880px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 6vw, 40px); line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0 0 4px; }
+  .meta { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 10px; margin-top: 18px; border-bottom: 1px solid var(--line); }
+  .search { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 0 12px; }
+  .search:focus-within { border-color: var(--accent); }
+  .search svg { flex: none; color: var(--muted); }
+  .search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: 16px; padding: 12px 0; outline: none; }
+  .search button { border: 0; background: transparent; color: var(--muted); font: inherit; cursor: pointer; padding: 6px 4px; }
+  .search button:hover { color: var(--fg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+  .chip:focus-visible, .search button:focus-visible, .clear-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .count { font-size: 13px; color: var(--muted); margin: 10px 0 0; min-height: 1.4em; }
+
+  .group { margin-top: 34px; }
+  .group h2 { font-family: var(--font-display); font-size: 21px; font-weight: 600; margin: 0 0 4px; display: flex; align-items: baseline; gap: 10px; }
+  .group h2 small { font-family: var(--font-mono); font-size: 12px; font-weight: 400; color: var(--muted); }
+  .entry { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 6px 24px; padding-block: 18px; border-top: 1px solid var(--line); }
+  .entry:first-of-type { margin-top: 10px; }
+  .entry h3 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .body { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .body p { margin: 0; max-width: 66ch; }
+  .tag { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 1px 7px; border-radius: 4px; margin-right: 8px; vertical-align: 1px; }
+  .tag.java { background: var(--java-soft); color: var(--java); }
+  .tag.proy { background: var(--accent-soft); color: var(--accent); }
+  code { font-family: var(--font-mono); font-size: 0.9em; background: var(--accent-soft); color: var(--fg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+  .empty { text-align: center; color: var(--muted); padding: 48px 0; }
+  .clear-link { background: none; border: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; padding: 0; }
+  .history { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 18px; }
+  .history h2 { font-family: var(--font-display); font-size: 17px; margin: 0 0 10px; }
+  .history ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .history li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; color: var(--muted); font-size: 14px; }
+  .history time { font-family: var(--font-mono); font-size: 12.5px; padding-top: 1px; }
+
+  @media (max-width: 640px) {
+    .entry { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .history li { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Glosario de Agendate Tú Mismo</h1>
+    <p class="lede">Los términos y herramientas del proyecto, explicados en simple. Cuando existe un equivalente, se compara con Java.</p>
+    <p class="meta">__TOTAL__ términos · actualizado el <span id="updated">__UPDATED__</span></p>
+  </header>
+
+  <div class="bar">
+    <label class="search" for="q">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar un término, por ejemplo: webhook, Prisma, token…" autocomplete="off" spellcheck="false">
+      <button id="clear" type="button" aria-label="Borrar búsqueda" hidden>✕</button>
+    </label>
+    <div class="chips" id="chips" role="group" aria-label="Filtrar por tema"></div>
+    <p class="count" id="count" aria-live="polite"></p>
+  </div>
+
+  <main id="list"></main>
+
+  <section class="history" id="history">
+    <h2>Historial</h2>
+    <ul id="history-list"></ul>
+  </section>
+</div>
+
+<script>
+  const DATA = __DATA__;
+  const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const listEl = document.getElementById("list");
+  const qEl = document.getElementById("q");
+  const clearEl = document.getElementById("clear");
+  const countEl = document.getElementById("count");
+  const chipsEl = document.getElementById("chips");
+  let activeGroup = "all";
+
+  // Marca las coincidencias dentro del HTML ya armado sin romper las etiquetas.
+  function highlight(html, query) {
+    if (!query) return html;
+    const words = norm(query).split(/\s+/).filter(Boolean);
+    if (!words.length) return html;
+    return html.split(/(<[^>]+>)/).map((part) => {
+      if (part.startsWith("<")) return part;
+      const flat = norm(part);
+      const ranges = [];
+      for (const w of words) {
+        let i = flat.indexOf(w);
+        while (i !== -1) { ranges.push([i, i + w.length]); i = flat.indexOf(w, i + w.length); }
+      }
+      if (!ranges.length) return part;
+      ranges.sort((a, b) => a[0] - b[0]);
+      const merged = [];
+      for (const r of ranges) {
+        const last = merged[merged.length - 1];
+        if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]); else merged.push([...r]);
+      }
+      let out = "", pos = 0;
+      for (const [a, b] of merged) { out += part.slice(pos, a) + "<mark>" + part.slice(a, b) + "</mark>"; pos = b; }
+      return out + part.slice(pos);
+    }).join("");
+  }
+
+  function render() {
+    const query = qEl.value.trim();
+    const words = norm(query).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    let html = "";
+    for (const g of DATA.groups) {
+      if (activeGroup !== "all" && activeGroup !== g.id) continue;
+      const rows = g.entries.filter((e) => words.every((w) => norm(e.search).includes(w)));
+      if (!rows.length) continue;
+      shown += rows.length;
+      html += `<section class="group" id="${g.id}"><h2>${g.title}<small>${rows.length}</small></h2>`;
+      for (const e of rows) {
+        html += `<article class="entry"><h3>${highlight(e.name, query)}</h3><div class="body">`;
+        if (e.que) html += `<p>${highlight(e.que, query)}</p>`;
+        if (e.java) html += `<p><span class="tag java">Java</span>${highlight(e.java, query)}</p>`;
+        if (e.proy) html += `<p><span class="tag proy">Proyecto</span>${highlight(e.proy, query)}</p>`;
+        html += `</div></article>`;
+      }
+      html += `</section>`;
+    }
+    if (!shown) {
+      html = `<div class="empty"><p>No hay términos que coincidan${query ? ` con “${query.replace(/</g, "&lt;")}”` : ""}.</p><p><button class="clear-link" type="button" id="reset">Ver todos los términos</button></p></div>`;
+    }
+    listEl.innerHTML = html;
+    countEl.textContent = query || activeGroup !== "all" ? `${shown} ${shown === 1 ? "resultado" : "resultados"}` : "";
+    clearEl.hidden = !query;
+    const reset = document.getElementById("reset");
+    if (reset) reset.addEventListener("click", () => { qEl.value = ""; activeGroup = "all"; paintChips(); render(); qEl.focus(); });
+  }
+
+  function paintChips() {
+    chipsEl.innerHTML = "";
+    const make = (id, label) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = label;
+      b.setAttribute("aria-pressed", String(activeGroup === id));
+      b.addEventListener("click", () => { activeGroup = id; paintChips(); render(); });
+      chipsEl.appendChild(b);
+    };
+    make("all", "Todos");
+    DATA.groups.forEach((g) => make(g.id, g.title));
+  }
+
+  qEl.addEventListener("input", render);
+  clearEl.addEventListener("click", () => { qEl.value = ""; render(); qEl.focus(); });
+
+  document.getElementById("history-list").innerHTML = DATA.history
+    .slice().reverse()
+    .map(([d, t]) => `<li><time datetime="${d}">${d}</time><span>${t}</span></li>`).join("");
+
+  paintChips();
+  render();
+</script>

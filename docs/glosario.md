@@ -173,6 +173,19 @@ Si un nombre empieza con `=`, `+`, `-` o `@`, Excel puede ejecutarlo como una f�
 Cortar a quien hace demasiadas peticiones en poco tiempo, para frenar abuso y fuerza bruta.
 - **En el proyecto:** en preparación (punto 6 de la revisión de código).
 
+### Bot
+Programa que usa una web de forma automática, sin una persona detrás. Algunos son útiles (los buscadores) y otros hacen abuso: llenar formularios con basura, probar contraseñas, mandar spam.
+- **En el proyecto:** un bot podría reservar cientos de turnos falsos o hacer que la app mande emails masivos desde tu dominio.
+
+### Dirección IP
+Número que identifica desde dónde se conecta un dispositivo a internet, algo así como la "dirección postal" de la conexión.
+- **En el proyecto:** el límite de peticiones cuenta cuántas veces pidió algo cada IP en un período de tiempo.
+
+### Campo trampa (honeypot)
+Un campo de formulario que las personas no ven (está oculto con CSS) pero que un bot sí encuentra y rellena, porque lee el código de la página. Si llega con contenido, el servidor sabe que fue un bot y descarta la petición.
+- **Parecido en Java:** como un cepo: no hace falta detectar al bot, solo esperar a que caiga.
+- **En el proyecto:** se agregará al formulario de reserva pública. Una persona nunca lo completa; un bot sí.
+
 ### Vulnerabilidad y `npm audit`
 Una **vulnerabilidad** es una falla conocida en una librería. `npm audit` revisa las del proyecto contra una lista pública.
 - **En el proyecto:** estamos en 0 vulnerabilidades desde la actualización a Next 15.5.27.
@@ -228,3 +241,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | Fecha | Qué se agregó |
 | --- | --- |
 | 2026-10-05 | Primera versión: piezas del proyecto, base de datos, publicación, servicios externos, seguridad, problemas típicos y formatos. |
+| 2026-10-05 | Seguridad: bot, dirección IP, campo trampa (honeypot). |
