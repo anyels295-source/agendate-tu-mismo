@@ -32,6 +32,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   const [step, setStep] = useState<"elegir" | "datos" | "confirmado">("elegir");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
+  // Campo trampa (honeypot): invisible para personas; si un bot lo rellena, el servidor descarta la reserva.
+  const [honeypot, setHoneypot] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   // Zona horaria elegida por el cliente para ver los horarios en su hora
   // local (por defecto, la del negocio). No afecta lo que se guarda: los
@@ -150,6 +152,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
           clientPhone: normalizedPhone ?? undefined,
           clientEmail: form.clientEmail.trim(),
           notes: form.notes || undefined,
+          website: honeypot || undefined,
           startISO: selectedSlot.startISO,
           endISO: selectedSlot.endISO,
         }),
@@ -434,6 +437,10 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                   <p className="mt-1 text-[11.5px] text-[#6b7280]">Si lo dejás, también te avisamos por ahí.</p>
                 </div>
 
+                <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
+                  <label htmlFor="bw-website">No completar este campo</label>
+                  <input id="bw-website" name="website_url" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                </div>
                 {formError && <p className="text-[13px] text-red-600">{formError}</p>}
 
                 <button

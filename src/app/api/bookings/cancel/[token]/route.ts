@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cancelBooking } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
+import { checkRateLimit, getClientIp, tooManyRequests, RATE_LIMITS } from "@/lib/rateLimit";
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  const limit = await checkRateLimit(RATE_LIMITS.cancel, getClientIp(req));
+  if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
+
   const { token } = await params;
   try {
     const booking = await cancelBooking(token);

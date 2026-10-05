@@ -4,8 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getAvailableSlots } from "@/lib/availability";
 import { CalendarTokenExpiredError } from "@/lib/calendar/tokenManager";
 import { getAdminSession } from "@/lib/auth";
+import { checkRateLimit, getClientIp, tooManyRequests, RATE_LIMITS } from "@/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
+  const limit = await checkRateLimit(RATE_LIMITS.availability, getClientIp(req));
+  if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
+
   const { searchParams } = new URL(req.url);
   const slug = searchParams.get("slug");
   const fromParam = searchParams.get("from"); // YYYY-MM-DD, opcional

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createBooking, BookingConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
 import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH } from "@/lib/validation";
+import { checkRateLimit, getClientIp, tooManyRequests, RATE_LIMITS } from "@/lib/rateLimit";
 
 const bookingSchema = z
   .object({
@@ -19,14 +20,25 @@ const bookingSchema = z
     startISO: z.string().min(1),
     endISO: z.string().min(1),
     notes: z.string().max(500).optional(),
+    // Campo trampa (honeypot): las personas no lo ven, un bot sí lo rellena.
+    website: z.string().max(500).optional(),
   })
   .superRefine(checkDateRange);
 
 export async function POST(req: NextRequest) {
+  const limit = await checkRateLimit(RATE_LIMITS.bookings, getClientIp(req));
+  if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
+
   const json = await req.json().catch(() => null);
   const parsed = bookingSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
+  }
+
+  // Si el campo trampa llegó con texto, fue un bot: se responde como si todo hubiera
+  // salido bien (para no darle pistas) pero no se crea nada.
+  if (parsed.data.website) {
+    return NextResponse.json({ bookingId: "descartada", status: "PENDING" });
   }
 
   const professional = await prisma.professional.findUnique({ where: { slug: parsed.data.slug } });

@@ -154,6 +154,16 @@ model Booking {
   @@index([professionalId, startTime])
 }
 
+/// Contadores del límite de peticiones (ver src/lib/rateLimit.ts). Una fila por identificador y ventana de tiempo.
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}
+
 model NotificationLog {
   id        String              @id @default(cuid())
   bookingId String

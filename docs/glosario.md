@@ -82,6 +82,11 @@ Un archivo con los cambios a la estructura de la base (crear una tabla, agregar 
 Regla dentro de la base que impide que dos filas se "pisen". En nuestro caso, dos turnos del mismo profesional en horarios que se solapan.
 - **En el proyecto:** la restricción `Booking_no_overlap` evita la doble reserva aunque dos personas reserven a la vez.
 
+### Upsert y `ON CONFLICT`
+**Upsert** es "insertar, y si ya existe, actualizar" en una sola operación. En Postgres se escribe `INSERT ... ON CONFLICT DO UPDATE`.
+- **Parecido en Java:** un `saveOrUpdate` de Hibernate, pero resuelto dentro de la base.
+- **En el proyecto:** el contador del límite de peticiones suma 1 con una sola instrucción, sin leer antes.
+
 ### Índice (de base de datos)
 Estructura que acelera las búsquedas, como el índice de un libro.
 - **En el proyecto:** por ejemplo, `Booking` tiene un índice por profesional y hora de inicio para listar rápido la agenda.
@@ -122,6 +127,11 @@ Una **API** es la forma en que un programa le pide cosas a otro. Un **endpoint**
 - **Parecido en Java:** un método de un `@RestController`.
 - **En el proyecto:** los archivos `route.ts` dentro de `src/app/api`.
 
+### Código de estado HTTP
+Número con que un servidor responde a cada petición para decir cómo salió.
+- **Los que usamos:** `200` todo bien, `400` los datos enviados son inválidos, `401` falta autenticación o las credenciales son incorrectas, `404` no existe, `409` conflicto (por ejemplo, el horario ya fue tomado), `429` demasiadas peticiones, `500` falló algo inesperado en el servidor.
+- **En el proyecto:** cada ruta de `src/app/api` devuelve el código que corresponde, y la pantalla muestra el mensaje según el caso.
+
 ### Webhook
 Una dirección de tu app a la que otro servicio le avisa cuando pasa algo (en lugar de que tu app pregunte cada tanto).
 - **En el proyecto:** `/api/webhooks/whatsapp` recibe avisos de Meta.
@@ -152,6 +162,11 @@ Servicio para enviar emails desde la app. En modo de prueba solo envía a una di
 ### Hash y bcrypt
 Un **hash** convierte una contraseña en un texto del que no se puede volver atrás. **bcrypt** es el algoritmo que usamos, diseñado para ser lento a propósito.
 - **En el proyecto:** `ADMIN_PASSWORD_HASH` guarda el hash de tu contraseña, no la contraseña.
+
+### HMAC
+Un hash que además usa una clave secreta. Sin la clave no se puede reproducir ni adivinar el resultado.
+- **Parecido en Java:** `Mac.getInstance("HmacSHA256")`.
+- **En el proyecto:** el límite de peticiones guarda un HMAC de la IP o del email, no el dato en claro, para no almacenar datos personales.
 
 ### JWT y cookie de sesión
 Un **JWT** es un texto firmado que prueba quién sos. Se guarda en una **cookie** del navegador mientras la sesión está abierta.
@@ -209,6 +224,19 @@ Un tipo de condición de carrera: se comprueba que algo está libre y, antes de 
 El navegador se puede manipular, así que **todo** lo que llega se vuelve a comprobar en el servidor.
 - **En el proyecto:** el horario y la duración de un turno se calculan en el servidor, no se toman de lo que manda el navegador.
 
+### Operación atómica
+Una operación que se hace entera o no se hace, sin que otra pueda meterse a la mitad.
+- **Parecido en Java:** `AtomicInteger.incrementAndGet()`.
+- **En el proyecto:** el contador del límite de peticiones y la restricción contra turnos solapados dependen de eso, para que dos peticiones simultáneas no se pisen.
+
+### Ventana fija (fixed window)
+Forma de contar peticiones: el tiempo se divide en tramos iguales (por ejemplo, de 15 minutos) y se cuenta cuántas hizo cada visitante en el tramo actual. Al empezar un tramo nuevo, el contador vuelve a cero.
+- **En el proyecto:** el login permite 10 intentos por IP cada 15 minutos. Es simple, aunque alguien podría hacer el máximo al final de un tramo y otra vez al principio del siguiente.
+
+### Fail-open (dejar pasar si falla)
+Decisión de qué hacer cuando un control de seguridad se rompe: dejar pasar a todos (fail-open) o bloquear a todos (fail-closed).
+- **En el proyecto:** si la base falla al contar peticiones, se deja pasar y se registra el error, porque es peor dejar a todos sin poder reservar.
+
 ### Caché
 Guardar una respuesta por un rato para no repetir un trabajo costoso.
 
@@ -242,3 +270,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | --- | --- |
 | 2026-10-05 | Primera versión: piezas del proyecto, base de datos, publicación, servicios externos, seguridad, problemas típicos y formatos. |
 | 2026-10-05 | Seguridad: bot, dirección IP, campo trampa (honeypot). |
+| 2026-10-05 | Límite de peticiones: código de estado HTTP, upsert, HMAC, operación atómica, ventana fija y fail-open. |

@@ -27,8 +27,11 @@ export async function verifyAdminCredentials(email: string, password: string): P
   const expectedEmail = process.env.ADMIN_EMAIL;
   const expectedHash = process.env.ADMIN_PASSWORD_HASH;
   if (!expectedEmail || !expectedHash) return false;
-  if (email.toLowerCase() !== expectedEmail.toLowerCase()) return false;
-  return bcrypt.compare(password, expectedHash);
+  // Se compara siempre la contraseña, aunque el email no coincida: así el tiempo de
+  // respuesta no revela si el email era el correcto.
+  const emailMatches = email.toLowerCase() === expectedEmail.toLowerCase();
+  const passwordMatches = await bcrypt.compare(password, expectedHash);
+  return emailMatches && passwordMatches;
 }
 
 export async function createAdminSession(email: string) {
