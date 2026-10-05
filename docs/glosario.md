@@ -152,6 +152,18 @@ Dirección a la que Google o Microsoft devuelven a la persona después de autori
 Un código que acompaña a cada aviso que llega a un webhook y prueba que lo mandó el servicio verdadero. Se calcula con un HMAC y una clave secreta que solo conocen ambos lados.
 - **En el proyecto:** el webhook de WhatsApp rechaza cualquier aviso cuya firma (`X-Hub-Signature-256`) no coincida, para que nadie pueda inventar avisos.
 
+### IMAP y CalDAV
+Dos estándares abiertos. **IMAP** sirve para leer el correo de cualquier proveedor. **CalDAV** sirve para leer y escribir calendarios de cualquier proveedor, no solo de Google o Microsoft.
+- **En el proyecto:** la idea 5C2F5 los menciona para conectar cualquier calendario. Hoy solo están Google y Outlook.
+
+### SSO (inicio de sesión único)
+Entrar a muchas aplicaciones con la misma cuenta de la empresa (por ejemplo, la de Microsoft), sin crear una contraseña en cada una.
+- **En el proyecto:** hoy el panel tiene un solo administrador con contraseña; SSO y roles por persona quedan para una etapa posterior.
+
+### n8n
+Herramienta para armar automatizaciones conectando servicios, uniendo bloques en un diagrama en vez de programar.
+- **En el proyecto:** la idea 5C2F5 la proponía como stack. Se construyó una aplicación propia en su lugar, que cubre el mismo objetivo.
+
 ### Azure / Microsoft Entra
 Plataforma de Microsoft donde se registra la app para poder conectar Outlook.
 
@@ -307,3 +319,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Límite de peticiones: código de estado HTTP, upsert, HMAC, operación atómica, ventana fija y fail-open. |
 | 2026-10-05 | Robustez: compensación, evento huérfano, bloqueo optimista y firma de un webhook. |
 | 2026-10-05 | Cabeceras de seguridad, clickjacking, SSRF y caché por pedido. |
+| 2026-10-05 | Ideas originales: IMAP y CalDAV, SSO y n8n. |

@@ -78,6 +78,28 @@ function subtractBusy(window: Interval, busy: Interval[]): Interval[] {
 
 export type FreeSlot = { startISO: string; endISO: string };
 
+/**
+ * Agranda cada bloque ocupado con el "colchón entre turnos" configurado, hacia
+ * adelante y hacia atrás: así, entre un evento del calendario y el turno
+ * siguiente queda siempre ese margen. Los bordes del horario de atención no
+ * llevan colchón, solo los eventos ocupados.
+ */
+export function expandBusyByBuffer(busy: Interval[], bufferMinutes: number): Interval[] {
+  if (bufferMinutes <= 0) return busy;
+  const expanded = busy.map((b) => Interval.fromDateTimes(b.start!.minus({ minutes: bufferMinutes }), b.end!.plus({ minutes: bufferMinutes })));
+  // Al agrandarlos pueden tocarse: se vuelven a fusionar.
+  const merged: Interval[] = [];
+  for (const interval of expanded.sort((a, b) => a.start!.toMillis() - b.start!.toMillis())) {
+    const last = merged[merged.length - 1];
+    if (last && interval.start!.toMillis() <= last.end!.toMillis()) {
+      merged[merged.length - 1] = Interval.fromDateTimes(last.start!, DateTime.max(last.end!, interval.end!));
+    } else {
+      merged.push(interval);
+    }
+  }
+  return merged;
+}
+
 /** Resta un intervalo (ej. el horario del propio turno que se reprograma) de una lista de bloques ocupados. */
 function subtractInterval(busy: Interval[], own: { start: Date; end: Date } | undefined): Interval[] {
   if (!own) return busy;
@@ -139,11 +161,11 @@ export async function getAvailableSlots(params: {
   const busyBlocksPerConnection = await Promise.all(
     connections.map((c) => fetchBusyBlocksForConnection(c, timeMinISO, timeMaxISO))
   );
-  const allBusy = subtractInterval(mergeBusyBlocks(busyBlocksPerConnection.flat()), excludeInterval);
+  const bufferMin = professional.bufferMinutes;
+  const allBusy = expandBusyByBuffer(subtractInterval(mergeBusyBlocks(busyBlocksPerConnection.flat()), excludeInterval), bufferMin);
 
   const workingHours = professional.workingHours as unknown as WorkingHours;
   const durationMin = professional.durationMinutes;
-  const bufferMin = professional.bufferMinutes;
   const stepMin = 15; // granularidad de los slots ofrecidos, independiente de la duración del servicio
 
   const now = DateTime.now().setZone(timezone);
@@ -161,8 +183,7 @@ export async function getAvailableSlots(params: {
         let slotStart = freeInterval.start!;
         while (slotStart.plus({ minutes: durationMin }) <= freeInterval.end!) {
           const slotEnd = slotStart.plus({ minutes: durationMin });
-          const slotEndWithBuffer = slotEnd.plus({ minutes: bufferMin });
-          if (slotStart >= minStart && slotEndWithBuffer <= freeInterval.end!.plus({ minutes: bufferMin })) {
+          if (slotStart >= minStart) {
             slots.push({ startISO: slotStart.toISO()!, endISO: slotEnd.toISO()! });
           }
           slotStart = slotStart.plus({ minutes: stepMin });
@@ -189,7 +210,10 @@ export async function isSlotStillFree(params: {
   const busyBlocksPerConnection = await Promise.all(
     connections.map((c) => fetchBusyBlocksForConnection(c, startISO, endISO))
   );
-  const allBusy = subtractInterval(mergeBusyBlocks(busyBlocksPerConnection.flat()), ignoreInterval);
+  const allBusy = expandBusyByBuffer(
+    subtractInterval(mergeBusyBlocks(busyBlocksPerConnection.flat()), ignoreInterval),
+    professional.bufferMinutes
+  );
   const requested = Interval.fromDateTimes(DateTime.fromISO(startISO), DateTime.fromISO(endISO));
   const overlaps = allBusy.some((b) => b.overlaps(requested));
   if (overlaps) return false;
