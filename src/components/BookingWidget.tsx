@@ -40,6 +40,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   // Cambiarlo fuerza a volver a pedir los horarios libres al servidor.
   const [reloadKey, setReloadKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  // Día que la persona había elegido antes de que el horario se ocupara: al recargar la lista se vuelve a ese día.
+  const [preferredDay, setPreferredDay] = useState<string | null>(null);
   // Tras "Reservar otro turno" se conservan los datos de contacto; se avisa y se ofrece borrarlos (dispositivos compartidos).
   const [reusingData, setReusingData] = useState(false);
 
@@ -111,8 +113,11 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   const days = useMemo(() => Array.from(slotsByDay.keys()).sort().slice(0, 6), [slotsByDay]);
 
   useEffect(() => {
-    if (!selectedDay && days.length > 0) setSelectedDay(days[0]);
-  }, [days, selectedDay]);
+    if (!selectedDay && days.length > 0) {
+      setSelectedDay(preferredDay && days.includes(preferredDay) ? preferredDay : days[0]);
+      setPreferredDay(null);
+    }
+  }, [days, selectedDay, preferredDay]);
 
   async function handleSubmit() {
     if (!selectedSlot || !data) return;
@@ -154,6 +159,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
         // Alguien tomó el horario mientras se completaba el formulario:
         // volvemos a la lista con los horarios actualizados.
         setNotice("Ese horario ya no está disponible. Elegí otro de la lista.");
+        setPreferredDay(selectedDay);
         setSelectedSlot(null);
         setStep("elegir");
         setReloadKey((k) => k + 1);
