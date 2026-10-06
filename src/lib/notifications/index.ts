@@ -38,13 +38,23 @@ function buildLabels(startTime: Date, timezone: string) {
   return { dateLabel: dt.toFormat("cccc d 'de' LLLL"), timeLabel: dt.toFormat("HH:mm") };
 }
 
-async function logNotification(bookingId: string, channel: "WHATSAPP" | "EMAIL" | "TEAMS", result: { status: "SENT" | "FAILED" | "SKIPPED"; error?: string; reason?: string }) {
+/**
+ * Registra el resultado de un aviso. `audience` indica a quién iba: al cliente o al profesional.
+ * Se guarda como prefijo del detalle ("[cliente] ..."), para que el Panel pueda decir cuál falló.
+ */
+async function logNotification(
+  bookingId: string,
+  channel: "WHATSAPP" | "EMAIL" | "TEAMS",
+  result: { status: "SENT" | "FAILED" | "SKIPPED"; error?: string; reason?: string },
+  audience?: "cliente" | "profesional"
+) {
+  const detail = result.status === "FAILED" ? result.error : result.status === "SKIPPED" ? result.reason : null;
   await prisma.notificationLog.create({
     data: {
       bookingId,
       channel,
       status: result.status,
-      error: result.status === "FAILED" ? result.error : result.status === "SKIPPED" ? result.reason : null,
+      error: detail && audience ? `[${audience}] ${detail}` : detail,
     },
   });
 }
@@ -78,7 +88,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         dateLabel,
         timeLabel,
         cancelUrl,
-      }).then((result) => logNotification(booking.id, "WHATSAPP", result))
+      }).then((result) => logNotification(booking.id, "WHATSAPP", result, "cliente"))
     );
   } else if (professional.notifyWhatsapp) {
     // El cliente no dejó WhatsApp (ahora es opcional) — no hay a quién
@@ -103,7 +113,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         meetingUrl: booking.meetingUrl,
       }).then((result) => {
         clientEmailStatus = result.status;
-        return logNotification(booking.id, "EMAIL", result);
+        return logNotification(booking.id, "EMAIL", result, "cliente");
       })
     );
   }
@@ -116,7 +126,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         webhookUrl: professional.teamsWebhookUrl,
         title: `Nuevo turno: ${booking.clientName}`,
         text: `${professional.serviceName} · ${dateLabel} a las ${timeLabel}.${booking.clientPhone ? ` Tel: ${booking.clientPhone}` : ""}`,
-      }).then((result) => logNotification(booking.id, "TEAMS", result))
+      }).then((result) => logNotification(booking.id, "TEAMS", result, "profesional"))
     );
   }
 
@@ -130,7 +140,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         serviceName: professional.serviceName,
         dateLabel,
         timeLabel,
-      }).then((result) => logNotification(booking.id, "EMAIL", result))
+      }).then((result) => logNotification(booking.id, "EMAIL", result, "profesional"))
     );
   }
 
@@ -154,7 +164,7 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
         dateLabel,
         timeLabel,
         cancelUrl,
-      }).then((result) => logNotification(booking.id, "WHATSAPP", result))
+      }).then((result) => logNotification(booking.id, "WHATSAPP", result, "cliente"))
     );
   } else if (professional.notifyWhatsapp) {
     tasks.push(
@@ -173,7 +183,7 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
         timeLabel,
         cancelUrl,
         meetingUrl: booking.meetingUrl,
-      }).then((result) => logNotification(booking.id, "EMAIL", result))
+      }).then((result) => logNotification(booking.id, "EMAIL", result, "cliente"))
     );
   }
 
@@ -183,7 +193,7 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
         webhookUrl: professional.teamsWebhookUrl,
         title: `Turno reprogramado: ${booking.clientName}`,
         text: `${professional.serviceName} · nueva fecha ${dateLabel} a las ${timeLabel}.`,
-      }).then((result) => logNotification(booking.id, "TEAMS", result))
+      }).then((result) => logNotification(booking.id, "TEAMS", result, "profesional"))
     );
   }
 
@@ -197,7 +207,7 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
         serviceName: professional.serviceName,
         dateLabel,
         timeLabel,
-      }).then((result) => logNotification(booking.id, "EMAIL", result))
+      }).then((result) => logNotification(booking.id, "EMAIL", result, "profesional"))
     );
   }
 
@@ -227,7 +237,7 @@ export async function notifyBookingCancelled(booking: Booking, professional: Pro
         serviceName: professional.serviceName,
         dateLabel,
         timeLabel,
-      }).then((result) => logNotification(booking.id, "EMAIL", result))
+      }).then((result) => logNotification(booking.id, "EMAIL", result, "cliente"))
     );
   }
 
@@ -237,7 +247,7 @@ export async function notifyBookingCancelled(booking: Booking, professional: Pro
         webhookUrl: professional.teamsWebhookUrl,
         title: `Turno cancelado: ${booking.clientName}`,
         text: `${professional.serviceName} · era el ${dateLabel} a las ${timeLabel}.`,
-      }).then((result) => logNotification(booking.id, "TEAMS", result))
+      }).then((result) => logNotification(booking.id, "TEAMS", result, "profesional"))
     );
   }
 
@@ -251,7 +261,7 @@ export async function notifyBookingCancelled(booking: Booking, professional: Pro
         serviceName: professional.serviceName,
         dateLabel,
         timeLabel,
-      }).then((result) => logNotification(booking.id, "EMAIL", result))
+      }).then((result) => logNotification(booking.id, "EMAIL", result, "profesional"))
     );
   }
 

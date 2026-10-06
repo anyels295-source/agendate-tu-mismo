@@ -42,6 +42,7 @@ const patchSchema = z.object({
   // 320x320 JPEG pesa muchísimo menos que esto.
   photoUrl: z.string().max(400_000).nullable().optional(),
   videoCallEnabled: z.boolean().optional(),
+  email: z.string().trim().toLowerCase().email("Ingresá un email válido para los avisos.").optional(),
   theme: z.enum(["claro", "arena", "bosque", "noche"]).optional(),
 });
 
@@ -68,15 +69,28 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const updated = await prisma.professional.update({
-    where: { id: professional.id },
-    data: {
-      ...parsed.data,
-      workingHours: parsed.data.workingHours
-        ? { ...(professional.workingHours as object), ...parsed.data.workingHours }
-        : undefined,
-    },
-  });
+  let updated;
+  try {
+    updated = await prisma.professional.update({
+      where: { id: professional.id },
+      data: {
+        ...parsed.data,
+        workingHours: parsed.data.workingHours
+          ? { ...(professional.workingHours as object), ...parsed.data.workingHours }
+          : undefined,
+      },
+    });
+  } catch (err) {
+    // El email del profesional y su link de reserva son únicos: si ya los usa otro, se avisa en vez de fallar con un error genérico.
+    if ((err as { code?: string })?.code === "P2002") {
+      const field = String((err as { meta?: { target?: string[] } }).meta?.target ?? "");
+      return NextResponse.json(
+        { error: field.includes("email") ? "Ese email ya lo usa otro profesional." : "Ese link de reserva ya lo usa otro profesional." },
+        { status: 400 }
+      );
+    }
+    throw err;
+  }
 
   return NextResponse.json({ ok: true, professional: updated });
 }

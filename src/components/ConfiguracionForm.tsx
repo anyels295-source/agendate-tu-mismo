@@ -22,6 +22,7 @@ const DAY_KEYS: (keyof WorkingHours)[] = ["mon", "tue", "wed", "thu", "fri", "sa
 type Props = {
   initial: {
     name: string;
+    email: string;
     slug: string;
     serviceName: string;
     durationMinutes: number;
@@ -279,6 +280,11 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
           <div>
             <label htmlFor="cf-slug" className={labelClass}>Link de reserva (slug)</label>
             <input id="cf-slug" className={inputClass} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="cf-email" className={labelClass}>Email para avisos</label>
+            <input id="cf-email" type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <p className="mt-1 text-[12px] text-[var(--muted-nav)]">A este email te llegan los avisos de turnos nuevos, cambios y cancelaciones.</p>
           </div>
           {!hasServices && (
             <>

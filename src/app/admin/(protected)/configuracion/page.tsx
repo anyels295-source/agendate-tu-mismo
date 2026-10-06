@@ -22,6 +22,7 @@ export default async function ConfiguracionPage() {
         hasServices={services.length > 0}
         initial={{
           name: professional.name,
+          email: professional.email,
           slug: professional.slug,
           serviceName: professional.serviceName,
           durationMinutes: professional.durationMinutes,
