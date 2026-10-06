@@ -167,6 +167,10 @@ type OwnerNoticeParams = {
   serviceName: string;
   dateLabel: string;
   timeLabel: string;
+  /** Turno nuevo que todavía espera la confirmación del profesional. */
+  pending?: boolean;
+  /** Dirección del panel donde confirmarlo. */
+  panelUrl?: string;
 };
 
 /** "(+598 9x xxx xxx)" si hay teléfono, o nada si el cliente no dejó WhatsApp. */
@@ -179,10 +183,15 @@ export async function sendOwnerNewBookingEmail(params: OwnerNoticeParams): Promi
     <p>Hola ${esc(params.professionalName)},</p>
     <p>Tenés un turno nuevo: <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.clientName)}</strong>${esc(phoneSuffix(params.clientPhone))}.</p>
     <p><strong>${esc(params.dateLabel)} a las ${esc(params.timeLabel)}</strong></p>
+    ${
+      params.pending && params.panelUrl
+        ? `<p>Este turno está <strong>pendiente de confirmación</strong>. <a href="${esc(params.panelUrl)}">Confirmalo desde el panel</a>.</p>`
+        : ""
+    }
   `;
   return sendEmail({
     toEmail: params.toEmail,
-    subject: `Nuevo turno: ${params.clientName} · ${params.dateLabel} ${params.timeLabel}`,
+    subject: `${params.pending ? "Nuevo turno por confirmar" : "Nuevo turno"}: ${params.clientName} · ${params.dateLabel} ${params.timeLabel}`,
     html,
   });
 }

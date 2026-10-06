@@ -115,6 +115,10 @@ export default async function PanelPage() {
         ? { label: "Elegí el calendario de reservas", warn: true }
         : { label: "Calendarios sincronizados", warn: false };
   // Turnos que ya empezaron y siguen pendientes o confirmados: falta cerrarlos.
+  // Turnos pedidos desde el link público (o por invitación) que esperan la confirmación del profesional.
+  const toConfirmCount = await prisma.booking.count({
+    where: { professionalId: professional.id, status: "PENDING", startTime: { gte: now.toJSDate() } },
+  });
   const toCloseCount = await prisma.booking.count({
     where: { professionalId: professional.id, status: { in: ["PENDING", "CONFIRMED"] }, startTime: { lt: now.toJSDate() } },
   });
@@ -189,6 +193,21 @@ export default async function PanelPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {toConfirmCount > 0 && (
+        <Link
+          href="/admin/reservas?filter=PENDING"
+          className="mb-4 flex items-center gap-3 rounded-2xl border border-[#b8cef0] bg-[#e7effb] px-5 py-3.5 text-[13.5px] font-semibold text-[#1c4d7a]"
+        >
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#215a8f] text-[12px] font-extrabold text-white">{toConfirmCount}</span>
+          <span className="min-w-0 flex-1">
+            {toConfirmCount === 1
+              ? "Tenés 1 turno por confirmar. Un cliente lo pidió desde tu link de reserva."
+              : `Tenés ${toConfirmCount} turnos por confirmar. Los pidieron clientes desde tu link de reserva.`}
+          </span>
+          <span className="shrink-0 text-[12.5px] underline">Revisar y confirmar</span>
+        </Link>
       )}
 
       {toCloseCount > 0 && (

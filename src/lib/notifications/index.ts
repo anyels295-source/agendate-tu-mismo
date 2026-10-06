@@ -133,6 +133,8 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
   if (professional.notifyEmail && !opts.skipOwner) {
     tasks.push(
       sendOwnerNewBookingEmail({
+        pending: opts.pending,
+        panelUrl: `${process.env.APP_URL ?? "http://localhost:3000"}/admin/reservas?filter=PENDING`,
         toEmail: professional.email,
         professionalName: professional.name,
         clientName: booking.clientName,
