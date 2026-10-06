@@ -227,3 +227,21 @@ export async function moveOutlookEvent(params: {
     }),
   });
 }
+
+/** Respuesta de un invitado a la invitación de un evento (Outlook), con los mismos valores que Google. */
+export async function getOutlookAttendeeResponse(params: {
+  accessToken: string;
+  eventId: string;
+  attendeeEmail: string;
+}): Promise<"accepted" | "declined" | "tentative" | "needsAction" | null> {
+  const data = await graphFetch(`/me/events/${params.eventId}?$select=attendees`, params.accessToken);
+  const attendee = (data.attendees ?? []).find(
+    (a: { emailAddress?: { address?: string } }) => a.emailAddress?.address?.toLowerCase() === params.attendeeEmail.toLowerCase()
+  );
+  const response = attendee?.status?.response;
+  if (response === "accepted") return "accepted";
+  if (response === "declined") return "declined";
+  if (response === "tentativelyAccepted") return "tentative";
+  if (response === "none" || response === "notResponded") return "needsAction";
+  return null;
+}

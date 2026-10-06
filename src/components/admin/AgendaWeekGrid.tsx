@@ -18,6 +18,8 @@ export type AgendaEvent = {
   email: string | null;
   /** Link de la videollamada (Meet o Teams), si el turno tiene una. */
   meetingUrl: string | null;
+  /** Respuesta del cliente a la invitación del calendario (null si no se pudo consultar). */
+  invitation: "accepted" | "declined" | "tentative" | "pending" | null;
   /** Inicio del turno (ISO): Completar/Ausente solo se habilitan una vez que empezó. */
   startISO: string;
   notes: string | null;
@@ -371,6 +373,9 @@ export default function AgendaWeekGrid({
                   }}
                 >
                   <div className="truncate text-[12px] font-bold">{ev.timeLabel} · {ev.clientName}</div>
+                  {ev.invitation === "declined" && (
+                    <div className="truncate text-[11px] font-bold text-[#b6382f]">✕ Rechazó la invitación</div>
+                  )}
                   {ev.height > 34 && ev.columnCount === 1 && (
                     <div className="truncate text-[11px] opacity-75">{ev.serviceName}</div>
                   )}
@@ -432,6 +437,26 @@ export default function AgendaWeekGrid({
                   <div className="text-[14px] font-semibold text-[var(--ink2)]">{detail.serviceName}</div>
                 </div>
               </div>
+              {detail.invitation && (
+                <div className="flex items-center gap-3 border-b border-[var(--line3)] py-2.5">
+                  <IconMail className="shrink-0 text-[var(--muted-nav)]" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold text-[var(--muted-nav)]">Respuesta a la invitación</div>
+                    <div
+                      className="text-[14px] font-semibold"
+                      style={{ color: detail.invitation === "declined" ? "#b6382f" : detail.invitation === "accepted" ? "#1a7d45" : "var(--ink2)" }}
+                    >
+                      {detail.invitation === "accepted" && "Aceptó la invitación"}
+                      {detail.invitation === "declined" && "Rechazó la invitación"}
+                      {detail.invitation === "tentative" && "Respondió \"tal vez\""}
+                      {detail.invitation === "pending" && "Todavía no respondió"}
+                    </div>
+                    {detail.invitation === "declined" && (
+                      <div className="mt-0.5 text-[12px] text-[var(--muted-nav)]">Podés reprogramar o cancelar el turno.</div>
+                    )}
+                  </div>
+                </div>
+              )}
               {detail.meetingUrl && detail.meetingUrl.startsWith("https://") && (
                 <div className="flex items-center gap-3 border-b border-[var(--line3)] py-2.5">
                   <IconVideo className="shrink-0 text-[var(--muted-nav)]" />

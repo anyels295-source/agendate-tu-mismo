@@ -205,3 +205,19 @@ export async function moveGoogleEvent(params: {
     },
   });
 }
+
+/** Respuesta de un invitado a la invitación de un evento (Google): accepted, declined, tentative o needsAction. */
+export async function getGoogleAttendeeResponse(params: {
+  accessToken: string;
+  calendarId: string;
+  eventId: string;
+  attendeeEmail: string;
+}): Promise<"accepted" | "declined" | "tentative" | "needsAction" | null> {
+  const client = getOAuthClient();
+  client.setCredentials({ access_token: params.accessToken });
+  const calendar = google.calendar({ version: "v3", auth: client });
+  const res = await calendar.events.get({ calendarId: params.calendarId, eventId: params.eventId });
+  const attendee = res.data.attendees?.find((a) => a.email?.toLowerCase() === params.attendeeEmail.toLowerCase());
+  const status = attendee?.responseStatus;
+  return status === "accepted" || status === "declined" || status === "tentative" || status === "needsAction" ? status : null;
+}

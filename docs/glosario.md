@@ -181,6 +181,10 @@ Cambiar solo lo que cambió de un evento (por ejemplo, su horario) conserva todo
 Cuando un evento tiene invitados, el calendario puede enviarles por su cuenta el aviso de invitación, de cambio o de cancelación. En Google se controla con el parámetro `sendUpdates`.
 - **En el proyecto:** al crear una reserva, el cliente recibe también la invitación de Google o de Outlook, además del email de la app. Al cancelar, recibe el aviso de evento cancelado.
 
+### Respuesta del invitado (RSVP)
+Cuando alguien recibe la invitación a un evento puede aceptarla, rechazarla, responder "tal vez" o no responder. El calendario guarda esa respuesta en cada invitado, y se puede consultar.
+- **En el proyecto:** al abrir la Agenda se consulta la respuesta de cada cliente. Si la aceptó, el turno pasa solo de Pendiente a Confirmado. Si la rechazó, aparece marcado en rojo "Rechazó la invitación" para que decidas reprogramar o cancelar.
+
 ### Videollamada en el evento (Meet y Teams)
 Al crear el evento se le puede pedir al calendario que genere una sala de videollamada: Google Meet en Google, Microsoft Teams en Outlook. El link queda dentro del evento.
 - **En el proyecto:** se activa en Configuración. El link se guarda en la reserva, se ve en el detalle del turno en la Agenda y viaja en los emails al cliente.
@@ -347,3 +351,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Ideas originales: IMAP y CalDAV, SSO y n8n. |
 | 2026-10-05 | Videollamada y recordatorios: migración aditiva, cron, invitación del calendario, videollamada en el evento y freebusy. |
 | 2026-10-05 | Reprogramar moviendo el mismo evento (patch). |
+| 2026-10-06 | Respuesta del invitado (RSVP). |

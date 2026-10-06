@@ -6,6 +6,8 @@ import type { WorkingHours } from "@/lib/types";
 import AgendaWeekGrid, { type AgendaEvent } from "@/components/admin/AgendaWeekGrid";
 import AgendaDateJump from "@/components/admin/AgendaDateJump";
 import { getExternalBusyIntervals } from "@/lib/availability";
+import { getInvitationResponses } from "@/lib/invitations";
+import { confirmBookingFromInvitation } from "@/lib/booking";
 import { buildDayBusyBlocks } from "@/lib/agendaBusy";
 import NewBookingButton from "@/components/admin/NewBookingButton";
 import { IconChevronLeft, IconChevronRight } from "@/components/admin/icons";
@@ -76,7 +78,19 @@ export default async function AgendaPage({
 
   // Eventos de los otros calendarios conectados (solo "ocupado", sin detalle), para ver la semana completa.
   const connections = await prisma.calendarConnection.findMany({ where: { professionalId: professional.id, isActive: true } });
-  const external = await getExternalBusyIntervals(connections, startOfWeek.toUTC().toISO()!, endOfWeek.toUTC().toISO()!);
+  const upcoming = bookings.filter((b) => (b.status === "PENDING" || b.status === "CONFIRMED") && b.startTime.getTime() > Date.now());
+  // Se consulta a la vez lo ocupado en otros calendarios y la respuesta de cada cliente a su invitación.
+  const [external, invitations] = await Promise.all([
+    getExternalBusyIntervals(connections, startOfWeek.toUTC().toISO()!, endOfWeek.toUTC().toISO()!),
+    getInvitationResponses(connections, upcoming),
+  ]);
+  // Si el cliente aceptó la invitación, el turno pendiente pasa solo a confirmado.
+  const confirmedByInvitation = new Set<string>();
+  for (const booking of upcoming) {
+    if (booking.status === "PENDING" && invitations.get(booking.id) === "accepted" && (await confirmBookingFromInvitation(booking.id))) {
+      confirmedByInvitation.add(booking.id);
+    }
+  }
   const ownIntervals = bookings
     .filter((b) => b.status !== "CANCELLED")
     .map((b) => Interval.fromDateTimes(DateTime.fromJSDate(b.startTime), DateTime.fromJSDate(b.endTime)));
@@ -99,8 +113,9 @@ export default async function AgendaPage({
         startISO: b.startTime.toISOString(),
         notes: b.notes,
         serviceName: b.service?.name ?? professional.serviceName,
-        status: b.status,
-        statusLabel: STATUS_LABEL[b.status] ?? b.status,
+        status: confirmedByInvitation.has(b.id) ? "CONFIRMED" : b.status,
+        statusLabel: STATUS_LABEL[confirmedByInvitation.has(b.id) ? "CONFIRMED" : b.status] ?? b.status,
+        invitation: invitations.get(b.id) ?? null,
         timeLabel: start.toFormat("HH:mm"),
         endTimeLabel: end.toFormat("HH:mm"),
         dateLabel: start.setLocale("es").toFormat("cccc d 'de' LLLL"),

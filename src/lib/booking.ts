@@ -357,6 +357,14 @@ export async function adminSetBookingStatus(params: {
   return reapplyStatus(booking.id, booking.status, params.status);
 }
 
+/**
+ * El cliente aceptó la invitación del calendario: el turno pasa de Pendiente a Confirmado. No se
+ * le envía otro aviso (ya lo sabe, porque la aceptación la hizo él). Devuelve true si cambió.
+ */
+export async function confirmBookingFromInvitation(bookingId: string): Promise<boolean> {
+  return changeStatusIf(bookingId, "PENDING", "CONFIRMED");
+}
+
 /** Cambia el estado esperando que siga siendo `from`; si otro proceso lo cambió antes, avisa en vez de pisarlo. */
 async function reapplyStatus(bookingId: string, from: BookingStatus, to: BookingStatus) {
   let changed: boolean;
