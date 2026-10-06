@@ -9,7 +9,9 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const error = url.searchParams.get("error");
+  // El código de error del proveedor llega por la URL: se deja solo el formato esperado
+  // (ej. "access_denied") para no reflejar texto arbitrario en la página.
+  const error = url.searchParams.get("error")?.replace(/[^\w.-]/g, "").slice(0, 60) || null;
 
   if (error) {
     const parsedState = await tryVerifyOAuthState(state);

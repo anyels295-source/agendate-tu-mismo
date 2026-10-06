@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createBooking, BookingConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
-import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH } from "@/lib/validation";
+import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH, validationErrorMessage } from "@/lib/validation";
 import { checkRateLimit, getClientIp, tooManyRequests, RATE_LIMITS } from "@/lib/rateLimit";
 
 const bookingSchema = z
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = bookingSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
+    return NextResponse.json({ error: validationErrorMessage(parsed.error) }, { status: 400 });
   }
 
   // Si el campo trampa llegó con texto, fue un bot: se responde como si todo hubiera

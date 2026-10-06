@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getAdminSession } from "@/lib/auth";
 import { getActiveProfessional } from "@/lib/professional";
 import { prisma } from "@/lib/prisma";
-import { priceSchema, SERVICE_DURATION_ERROR_MESSAGE } from "@/lib/validation";
+import { priceSchema, SERVICE_DURATION_ERROR_MESSAGE, validationErrorMessage } from "@/lib/validation";
 
 const patchSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio.").max(80, "El nombre es demasiado largo.").optional(),
@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const json = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
+    return NextResponse.json({ error: validationErrorMessage(parsed.error) }, { status: 400 });
   }
 
   const service = await prisma.service.update({ where: { id }, data: parsed.data });

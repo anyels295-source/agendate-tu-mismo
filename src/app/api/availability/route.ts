@@ -13,7 +13,9 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const slug = searchParams.get("slug");
   const fromParam = searchParams.get("from"); // YYYY-MM-DD, opcional
-  const daysParam = Number(searchParams.get("days") ?? "7");
+  // Cantidad de días a consultar: entero entre 1 y 14 (un valor no numérico usa 7, en vez de romper).
+  const daysRaw = Number(searchParams.get("days") ?? "7");
+  const daysParam = Number.isInteger(daysRaw) ? Math.min(Math.max(daysRaw, 1), 14) : 7;
   const serviceId = searchParams.get("serviceId");
   // El profesional, desde el panel, puede agendar sin respetar el aviso mínimo
   // (sí respeta el horario de atención y los calendarios ocupados).
@@ -63,7 +65,7 @@ export async function GET(req: NextRequest) {
     if (fromDate > lastAllowed) fromDate = lastAllowed;
   }
   const maxToDate = (ignoreMinNotice ? fromDate : today).plus({ days: professional.maxAdvanceDays });
-  const requestedToDate = fromDate.plus({ days: Math.min(daysParam, 14) });
+  const requestedToDate = fromDate.plus({ days: daysParam });
   const toDate = requestedToDate > maxToDate ? maxToDate : requestedToDate;
 
   // Solo el panel puede pedir que el horario de un turno propio no cuente como ocupado.

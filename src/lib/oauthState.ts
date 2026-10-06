@@ -7,6 +7,9 @@ import { SignJWT, jwtVerify } from "jose";
  * con Google/Microsoft.
  */
 
+/** Audiencia propia del state: lo distingue de la cookie de sesión, que se firma con el mismo secreto. */
+const OAUTH_STATE_AUDIENCE = "agendate:oauth-state";
+
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error("Falta AUTH_SECRET en el entorno.");
@@ -16,13 +19,14 @@ function getSecret(): Uint8Array {
 export async function signOAuthState(professionalId: string, opts?: { popup?: boolean }): Promise<string> {
   return new SignJWT({ professionalId, popup: opts?.popup ?? false })
     .setProtectedHeader({ alg: "HS256" })
+    .setAudience(OAUTH_STATE_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(getSecret());
 }
 
 export async function verifyOAuthState(state: string): Promise<{ professionalId: string; popup: boolean }> {
-  const { payload } = await jwtVerify(state, getSecret());
+  const { payload } = await jwtVerify(state, getSecret(), { audience: OAUTH_STATE_AUDIENCE });
   return { professionalId: payload.professionalId as string, popup: Boolean(payload.popup) };
 }
 

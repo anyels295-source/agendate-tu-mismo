@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { validationErrorMessage } from "@/lib/validation";
 import { getAdminSession } from "@/lib/auth";
 import { getProfessionalsForOwner, createTeamProfessional } from "@/lib/professional";
 import { AppError } from "@/lib/errors";
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
+    return NextResponse.json({ error: validationErrorMessage(parsed.error) }, { status: 400 });
   }
 
   try {

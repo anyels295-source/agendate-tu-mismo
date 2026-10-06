@@ -8,6 +8,22 @@ import type { Professional, CalendarConnection } from "@prisma/client";
 
 const WEEKDAY_KEYS: (keyof WorkingHours)[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
+/** Granularidad de los turnos: siempre empiezan en :00, :15, :30 o :45, sea cual sea la duración del servicio. */
+const SLOT_STEP_MINUTES = 15;
+
+/** Lleva una hora al próximo múltiplo de SLOT_STEP_MINUTES (09:07 → 09:15; 09:15 queda igual). */
+function alignToSlotGrid(dt: DateTime, timezone: string): DateTime {
+  const local = dt.setZone(timezone);
+  const hourStart = local.startOf("hour");
+  const minutes = Math.ceil(local.diff(hourStart, "minutes").minutes / SLOT_STEP_MINUTES) * SLOT_STEP_MINUTES;
+  return hourStart.plus({ minutes });
+}
+
+function isOnSlotGrid(dt: DateTime, timezone: string): boolean {
+  const local = dt.setZone(timezone);
+  return local.minute % SLOT_STEP_MINUTES === 0 && local.second === 0 && local.millisecond === 0;
+}
+
 /**
  * Servicio de disponibilidad compartido: es el núcleo técnico que reutilizan
  * tanto la reserva pública (Agendate Tú Mismo) como, a futuro, Agente
@@ -143,6 +159,7 @@ export function checkSlotAllowed(params: {
   const { professional, start, end, origin } = params;
   const timezone = professional.timezone;
   if (!start.isValid || !end.isValid || end <= start) return "Fecha u hora inválida.";
+  if (!isOnSlotGrid(start, timezone)) return `Los turnos empiezan cada ${SLOT_STEP_MINUTES} minutos (ej. 09:00, 09:15, 09:30). Elegí un horario de la lista.`;
 
   const now = DateTime.now();
   if (origin === "PUBLIC") {
@@ -185,7 +202,6 @@ export async function getAvailableSlots(params: {
 
   const workingHours = professional.workingHours as unknown as WorkingHours;
   const durationMin = professional.durationMinutes;
-  const stepMin = 15; // granularidad de los slots ofrecidos, independiente de la duración del servicio
 
   const now = DateTime.now().setZone(timezone);
   const minStart = now.plus({ hours: professional.minNoticeHours });
@@ -199,13 +215,15 @@ export async function getAvailableSlots(params: {
     for (const window of windows) {
       const freeInWindow = subtractBusy(window, allBusy);
       for (const freeInterval of freeInWindow) {
-        let slotStart = freeInterval.start!;
+        // El hueco libre puede empezar a cualquier minuto (ej. un evento externo que termina a las
+        // 10:10): se arranca en el próximo :00/:15/:30/:45 para que la grilla del día no se corra.
+        let slotStart = alignToSlotGrid(freeInterval.start!, timezone);
         while (slotStart.plus({ minutes: durationMin }) <= freeInterval.end!) {
           const slotEnd = slotStart.plus({ minutes: durationMin });
           if (slotStart >= minStart) {
             slots.push({ startISO: slotStart.toISO()!, endISO: slotEnd.toISO()! });
           }
-          slotStart = slotStart.plus({ minutes: stepMin });
+          slotStart = slotStart.plus({ minutes: SLOT_STEP_MINUTES });
         }
       }
     }

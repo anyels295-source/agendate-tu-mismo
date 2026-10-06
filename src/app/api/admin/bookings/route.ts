@@ -4,7 +4,7 @@ import { getAdminSession } from "@/lib/auth";
 import { getActiveProfessional } from "@/lib/professional";
 import { createBooking, BookingConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
-import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH } from "@/lib/validation";
+import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH, validationErrorMessage } from "@/lib/validation";
 
 /** Alta manual de un turno desde el panel (botón "+ Nueva reserva" en Reservas). */
 const bookingSchema = z
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = bookingSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
+    return NextResponse.json({ error: validationErrorMessage(parsed.error) }, { status: 400 });
   }
 
   const professional = await getActiveProfessional();

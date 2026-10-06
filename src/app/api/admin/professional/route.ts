@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getAdminSession } from "@/lib/auth";
 import { getOrCreateActiveProfessional } from "@/lib/professional";
 import { prisma } from "@/lib/prisma";
-import { validateWorkingHours, isValidTimezone } from "@/lib/validation";
+import { validateWorkingHours, isValidTimezone, validationErrorMessage } from "@/lib/validation";
 
 const dayRange = z.object({ start: z.string(), end: z.string() });
 const workingHoursSchema = z
@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
+    return NextResponse.json({ error: validationErrorMessage(parsed.error) }, { status: 400 });
   }
 
   const professional = await getOrCreateActiveProfessional();

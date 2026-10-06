@@ -453,7 +453,9 @@ export async function rescheduleBooking(params: {
   await prisma.booking
     .update({
       where: { id: booking.id },
-      data: { startTime: new Date(params.startISO), endTime: new Date(endISO) },
+      // reminderSentAt vuelve a null: el recordatorio que se haya mandado era para la fecha vieja,
+      // y el cron solo toma turnos sin recordatorio.
+      data: { startTime: new Date(params.startISO), endTime: new Date(endISO), reminderSentAt: null },
     })
     .catch((err: unknown) => {
       if (isOverlapError(err)) throw new RescheduleConflictError();
@@ -470,7 +472,7 @@ export async function rescheduleBooking(params: {
       if (!isEventGoneError(err)) {
         // No se pudo mover: el turno vuelve a su horario anterior para que base y calendario coincidan.
         await prisma.booking
-          .update({ where: { id: booking.id }, data: { startTime: booking.startTime, endTime: booking.endTime } })
+          .update({ where: { id: booking.id }, data: { startTime: booking.startTime, endTime: booking.endTime, reminderSentAt: booking.reminderSentAt } })
           .catch((revertErr: unknown) => console.error("No se pudo restaurar el horario anterior del turno:", revertErr));
         throw err;
       }

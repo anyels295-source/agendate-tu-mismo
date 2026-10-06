@@ -4,7 +4,7 @@ import { getAdminSession } from "@/lib/auth";
 import { getActiveProfessional } from "@/lib/professional";
 import { rescheduleBooking, RescheduleConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
-import { checkDateRange } from "@/lib/validation";
+import { checkDateRange, validationErrorMessage } from "@/lib/validation";
 
 const schema = z
   .object({
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const json = await req.json().catch(() => null);
   const parsed = schema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos." }, { status: 400 });
+    return NextResponse.json({ error: validationErrorMessage(parsed.error) }, { status: 400 });
   }
 
   const professional = await getActiveProfessional();

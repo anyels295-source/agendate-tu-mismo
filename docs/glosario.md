@@ -225,6 +225,15 @@ Convierte un dato en otro ilegible que solo se puede recuperar con una clave.
 Cuando un texto escrito por una persona se mete en una página o email y el navegador lo interpreta como código. La defensa es **escapar** el texto (convertir `<` en `&lt;`).
 - **En el proyecto:** los nombres de clientes se escapan antes de ir a los emails (`esc()` en `email.ts`).
 
+### Audiencia de un JWT (`aud`)
+Un campo del JWT que dice **para qué** se emitió ese token. Sirve cuando la misma clave firma tokens con usos distintos: el que lo verifica exige la audiencia esperada y rechaza los demás.
+- **Parecido en Java:** el `audience` que se configura al validar un token con Spring Security o con `jjwt` (`requireAudience`).
+- **En el proyecto:** el `state` de OAuth lleva la audiencia `agendate:oauth-state`, y la sesión del panel exige `role: "admin"` y el email del admin. Antes, un `state` filtrado servía como sesión.
+
+### CSRF (petición falsificada entre sitios)
+Una página maliciosa hace que el navegador de alguien con sesión abierta mande un pedido a otra app, que llega con la cookie de esa persona.
+- **En el proyecto:** lo frena la opción `SameSite=Lax` de la cookie, que el navegador no manda en pedidos que vienen de otro sitio.
+
 ### Inyección de fórmulas en CSV
 Si un nombre empieza con `=`, `+`, `-` o `@`, Excel puede ejecutarlo como una fórmula al abrir el archivo.
 - **En el proyecto:** al exportar, se antepone un `'` a esos valores.
@@ -311,6 +320,24 @@ Cuando un proceso tiene varios pasos en sistemas distintos (la base y el calenda
 Un evento que quedó en el calendario sin ninguna reserva asociada en la base, por un fallo a mitad de camino. Ocupa tiempo en el calendario y no lo ve nadie en el panel.
 - **En el proyecto:** las compensaciones existen justamente para evitar que queden.
 
+### Timeout (tiempo límite)
+Cuánto se está dispuesto a esperar la respuesta de otro servicio antes de darla por fallida. Sin timeout, un servicio colgado deja colgado al que lo llamó.
+- **Parecido en Java:** `HttpClient.newBuilder().connectTimeout(...)` o `HttpRequest.timeout(...)`.
+- **En el proyecto:** las llamadas a Google, Resend y WhatsApp todavía no tienen timeout (hallazgo #3 del informe de QA del 2026-10-06).
+
+### Idempotencia
+Una operación es idempotente si hacerla dos veces deja todo igual que hacerla una. Importa cuando se corta la red y el cliente reintenta sin saber si el primer intento llegó.
+- **Parecido en Java:** un `PUT` en una API REST, o un `Set.add()` que no duplica.
+- **En el proyecto:** confirmar o cancelar un turno ya son idempotentes; crear una reserva todavía no (hallazgo #27).
+
+### Grilla de horarios
+Los turnos solo empiezan en minutos fijos (:00, :15, :30, :45), aunque el servicio dure otra cosa. Mantiene la agenda ordenada y evita huecos inútiles.
+- **En el proyecto:** `SLOT_STEP_MINUTES` en `src/lib/availability.ts`. El servidor rechaza horarios fuera de la grilla y, si un hueco libre empieza a las 10:10, el primer horario ofrecido es el de las 10:15.
+
+### QA exploratorio
+Probar una app sin un guion fijo, buscando romperla: datos inválidos, envíos simultáneos, fechas extremas, estados imposibles. Complementa a los tests automáticos.
+- **En el proyecto:** los informes están en la carpeta `QA/`.
+
 ### Bloqueo optimista (optimistic locking)
 En vez de bloquear un dato mientras se trabaja, se actualiza solo si sigue como se lo leyó. Si otro proceso lo cambió antes, la actualización no se aplica y se avisa.
 - **Parecido en Java:** `@Version` en JPA.
@@ -357,3 +384,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Reprogramar moviendo el mismo evento (patch). |
 | 2026-10-06 | Respuesta del invitado (RSVP). |
 | 2026-10-06 | Simulación (dry run). |
+| 2026-10-06 | Informe de QA: audiencia de un JWT, CSRF, timeout, idempotencia, grilla de horarios y QA exploratorio. |

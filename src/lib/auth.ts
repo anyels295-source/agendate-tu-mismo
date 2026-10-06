@@ -62,7 +62,12 @@ export async function getAdminSession(): Promise<{ email: string } | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    return { email: payload.email as string };
+    // El mismo secreto firma también el "state" de OAuth (ver oauthState.ts): sin estos
+    // chequeos, cualquier JWT firmado por la app valdría como sesión de admin.
+    const expectedEmail = process.env.ADMIN_EMAIL;
+    if (payload.role !== "admin" || typeof payload.email !== "string" || !expectedEmail) return null;
+    if (payload.email.toLowerCase() !== expectedEmail.toLowerCase()) return null;
+    return { email: payload.email };
   } catch {
     return null;
   }

@@ -12,6 +12,32 @@ export function normalizePhone(input: string): string | null {
   return /^\+[1-9]\d{7,14}$/.test(value) ? value : null;
 }
 
+/**
+ * Mensaje para responder un 400 cuando falla un esquema de zod. Si el esquema trae
+ * un mensaje propio (en español) se usa ese; si no, en vez del texto por defecto de
+ * zod (en inglés, ej. "Expected object, received null") se da uno genérico en español.
+ */
+export function validationErrorMessage(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue) return "Datos inválidos.";
+  const zodDefault = z.defaultErrorMap(issue, { defaultError: issue.message, data: undefined }).message;
+  if (issue.message !== zodDefault) return issue.message;
+  switch (issue.code) {
+    case "invalid_type":
+      return issue.received === "undefined" ? "Falta completar un dato obligatorio." : "Datos inválidos.";
+    case "invalid_enum_value":
+      return "Ese valor no está permitido.";
+    case "invalid_string":
+      return issue.validation === "email" ? "Ingresá un email válido." : "Hay un dato con formato inválido.";
+    case "too_small":
+      return "Hay un dato vacío o demasiado corto.";
+    case "too_big":
+      return "Hay un dato demasiado largo.";
+    default:
+      return "Datos inválidos.";
+  }
+}
+
 export const PHONE_ERROR_MESSAGE = "Si dejás un WhatsApp, ingresá uno válido con código de país, ej. +598 9x xxx xxx.";
 export const CLIENT_NAME_MAX_LENGTH = 80;
 
