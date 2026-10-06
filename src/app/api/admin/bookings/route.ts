@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
       startISO: parsed.data.startISO,
       endISO: parsed.data.endISO,
       notes: parsed.data.notes,
-      confirmed: parsed.data.confirmed,
+      // Lo crea el propio profesional desde el panel: nace confirmado, salvo que pida dejarlo pendiente.
+      confirmed: parsed.data.confirmed ?? true,
       origin: "ADMIN",
     });
 

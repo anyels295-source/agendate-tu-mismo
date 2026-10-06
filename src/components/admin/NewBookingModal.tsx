@@ -41,7 +41,8 @@ export default function NewBookingModal({
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
   const [formError, setFormError] = useState<string | null>(null);
-  const [confirmNow, setConfirmNow] = useState(false);
+  // Un turno creado desde el panel nace confirmado (lo crea el propio profesional); esta opción lo deja pendiente.
+  const [leavePending, setLeavePending] = useState(false);
   // Fecha desde la que se buscan horarios (por defecto, hoy): permite agendar más allá de los primeros días.
   const [fromDate, setFromDate] = useState<string | null>(null);
 
@@ -134,7 +135,7 @@ export default function NewBookingModal({
           clientPhone: normalizedPhone ?? undefined,
           clientEmail: form.clientEmail.trim(),
           notes: form.notes.trim() || undefined,
-          confirmed: confirmNow || undefined,
+          confirmed: !leavePending,
           startISO: selectedSlot.startISO,
           endISO: selectedSlot.endISO,
         }),
@@ -330,11 +331,11 @@ export default function NewBookingModal({
                 </div>
               </div>
               <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-[13px] text-[var(--ink2)]">
-                <input type="checkbox" checked={confirmNow} onChange={(e) => setConfirmNow(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--brand)]" />
+                <input type="checkbox" checked={leavePending} onChange={(e) => setLeavePending(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--brand)]" />
                 <span>
-                  <span className="font-semibold">Dejar el turno confirmado</span>
+                  <span className="font-semibold">Dejar pendiente de confirmación</span>
                   <span className="block text-[12px] text-[var(--muted-nav)]">
-                    Si no, queda Pendiente hasta que el cliente acepte o lo confirmes vos.
+                    Usalo si el cliente todavía no aceptó. Si no, el turno queda confirmado, porque lo creás vos.
                   </span>
                 </span>
               </label>
