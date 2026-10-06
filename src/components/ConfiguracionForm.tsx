@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { validateWorkingHours } from "@/lib/validation";
 import { DateTime } from "luxon";
@@ -58,6 +58,43 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Última versión guardada: sirve para saber si hay cambios sin guardar.
+  const [savedForm, setSavedForm] = useState(initial);
+  const [videoSaved, setVideoSaved] = useState(false);
+  const dirty = JSON.stringify(form) !== JSON.stringify(savedForm);
+
+  // Si se intenta cerrar o recargar la página con cambios sin guardar, el navegador avisa.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  /** La videollamada se guarda al instante, sin esperar al botón de abajo (es un interruptor, no un dato a completar). */
+  async function toggleVideoCall(enabled: boolean) {
+    const previous = form.videoCallEnabled;
+    setForm((f) => ({ ...f, videoCallEnabled: enabled }));
+    setSaveError(null);
+    setVideoSaved(false);
+    try {
+      const res = await fetch("/api/admin/professional", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoCallEnabled: enabled }),
+      });
+      if (!res.ok) throw new Error("no se pudo guardar");
+      setSavedForm((f) => ({ ...f, videoCallEnabled: enabled }));
+      setVideoSaved(true);
+      router.refresh();
+    } catch {
+      setForm((f) => ({ ...f, videoCallEnabled: previous }));
+      setSaveError("No se pudo guardar el cambio de la videollamada. Intentá nuevamente.");
+    }
+  }
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Si el valor guardado no está en la lista curada (ej. se cargó por otra
@@ -184,6 +221,7 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
         setSaveError(json.error ?? "No se pudieron guardar los cambios. Intentá nuevamente.");
         return;
       }
+      setSavedForm(form);
       setSaved(true);
       router.refresh();
     } catch {
@@ -258,13 +296,14 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
             <input
               type="checkbox"
               checked={form.videoCallEnabled}
-              onChange={(e) => setForm({ ...form, videoCallEnabled: e.target.checked })}
+              onChange={(e) => toggleVideoCall(e.target.checked)}
               className="mt-0.5 h-4 w-4 accent-[var(--brand)]"
             />
             <span>
               <span className="font-semibold">Agregar una videollamada a cada reserva</span>
               <span className="block text-[12.5px] text-[var(--muted-nav)]">
-                Se crea un link de Google Meet (o de Teams, si el calendario es de Outlook) junto con el evento, y se incluye en los emails al cliente.
+                Se crea un link de Google Meet (o de Teams, si el calendario es de Outlook) junto con el evento, y se incluye en los emails al cliente.{" "}
+                <span className="font-semibold text-[#1a7d45]">{videoSaved ? "Guardado ✓" : "Se guarda al instante."}</span>
               </span>
             </span>
           </label>
@@ -381,7 +420,7 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
         </div>
       </section>
 
-      <div className="flex items-center gap-3">
+      <div className="sticky bottom-0 z-20 -mx-4 flex flex-wrap items-center gap-3 border-t border-[var(--line)] bg-[var(--page)]/95 px-4 py-3 backdrop-blur md:-mx-9 md:px-9">
         <button
           onClick={handleSave}
           disabled={saving}
@@ -389,7 +428,8 @@ export default function ConfiguracionForm({ initial, hasServices = false }: Prop
         >
           {saving ? "Guardando…" : "Guardar cambios"}
         </button>
-        {saved && <span className="text-[13px] text-[#1a7d45]">Guardado ✓</span>}
+        {dirty && !saving && <span className="text-[13px] font-semibold text-[#a4700f]">Tenés cambios sin guardar</span>}
+        {saved && !dirty && <span className="text-[13px] text-[#1a7d45]">Guardado ✓</span>}
         {saveError && <span role="alert" className="text-[13px] text-red-600">{saveError}</span>}
       </div>
     </>
