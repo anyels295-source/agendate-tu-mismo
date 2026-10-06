@@ -298,6 +298,10 @@ Forma de contar peticiones: el tiempo se divide en tramos iguales (por ejemplo, 
 Decisión de qué hacer cuando un control de seguridad se rompe: dejar pasar a todos (fail-open) o bloquear a todos (fail-closed).
 - **En el proyecto:** si la base falla al contar peticiones, se deja pasar y se registra el error, porque es peor dejar a todos sin poder reservar.
 
+### Simulación (dry run)
+Ejecutar una herramienta mostrando lo que haría, sin cambiar nada. Se usa antes de operaciones que no se pueden deshacer, para revisar el resultado y recién después hacerlas de verdad.
+- **En el proyecto:** el script de limpieza de datos de prueba solo simula hasta que se le agrega `--aplicar`.
+
 ### Compensación (deshacer lo ya hecho)
 Cuando un proceso tiene varios pasos en sistemas distintos (la base y el calendario de Google) y falla uno a la mitad, no se puede "volver atrás" todo de golpe. Entonces se hacen pasos inversos a mano para dejar todo como estaba.
 - **Parecido en Java:** un `rollback` de transacción, pero escrito a mano porque abarca más de un sistema.
@@ -352,3 +356,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-05 | Videollamada y recordatorios: migración aditiva, cron, invitación del calendario, videollamada en el evento y freebusy. |
 | 2026-10-05 | Reprogramar moviendo el mismo evento (patch). |
 | 2026-10-06 | Respuesta del invitado (RSVP). |
+| 2026-10-06 | Simulación (dry run). |
