@@ -183,7 +183,7 @@ Cuando un evento tiene invitados, el calendario puede enviarles por su cuenta el
 
 ### Respuesta del invitado (RSVP)
 Cuando alguien recibe la invitación a un evento puede aceptarla, rechazarla, responder "tal vez" o no responder. El calendario guarda esa respuesta en cada invitado, y se puede consultar.
-- **En el proyecto:** al abrir la Agenda se consulta la respuesta de cada cliente. Si la aceptó, el turno pasa solo de Pendiente a Confirmado. Si la rechazó, aparece marcado en rojo "Rechazó la invitación" para que decidas reprogramar o cancelar.
+- **En el proyecto:** al abrir el Panel, Reservas o la Agenda, y en el cron diario, se consulta la respuesta de cada cliente. Si la aceptó, el turno pasa solo de Pendiente a Confirmado. Si la rechazó, la Agenda lo marca en rojo "Rechazó la invitación" y no se le manda el recordatorio.
 
 ### Videollamada en el evento (Meet y Teams)
 Al crear el evento se le puede pedir al calendario que genere una sala de videollamada: Google Meet en Google, Microsoft Teams en Outlook. El link queda dentro del evento.
@@ -323,7 +323,7 @@ Un evento que quedó en el calendario sin ninguna reserva asociada en la base, p
 ### Timeout (tiempo límite)
 Cuánto se está dispuesto a esperar la respuesta de otro servicio antes de darla por fallida. Sin timeout, un servicio colgado deja colgado al que lo llamó.
 - **Parecido en Java:** `HttpClient.newBuilder().connectTimeout(...)` o `HttpRequest.timeout(...)`.
-- **En el proyecto:** las llamadas a Google, Resend y WhatsApp todavía no tienen timeout (hallazgo #3 del informe de QA del 2026-10-06).
+- **En el proyecto:** toda llamada a Google, Microsoft, Resend, WhatsApp o Teams espera como máximo 8 segundos (`EXTERNAL_CALL_TIMEOUT_MS` en `src/lib/externalTimeout.ts`).
 
 ### Idempotencia
 Una operación es idempotente si hacerla dos veces deja todo igual que hacerla una. Importa cuando se corta la red y el cliente reintenta sin saber si el primer intento llegó.

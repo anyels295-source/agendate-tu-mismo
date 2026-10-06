@@ -343,6 +343,11 @@ export async function adminSetBookingStatus(params: {
     return { ...confirmed, clientEmailStatus };
   }
 
+  if (params.status === "CANCELLED" && (booking.status === "COMPLETED" || booking.status === "NO_SHOW")) {
+    // Un turno cerrado ya ocurrió: cancelarlo borraría el evento histórico y le avisaría al cliente.
+    throw new AppError("Un turno completado o ausente no se puede cancelar. Si fue un error, primero volvelo a Confirmada.");
+  }
+
   if (params.status === "CANCELLED" && booking.status !== "CANCELLED") {
     await deleteBookingEvent(booking);
 
@@ -411,6 +416,9 @@ export async function rescheduleBooking(params: {
   }
   if (booking.status === "CANCELLED") {
     throw new AppError("No se puede reprogramar un turno cancelado.");
+  }
+  if (booking.status === "COMPLETED" || booking.status === "NO_SHOW") {
+    throw new AppError("No se puede reprogramar un turno completado o ausente. Creá una reserva nueva.");
   }
 
   const professional = booking.professional;

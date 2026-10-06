@@ -1,3 +1,5 @@
+import { EXTERNAL_CALL_TIMEOUT_MS } from "@/lib/externalTimeout";
+
 /**
  * Envío de email de respaldo (fallback) cuando WhatsApp no está disponible
  * o el cliente no dejó teléfono. Usa SMTP simple vía fetch a un proveedor
@@ -61,6 +63,7 @@ async function sendEmail(params: { toEmail: string; subject: string; html: strin
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ from, to: params.toEmail, subject: params.subject, html: params.html }),
+      signal: AbortSignal.timeout(EXTERNAL_CALL_TIMEOUT_MS),
     });
     if (!res.ok) {
       const body = await res.text();
@@ -116,8 +119,8 @@ export async function sendBookingRescheduledEmail(params: BookingEmailParams): P
   });
 }
 
-/** Recordatorio que se envía el día anterior al turno. */
-export async function sendBookingReminderEmail(params: BookingEmailParams): Promise<EmailSendResult> {
+/** Recordatorio del turno: normalmente el día anterior, o el mismo día si se reservó tarde. */
+export async function sendBookingReminderEmail(params: BookingEmailParams & { isToday?: boolean }): Promise<EmailSendResult> {
   const html = `
     <p>Hola ${esc(params.clientName)},</p>
     <p>Te recordamos tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong>:</p>
@@ -127,7 +130,7 @@ export async function sendBookingReminderEmail(params: BookingEmailParams): Prom
   `;
   return sendEmail({
     toEmail: params.toEmail,
-    subject: `Recordatorio: tu turno es mañana, ${params.dateLabel} a las ${params.timeLabel}`,
+    subject: `Recordatorio: tu turno es ${params.isToday ? "hoy" : "mañana"}, ${params.dateLabel} a las ${params.timeLabel}`,
     html,
   });
 }

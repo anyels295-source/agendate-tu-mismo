@@ -1,6 +1,10 @@
 import { randomUUID } from "crypto";
 import { google } from "googleapis";
 import type { BusyBlock, CalendarConnectorTokens } from "@/lib/types";
+import { EXTERNAL_CALL_TIMEOUT_MS } from "@/lib/externalTimeout";
+
+// Tope de espera para todas las llamadas a las APIs de Google (por defecto no tienen ninguno).
+google.options({ timeout: EXTERNAL_CALL_TIMEOUT_MS });
 
 /**
  * Conector de Google Calendar. Usa OAuth2 con acceso offline (refresh_token)
@@ -136,7 +140,10 @@ export async function createGoogleEvent(params: {
     res = await insert(!!params.withMeeting);
   } catch (err) {
     // Algunas cuentas (por ejemplo, ciertos Workspace) no permiten crear Meet: se reserva igual, sin videollamada.
-    if (!params.withMeeting) throw err;
+    // Solo ante un rechazo de Google (400/403): si fue un timeout o un error de red, el evento
+    // pudo haberse creado igual, y reintentar dejaría un evento duplicado.
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (!params.withMeeting || (status !== 400 && status !== 403)) throw err;
     console.warn("No se pudo crear la videollamada de Google Meet; se crea el evento sin ella:", err);
     res = await insert(false);
   }
@@ -155,8 +162,16 @@ export async function createGoogleEvent(params: {
   // El link de Meet a veces se termina de generar unos instantes después de crear el evento.
   for (let attempt = 0; params.withMeeting && !meetingUrl && attempt < 2; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 700));
-    const fresh = await calendar.events.get({ calendarId: params.calendarId, eventId: res.data.id });
-    meetingUrl = readMeetingUrl(fresh.data);
+    // El evento ya existe (y el cliente ya fue invitado): si esta lectura falla, se sigue sin
+    // link en vez de lanzar, porque la compensación todavía no conoce el id del evento y lo
+    // dejaría huérfano.
+    try {
+      const fresh = await calendar.events.get({ calendarId: params.calendarId, eventId: res.data.id });
+      meetingUrl = readMeetingUrl(fresh.data);
+    } catch (err) {
+      console.warn("No se pudo leer el link de Meet del evento recién creado:", err);
+      break;
+    }
   }
 
   return { eventId: res.data.id, meetingUrl };

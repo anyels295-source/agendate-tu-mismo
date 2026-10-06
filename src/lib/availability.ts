@@ -11,6 +11,9 @@ const WEEKDAY_KEYS: (keyof WorkingHours)[] = ["mon", "tue", "wed", "thu", "fri",
 /** Granularidad de los turnos: siempre empiezan en :00, :15, :30 o :45, sea cual sea la duración del servicio. */
 const SLOT_STEP_MINUTES = 15;
 
+/** Tope de fecha para los turnos que crea o reprograma el profesional desde el panel. */
+const ADMIN_MAX_ADVANCE_YEARS = 2;
+
 /** Lleva una hora al próximo múltiplo de SLOT_STEP_MINUTES (09:07 → 09:15; 09:15 queda igual). */
 function alignToSlotGrid(dt: DateTime, timezone: string): DateTime {
   const local = dt.setZone(timezone);
@@ -164,9 +167,13 @@ export function checkSlotAllowed(params: {
   const now = DateTime.now();
   if (origin === "PUBLIC") {
     if (start < now.plus({ hours: professional.minNoticeHours })) return "Falta la anticipación mínima para reservar ese horario.";
-    if (start > now.plus({ days: professional.maxAdvanceDays })) return "Ese horario está más allá de la anticipación máxima permitida.";
-  } else if (start < now.minus({ minutes: 1 })) {
-    return "No se puede agendar un turno en el pasado.";
+    // Mismo criterio que la lista de horarios: se puede reservar hasta el final del último día permitido.
+    const lastAllowed = now.setZone(timezone).startOf("day").plus({ days: professional.maxAdvanceDays }).endOf("day");
+    if (start > lastAllowed) return "Ese horario está más allá de la anticipación máxima permitida.";
+  } else {
+    if (start < now.minus({ minutes: 1 })) return "No se puede agendar un turno en el pasado.";
+    // Sin tope, un error de tipeo en el año (ej. 20226) creaba un turno y un evento basura.
+    if (start > now.plus({ years: ADMIN_MAX_ADVANCE_YEARS })) return `No se pueden agendar turnos a más de ${ADMIN_MAX_ADVANCE_YEARS} años.`;
   }
 
   const day = start.setZone(timezone).startOf("day");

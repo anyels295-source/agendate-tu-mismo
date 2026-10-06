@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
+import { syncPendingInvitations } from "@/lib/invitations";
 import { DateTime } from "luxon";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import BookingsTable, { type BookingRow } from "@/components/admin/BookingsTable";
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function ReservasPage({ searchParams }: { searchParams: Promise<{ filter?: string; q?: string }> }) {
   const { filter, q } = await searchParams;
   const professional = await getActiveProfessional();
+  // Antes de listar: los pendientes que el cliente ya aceptó en su calendario pasan a Confirmado.
+  await syncPendingInvitations(professional.id);
   const baseUrl = await getPublicBaseUrl();
 
   const bookings = await prisma.booking.findMany({

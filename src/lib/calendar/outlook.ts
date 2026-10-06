@@ -1,5 +1,6 @@
 import { ConfidentialClientApplication } from "@azure/msal-node";
 import type { BusyBlock, CalendarConnectorTokens } from "@/lib/types";
+import { EXTERNAL_CALL_TIMEOUT_MS } from "@/lib/externalTimeout";
 
 /**
  * Conector de Outlook / Microsoft 365 vía Microsoft Graph API.
@@ -110,6 +111,7 @@ export async function refreshOutlookAccessToken(refreshToken: string): Promise<C
 
 async function graphFetch(path: string, accessToken: string, init?: RequestInit) {
   const res = await fetch(`${GRAPH_BASE}${path}`, {
+    signal: AbortSignal.timeout(EXTERNAL_CALL_TIMEOUT_MS),
     ...init,
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -179,7 +181,9 @@ export async function createOutlookEvent(params: {
     data = await create(!!params.withMeeting);
   } catch (err) {
     // Las cuentas personales de Microsoft no admiten Teams: se reserva igual, sin la reunión.
-    if (!params.withMeeting) throw err;
+    // Si fue un timeout, el evento pudo haberse creado igual: reintentar lo duplicaría.
+    const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+    if (!params.withMeeting || timedOut) throw err;
     console.warn("No se pudo crear la reunión de Teams; se crea el evento sin ella:", err);
     data = await create(false);
   }
@@ -197,6 +201,7 @@ export async function deleteOutlookEvent(params: {
       method: "POST",
       headers: { Authorization: `Bearer ${params.accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ Comment: "El turno fue cancelado." }),
+      signal: AbortSignal.timeout(EXTERNAL_CALL_TIMEOUT_MS),
     });
     if (cancel.ok || cancel.status === 404) return;
     // Si no se puede cancelar con aviso (por ejemplo, el evento no tiene invitados), se borra igual.
@@ -204,6 +209,7 @@ export async function deleteOutlookEvent(params: {
   const res = await fetch(`${GRAPH_BASE}/me/events/${params.eventId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${params.accessToken}` },
+    signal: AbortSignal.timeout(EXTERNAL_CALL_TIMEOUT_MS),
   });
   if (!res.ok && res.status !== 404) {
     const body = await res.text();

@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { sendBookingReminderEmail } from "@/lib/notifications/email";
+import { getInvitationResponses, syncPendingInvitations } from "@/lib/invitations";
+
+/** Un turno reservado hace menos que esto no recibe recordatorio todavía: acaba de recibir la confirmación. */
+const RECENT_BOOKING_HOURS = 12;
 
 /**
- * Recordatorio por email, el día anterior, a los clientes con turno mañana.
+ * Recordatorio por email a los clientes con turno hoy (más tarde) o mañana.
+ *
+ * El cron corre una sola vez por día, a las 09:00 de Montevideo. Por eso no mira solo
+ * "mañana": un turno para mañana reservado después de esa hora recibe el recordatorio
+ * en la corrida siguiente, el mismo día del turno. Se saltean los turnos reservados en las
+ * últimas horas (el cliente acaba de recibir la confirmación) y los de clientes que
+ * rechazaron la invitación del calendario.
  *
  * Lo dispara Vercel Cron una vez por día (ver vercel.json). Está protegido con
  * CRON_SECRET, igual que el resumen diario: Vercel manda ese secreto en el
@@ -28,19 +38,31 @@ export async function GET(req: NextRequest) {
   let skipped = 0;
 
   for (const professional of professionals) {
-    const tomorrow = DateTime.now().setZone(professional.timezone).plus({ days: 1 });
+    const now = DateTime.now().setZone(professional.timezone);
+    // Los pendientes que el cliente ya aceptó pasan a Confirmado antes de mandar nada.
+    await syncPendingInvitations(professional.id);
     const bookings = await prisma.booking.findMany({
       where: {
         professionalId: professional.id,
         status: { in: ["PENDING", "CONFIRMED"] },
-        startTime: { gte: tomorrow.startOf("day").toJSDate(), lte: tomorrow.endOf("day").toJSDate() },
+        startTime: { gt: now.toJSDate(), lte: now.plus({ days: 1 }).endOf("day").toJSDate() },
+        createdAt: { lt: now.minus({ hours: RECENT_BOOKING_HOURS }).toJSDate() },
         reminderSentAt: null,
         clientEmail: { not: null },
       },
       include: { service: true },
     });
 
+    // A quien rechazó la invitación no se le recuerda el turno.
+    const connections = await prisma.calendarConnection.findMany({ where: { professionalId: professional.id, isActive: true } });
+    const responses = await getInvitationResponses(connections, bookings);
+
     for (const booking of bookings) {
+      if (responses.get(booking.id) === "declined") {
+        skipped += 1;
+        continue;
+      }
+
       // Se reclama el turno antes de enviar: si otro proceso ya lo hizo, no se repite.
       const claimed = await prisma.booking.updateMany({
         where: { id: booking.id, reminderSentAt: null },
@@ -61,6 +83,7 @@ export async function GET(req: NextRequest) {
         timeLabel: start.toFormat("HH:mm"),
         cancelUrl: `${appUrl}/cancelar/${booking.cancelToken}`,
         meetingUrl: booking.meetingUrl,
+        isToday: start.hasSame(now, "day"),
       });
 
       await prisma.notificationLog.create({

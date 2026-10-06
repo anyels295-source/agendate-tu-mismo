@@ -1,3 +1,5 @@
+import { EXTERNAL_CALL_TIMEOUT_MS } from "@/lib/externalTimeout";
+
 /**
  * Envío de avisos a un canal de Microsoft Teams vía Incoming Webhook (o un
  * flujo de Power Automate disparado por "When a Teams webhook request is
@@ -32,6 +34,7 @@ export async function sendTeamsMessage(params: {
         title: params.title,
         text: params.text,
       }),
+      signal: AbortSignal.timeout(EXTERNAL_CALL_TIMEOUT_MS),
     });
     if (!res.ok) {
       const body = await res.text();

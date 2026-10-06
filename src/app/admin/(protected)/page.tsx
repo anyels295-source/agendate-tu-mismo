@@ -4,6 +4,7 @@ import { friendlyNotificationError } from "@/lib/notificationError";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
+import { syncPendingInvitations } from "@/lib/invitations";
 import { type WorkingHours, WEEKDAY_KEYS, workingMinutesForWeek } from "@/lib/types";
 import CopyLinkButton from "@/components/admin/CopyLinkButton";
 import ShareWhatsAppButton from "@/components/admin/ShareWhatsAppButton";
@@ -26,6 +27,8 @@ function trendBadge(current: number, previous: number, invertColor = false) {
 
 export default async function PanelPage() {
   const professional = await getActiveProfessional();
+  // Antes de contar: los pendientes que el cliente ya aceptó en su calendario pasan a Confirmado.
+  await syncPendingInvitations(professional.id);
   const tz = professional.timezone;
   const now = DateTime.now().setZone(tz);
   const startOfWeek = now.startOf("week");

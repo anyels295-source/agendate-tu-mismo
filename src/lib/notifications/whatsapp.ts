@@ -1,3 +1,5 @@
+import { EXTERNAL_CALL_TIMEOUT_MS } from "@/lib/externalTimeout";
+
 /**
  * Envío de confirmaciones por WhatsApp Business Cloud API (Meta).
  *
@@ -75,6 +77,7 @@ export async function sendBookingConfirmationWhatsApp(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(EXTERNAL_CALL_TIMEOUT_MS),
     });
 
     const data = await res.json();
