@@ -105,7 +105,7 @@ export default async function AgendaPage({
         endTimeLabel: end.toFormat("HH:mm"),
         dateLabel: start.setLocale("es").toFormat("cccc d 'de' LLLL"),
         top: Math.max(startMinutesFromGrid, 0) * (ROW / 60),
-        height: Math.max((durationMinutes * ROW) / 60 - 4, 24),
+        height: Math.max((durationMinutes * ROW) / 60 - 2, 22),
       };
     });
 

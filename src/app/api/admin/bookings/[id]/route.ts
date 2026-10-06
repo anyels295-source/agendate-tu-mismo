@@ -30,7 +30,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       bookingId: id,
       status: parsed.data.status,
     });
-    return NextResponse.json({ ok: true, booking });
+    // Solo al confirmar un turno pendiente se intenta avisar al cliente: se informa si el email salió.
+    const clientEmailStatus = (booking as { clientEmailStatus?: string | null }).clientEmailStatus;
+    return NextResponse.json({ ok: true, booking, emailSent: clientEmailStatus === undefined ? undefined : clientEmailStatus === "SENT" });
   } catch (err) {
     if (err instanceof AppError) {
       return NextResponse.json({ error: err.message }, { status: 400 });

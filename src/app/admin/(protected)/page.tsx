@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
+import { friendlyNotificationError } from "@/lib/notificationError";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { getActiveProfessional } from "@/lib/professional";
@@ -62,11 +63,14 @@ export default async function PanelPage() {
   const availableMinutes = workingMinutesForWeek(professional.workingHours as unknown as WorkingHours);
   const occupancy = availableMinutes > 0 ? Math.min(100, Math.round((minutesOf(thisWeek) / availableMinutes) * 100)) : 0;
   const occupancyLastWeek = availableMinutes > 0 ? Math.min(100, Math.round((minutesOf(lastWeek) / availableMinutes) * 100)) : 0;
+  // La variación se calcula con los valores sin redondear (con los porcentajes ya redondeados daba cifras engañosas).
+  const occupancyExact = availableMinutes > 0 ? (minutesOf(thisWeek) / availableMinutes) * 100 : 0;
+  const occupancyLastWeekExact = availableMinutes > 0 ? (minutesOf(lastWeek) / availableMinutes) * 100 : 0;
 
   const weekTrend = trendBadge(thisWeek.length, lastWeek.length);
   const monthTrend = trendBadge(thisMonth.length, lastMonth.length);
   const cancelTrend = trendBadge(cancelledThisMonth.length, cancelledLastMonth.length, true);
-  const occTrend = trendBadge(occupancy, occupancyLastWeek);
+  const occTrend = trendBadge(occupancyExact, occupancyLastWeekExact);
 
   const GREEN = { bg: "#e4f6ec", fg: "#1a7d45" };
   const BLUE = { bg: "#e7effb", fg: "var(--brand)" };
@@ -171,10 +175,10 @@ export default async function PanelPage() {
             </div>
             <div className="mt-1.5 flex flex-col gap-0.5 text-[12.5px] text-[#a5342b]">
               {failedNotifications.map((n) => (
-                <span key={n.id} className="truncate">
+                <span key={n.id} className="break-words">
                   {NOTIF_CHANNEL_LABEL[n.channel] ?? n.channel} · {n.booking.clientName} ·{" "}
                   {DateTime.fromJSDate(n.sentAt).setZone(tz).setLocale("es").toFormat("d LLL, HH:mm")}
-                  {n.error ? ` · ${n.error.slice(0, 90)}` : ""}
+                  {n.error ? ` · ${friendlyNotificationError(n.error)}` : ""}
                 </span>
               ))}
               {failedNotificationsTotal > failedNotifications.length && (

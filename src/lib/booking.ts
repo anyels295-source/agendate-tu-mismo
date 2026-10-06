@@ -335,12 +335,12 @@ export async function adminSetBookingStatus(params: {
       return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     }
     const confirmed = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
-    await notifyBookingConfirmed(
+    const { clientEmailStatus } = await notifyBookingConfirmed(
       confirmed,
       { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName },
       { skipOwner: true }
     );
-    return confirmed;
+    return { ...confirmed, clientEmailStatus };
   }
 
   if (params.status === "CANCELLED" && booking.status !== "CANCELLED") {

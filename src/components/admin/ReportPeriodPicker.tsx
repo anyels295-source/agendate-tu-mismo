@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Selector de período para la página Reportes: presets rápidos (Hoy/Esta
@@ -24,6 +24,14 @@ export default function ReportPeriodPicker({
   const router = useRouter();
   const [customFrom, setCustomFrom] = useState(from);
   const [customTo, setCustomTo] = useState(to);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+
+  // Los campos siguen al período que se está viendo (al elegir "Hoy" o "Esta semana" cambian solos).
+  useEffect(() => {
+    setCustomFrom(from);
+    setCustomTo(to);
+    setRangeError(null);
+  }, [from, to]);
 
   const PRESETS: { key: "today" | "week" | "month"; label: string }[] = [
     { key: "today", label: "Hoy" },
@@ -54,6 +62,11 @@ export default function ReportPeriodPicker({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (!customFrom || !customTo || customFrom > customTo) {
+            setRangeError("La fecha inicial tiene que ser anterior o igual a la final.");
+            return;
+          }
+          setRangeError(null);
           router.push(`/admin/reportes?from=${customFrom}&to=${customTo}`);
         }}
         className="flex items-center gap-1.5 rounded-full border border-[var(--line-in)] bg-[var(--surface)] px-2 py-1"
@@ -81,6 +94,11 @@ export default function ReportPeriodPicker({
           Aplicar
         </button>
       </form>
+      {rangeError && (
+        <p role="alert" className="basis-full text-[12.5px] font-semibold text-red-600">
+          {rangeError}
+        </p>
+      )}
     </div>
   );
 }

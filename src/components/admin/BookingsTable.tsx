@@ -170,7 +170,7 @@ export default function BookingsTable({
         setUndo(null);
         setToast("Cambio deshecho.");
       } else {
-        setToast(statusToast(status, previous));
+        setToast(statusToast(status, previous, (await res.json().catch(() => ({}))).emailSent));
         setUndo(status !== "CANCELLED" && previous && previous !== status ? { id, status: previous } : null);
       }
       router.refresh();
@@ -289,6 +289,7 @@ export default function BookingsTable({
                 </div>
                 <div className="min-w-0">
                   <div className="truncate font-semibold text-[var(--ink2)]">{b.clientName}</div>
+                  <div className="truncate text-[12px] font-semibold text-[var(--brand)]">{b.serviceName}</div>
                   <div className="truncate text-[12px] text-[var(--muted-nav)] sm:hidden">{b.clientPhone ?? "Sin WhatsApp"}</div>
                   {b.notes && (
                     <div className="truncate text-[12px] italic text-[var(--muted-nav)]" title={b.notes}>
@@ -415,6 +416,8 @@ export default function BookingsTable({
         <RescheduleModal
           bookingId={rescheduling.id}
           clientName={rescheduling.clientName}
+          clientPhone={rescheduling.clientPhone}
+          clientEmail={rescheduling.clientEmail}
           professionalSlug={professionalSlug}
           onClose={() => setRescheduleId(null)}
           onDone={(message) => {

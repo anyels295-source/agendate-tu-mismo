@@ -12,6 +12,12 @@ type AvailabilityResponse = {
 };
 type ServiceOption = { id: string; name: string; durationMinutes: number; price: string | null };
 
+/** Precio listo para mostrar: "free" y similares pasan a "Gratis"; un número lleva "$". */
+function formatPrice(price: string): string {
+  if (/^(free|gratis|gratuito)$/i.test(price.trim())) return "Gratis";
+  return /^\d/.test(price) ? `$${price}` : price;
+}
+
 function initialsOf(name: string): string {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
@@ -114,7 +120,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
     return [...TIMEZONES, { id: businessTz, label: businessTz }];
   }, [data?.professional.timezone]);
 
-  const days = useMemo(() => Array.from(slotsByDay.keys()).sort().slice(0, 6), [slotsByDay]);
+  const days = useMemo(() => Array.from(slotsByDay.keys()).sort().slice(0, 10), [slotsByDay]);
 
   useEffect(() => {
     if (!selectedDay && days.length > 0) {
@@ -297,7 +303,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                           className="rounded-[11px] border-[1.5px] px-[13px] py-[9px] text-[13px] font-bold"
                           style={{ borderColor: active ? "#215a8f" : "#e0e6f0", background: active ? "#eef4fb" : "#fff", color: active ? "#1f3864" : "#5a6884" }}
                         >
-                          {sv.name} · {sv.durationMinutes}m{sv.price ? ` · ${/^\d/.test(sv.price) ? `$${sv.price}` : sv.price}` : ""}
+                          {sv.name} · {sv.durationMinutes}m{sv.price ? ` · ${formatPrice(sv.price)}` : ""}
                         </button>
                       );
                     })}
@@ -402,6 +408,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 </div>
                 <div className="mt-0.5 text-[12.5px] text-[#4a5878]">
                   {serviceName} con {professionalName}
+                  {curService?.price ? ` · ${formatPrice(curService.price)}` : ""}
                 </div>
               </div>
 
@@ -467,6 +474,10 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).setLocale("es").toFormat("cccc d 'de' LLLL")} a las{" "}
                 {DateTime.fromISO(selectedSlot.startISO).setZone(displayTz).toFormat("HH:mm")}
               </div>
+              <div className="mt-1 text-[13px] text-[#6b7890]">
+                {serviceName}
+                {curService?.price ? ` · ${formatPrice(curService.price)}` : ""}
+              </div>
               <span className="mt-2.5 inline-block rounded-full bg-[#fdf1dc] px-3 py-1 text-[12px] font-bold text-[#a4700f]">
                 Pendiente de confirmación
               </span>
@@ -474,8 +485,12 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 {emailSent
                   ? "Te enviamos el detalle por email. El turno queda pendiente de confirmación y te avisaremos cuando se confirme."
                   : "Tu turno quedó registrado y pendiente de confirmación. No pudimos enviarte el email en este momento, así que anotá la fecha y el horario."}
-                <br />
-                Podés cancelar desde ese mismo mensaje.
+                {emailSent && (
+                  <>
+                    <br />
+                    Podés cancelar desde ese mismo mensaje.
+                  </>
+                )}
               </div>
               <div className="mt-3 text-[13px] font-semibold text-[#2a3856]">
                 Si no vas a reservar más turnos, ya podés cerrar esta ventana.

@@ -22,12 +22,17 @@ const CHANNEL_META: Record<ChannelKey, { label: string; dot: string; disabled?: 
 export default function RescheduleModal({
   bookingId,
   clientName,
+  clientPhone,
+  clientEmail,
   professionalSlug,
   onClose,
   onDone,
 }: {
   bookingId: string;
   clientName: string;
+  /** Sin teléfono o sin email no se ofrece ese canal de aviso. */
+  clientPhone: string | null;
+  clientEmail: string | null;
   professionalSlug: string;
   onClose: () => void;
   onDone: (message: string) => void;
@@ -40,7 +45,7 @@ export default function RescheduleModal({
   const [selectedSlot, setSelectedSlot] = useState<FreeSlot | null>(null);
   const [saving, setSaving] = useState(false);
   const [fromDate, setFromDate] = useState<string | null>(null);
-  const [notify, setNotify] = useState<Record<ChannelKey, boolean>>({ whatsapp: true, email: true, telegram: false, teams: false });
+  const [notify, setNotify] = useState<Record<ChannelKey, boolean>>({ whatsapp: !!clientPhone, email: !!clientEmail, telegram: false, teams: false });
   const [telegramNotice, setTelegramNotice] = useState(false);
 
   useEffect(() => {
@@ -77,6 +82,7 @@ export default function RescheduleModal({
   }, [days, selectedDay]);
 
   function toggleChannel(k: ChannelKey) {
+    if ((k === "whatsapp" && !clientPhone) || (k === "email" && !clientEmail)) return;
     if (CHANNEL_META[k].disabled) {
       setTelegramNotice(true);
       setTimeout(() => setTelegramNotice(false), 2500);
@@ -152,7 +158,11 @@ export default function RescheduleModal({
             type="date"
             min={DateTime.now().toISODate() ?? undefined}
             value={fromDate ?? ""}
-            onChange={(e) => setFromDate(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value) ? e.target.value : null)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Una fecha pasada o incompleta vuelve a "desde hoy".
+              setFromDate(/^\d{4}-\d{2}-\d{2}$/.test(value) && value >= (DateTime.now().toISODate() ?? "") ? value : null);
+            }}
             className="rounded-[10px] border-[1.5px] border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]"
           />
           {fromDate && (
@@ -228,24 +238,32 @@ export default function RescheduleModal({
                 {(Object.keys(CHANNEL_META) as ChannelKey[]).map((k) => {
                   const meta = CHANNEL_META[k];
                   const on = notify[k];
+                  const missing = (k === "whatsapp" && !clientPhone) || (k === "email" && !clientEmail);
+                  const blocked = !!meta.disabled || missing;
                   return (
                     <button
                       key={k}
-                      aria-pressed={meta.disabled ? undefined : on}
-                      aria-disabled={meta.disabled || undefined}
-                      title={meta.disabled ? "Próximamente" : undefined}
+                      aria-pressed={blocked ? undefined : on}
+                      aria-disabled={blocked || undefined}
+                      title={missing ? "El cliente no dejó este dato de contacto" : meta.disabled ? "Próximamente" : undefined}
                       onClick={() => toggleChannel(k)}
                       className="inline-flex items-center gap-[7px] rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-semibold"
                       style={{
                         borderColor: on ? "var(--brand)" : "var(--line-in)",
                         background: on ? "var(--brand-soft)" : "var(--surface)",
-                        color: meta.disabled ? "var(--muted-nav)" : on ? "var(--brand-dk)" : "var(--muted-nav)",
-                        opacity: meta.disabled ? 0.7 : 1,
+                        color: blocked ? "var(--muted-nav)" : on ? "var(--brand-dk)" : "var(--muted-nav)",
+                        opacity: blocked ? 0.7 : 1,
                       }}
                     >
                       <span className="h-[9px] w-[9px] rounded-full" style={{ background: meta.dot }} />
                       {meta.label}
-                      {meta.disabled ? <span className="text-[10px]">(pronto)</span> : on && <IconCheck className="text-[var(--brand)]" />}
+                      {meta.disabled ? (
+                        <span className="text-[10px]">(pronto)</span>
+                      ) : missing ? (
+                        <span className="text-[10px]">({k === "whatsapp" ? "sin teléfono" : "sin email"})</span>
+                      ) : (
+                        on && <IconCheck className="text-[var(--brand)]" />
+                      )}
                     </button>
                   );
                 })}

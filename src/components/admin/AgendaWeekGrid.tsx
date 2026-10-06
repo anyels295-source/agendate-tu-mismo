@@ -58,7 +58,7 @@ const STATUS_BADGE: Record<string, { bg: string; fg: string }> = {
 };
 
 const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
-  { value: "ALL", label: "Todos los estados" },
+  { value: "ALL", label: "Activos (sin canceladas)" },
   { value: "PENDING", label: "Pendiente" },
   { value: "CONFIRMED", label: "Confirmada" },
   { value: "COMPLETED", label: "Completada" },
@@ -220,7 +220,7 @@ export default function AgendaWeekGrid({
           setUndo(null);
           setToast("Cambio deshecho.");
         } else {
-          setToast(statusToast(status, opts.previous));
+          setToast(statusToast(status, opts.previous, (await res.json().catch(() => ({}))).emailSent));
           setUndo(status !== "CANCELLED" && opts.previous && opts.previous !== status ? { id, status: opts.previous } : null);
         }
         router.refresh();
@@ -558,6 +558,8 @@ export default function AgendaWeekGrid({
         <RescheduleModal
           bookingId={detail.id}
           clientName={detail.clientName}
+          clientPhone={detail.phone}
+          clientEmail={detail.email}
           professionalSlug={professionalSlug}
           onClose={() => setShowReschedule(false)}
           onDone={(message) => {

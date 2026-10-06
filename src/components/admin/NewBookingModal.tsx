@@ -211,7 +211,11 @@ export default function NewBookingModal({
             type="date"
             min={DateTime.now().toISODate() ?? undefined}
             value={fromDate ?? ""}
-            onChange={(e) => setFromDate(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value) ? e.target.value : null)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Una fecha pasada o incompleta vuelve a "desde hoy".
+              setFromDate(/^\d{4}-\d{2}-\d{2}$/.test(value) && value >= (DateTime.now().toISODate() ?? "") ? value : null);
+            }}
             className="rounded-[10px] border-[1.5px] border-[var(--line-in)] px-2.5 py-1.5 text-[13px] text-[var(--ink2)]"
           />
           {fromDate && (
