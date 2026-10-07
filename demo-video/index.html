@@ -56,9 +56,10 @@
       .step b { flex: none; width: 70px; height: 70px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 36px; display: flex; align-items: center; justify-content: center; }
       .step div { font-size: 38px; font-weight: 700; line-height: 1.2; }
       .step div span { display: block; font-size: 28px; font-weight: 400; color: var(--muted); margin-top: 6px; }
-      .phone { position: absolute; left: 1180px; top: 70px; width: 450px; height: 940px; border-radius: 66px; background: #0c1626; padding: 18px; box-shadow: 0 50px 120px rgba(15,36,64,.4); }
+      .phone { position: absolute; left: 1180px; top: 74px; width: 450px; height: 932px; border-radius: 66px; background: #0c1626; padding: 18px; box-shadow: 0 50px 120px rgba(15,36,64,.4); }
       .phone .screen { position: relative; width: 100%; height: 100%; border-radius: 50px; overflow: hidden; background: #f1f5fb; }
       .phone img { position: absolute; top: 0; left: 0; width: 100%; }
+      .phone .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 90px; background: linear-gradient(to bottom, rgba(238,243,250,0), #eef3fa 85%); }
 
       /* Ventanas con capturas del panel */
       .window { position: absolute; left: 790px; width: 1000px; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 40px 100px rgba(15,36,64,.28); }
@@ -146,9 +147,10 @@
         </div>
         <div class="phone s4-phone">
           <div class="screen">
-            <img data-layout-allow-overflow class="m1" src="assets/m1-horarios.png" alt="Elegir horario" />
-            <img data-layout-allow-overflow class="m2" src="assets/m2-datos.png" alt="Completar datos" />
+            <img class="m1" src="assets/m1-horarios.png" alt="Elegir horario" />
+            <img class="m2" src="assets/m2-datos.png" alt="Completar datos" />
             <img class="m3" src="assets/m3-listo.png" alt="Reserva recibida" />
+            <div class="fade"></div>
           </div>
         </div>
       </section>
@@ -196,10 +198,10 @@
           <div class="headline">Cada turno va a tu Google Calendar, con su Meet.</div>
           <div class="sub">Reprogramás o cancelás desde acá y el cliente recibe el aviso.</div>
         </div>
-        <div class="window s7-win" style="top:200px">
+        <div class="window s7-win" style="top:250px">
           <div class="bar"><i></i><i></i><i></i></div>
-          <div class="view">
-            <img src="assets/d3-detalle.png" alt="Agenda con el detalle del turno" />
+          <div class="view" style="height:500px">
+            <img data-layout-allow-overflow src="assets/d3-detalle.png" alt="Agenda con el detalle del turno" />
             <div class="ring s7-ring" style="left:354px; top:126px; width:290px; height:372px"></div>
           </div>
         </div>
@@ -212,7 +214,7 @@
           <div class="card c1"><div class="em">⏰</div><div><h3>Recordatorios</h3><p>El cliente recibe un aviso antes de su turno.</p></div></div>
           <div class="card c2"><div class="em">🛡️</div><div><h3>Sin dobles reservas</h3><p>Aunque dos personas reserven en el mismo segundo.</p></div></div>
           <div class="card c3"><div class="em">📅</div><div><h3>Respeta tu agenda</h3><p>Lo que tengas en otros calendarios queda bloqueado.</p></div></div>
-          <div class="card c4"><div class="em">↩️</div><div><h3>Cancelación con un link</h3><p>El cliente cancela solo y el horario se libera.</p></div></div>
+          <div class="card c4"><div class="em">🔗</div><div><h3>Cancelación con un link</h3><p>El cliente cancela desde el link de su email y el horario se libera.</p></div></div>
         </div>
       </section>
 
@@ -271,11 +273,9 @@
         .set(".m2, .m3", { opacity: 0 }, 0)
         .set(".st2, .st3", { opacity: 0 }, 0)
         .from(".st1", { x: 30, opacity: 0, duration: 0.6, ease }, 19.4)
-        .to(".m1", { y: -280, duration: 2.4, ease: "power1.inOut" }, 20.6)
         .to(".m2", { opacity: 1, duration: 0.5 }, 23.8)
         .to(".st1", { opacity: 0.65, duration: 0.4 }, 23.8)
         .fromTo(".st2", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.6, ease }, 23.9)
-        .to(".m2", { y: -130, duration: 1.8, ease: "power1.inOut" }, 25.3)
         .to(".m3", { opacity: 1, duration: 0.5 }, 28.8)
         .to(".st2", { opacity: 0.65, duration: 0.4 }, 28.8)
         .fromTo(".st3", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.6, ease }, 28.9);
