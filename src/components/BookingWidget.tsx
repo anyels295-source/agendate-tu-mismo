@@ -460,6 +460,23 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                 >
                   {submitting ? "Confirmando…" : "Confirmar turno"}
                 </button>
+                {/* Para quien se arrepiente a mitad de camino: todavía no se reservó nada, así que
+                    se descartan el horario y los datos escritos y se vuelve al inicio. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSlot(null);
+                    setForm({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
+                    setReusingData(false);
+                    setFormError(null);
+                    setStep("elegir");
+                    setNotice("Cancelaste la reserva: no se agendó ningún turno. Si querés, podés elegir otro horario.");
+                  }}
+                  disabled={submitting}
+                  className="w-full rounded-[12px] border border-[#d6deeb] bg-white py-3 text-[14.5px] font-semibold text-[#4a5878] disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
           )}
