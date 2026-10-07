@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+/**
+ * A dónde ir después de iniciar sesión: la página del panel que se había pedido (llega en
+ * `?next=`), o Reservas si no hay ninguna. Solo se aceptan rutas internas del panel, para que
+ * nadie pueda armar un link de login que redirija a otro sitio.
+ */
+function nextPathAfterLogin(): string {
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (next && next.startsWith("/admin") && !next.startsWith("//") && !next.startsWith("/admin/login")) return next;
+  return "/admin/reservas";
+}
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -20,7 +31,7 @@ export default function AdminLoginPage() {
       body: JSON.stringify({ email, password }),
     });
     if (res.ok) {
-      router.push("/admin/reservas");
+      router.push(nextPathAfterLogin());
       router.refresh();
     } else {
       const json = await res.json().catch(() => ({}));
