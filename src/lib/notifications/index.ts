@@ -59,6 +59,14 @@ async function logNotification(
   });
 }
 
+/**
+ * El link de la videollamada se le manda al cliente recién cuando el turno está confirmado:
+ * mientras está pendiente, el turno todavía puede no concretarse.
+ */
+function meetingUrlForClient(booking: Booking): string | null {
+  return booking.status === "CONFIRMED" ? booking.meetingUrl : null;
+}
+
 export async function notifyBookingConfirmed(booking: Booking, professional: Professional, opts: { pending?: boolean; skipOwner?: boolean } = {}) {
   const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
   const cancelUrl = `${process.env.APP_URL ?? "http://localhost:3000"}/cancelar/${booking.cancelToken}`;
@@ -110,7 +118,7 @@ export async function notifyBookingConfirmed(booking: Booking, professional: Pro
         timeLabel,
         cancelUrl,
         pending: opts.pending,
-        meetingUrl: booking.meetingUrl,
+        meetingUrl: meetingUrlForClient(booking),
       }).then((result) => {
         clientEmailStatus = result.status;
         return logNotification(booking.id, "EMAIL", result, "cliente");
@@ -184,7 +192,7 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
         dateLabel,
         timeLabel,
         cancelUrl,
-        meetingUrl: booking.meetingUrl,
+        meetingUrl: meetingUrlForClient(booking),
       }).then((result) => logNotification(booking.id, "EMAIL", result, "cliente"))
     );
   }

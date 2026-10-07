@@ -82,7 +82,8 @@ export async function GET(req: NextRequest) {
         dateLabel: start.toFormat("cccc d 'de' LLLL"),
         timeLabel: start.toFormat("HH:mm"),
         cancelUrl: `${appUrl}/cancelar/${booking.cancelToken}`,
-        meetingUrl: booking.meetingUrl,
+        // Mismo criterio que los demás avisos: el link de la videollamada, solo con el turno confirmado.
+        meetingUrl: booking.status === "CONFIRMED" ? booking.meetingUrl : null,
         isToday: start.hasSame(now, "day"),
       });
 
