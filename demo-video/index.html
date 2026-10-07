@@ -94,6 +94,14 @@
       .chips { display: flex; gap: 20px; }
       .chip { font-size: 29px; padding: 15px 28px; border-radius: 999px; background: rgba(255,255,255,.12); color: #e4eefc; }
       .url { font-size: 36px; color: #9fc0ea; font-weight: 600; }
+      /* "Un desarrollo de invenzis", con los azules de la app */
+      .byline { display: flex; align-items: center; gap: 18px; margin-top: 26px; }
+      .byline small { font-size: 26px; color: #9fb4d3; letter-spacing: .04em; }
+      .invenzis { display: flex; align-items: center; gap: 6px; font-size: 52px; font-weight: 600; letter-spacing: -0.01em; color: #ffffff; }
+      .invenzis svg { width: 30px; height: 40px; }
+      .title-byline { position: absolute; left: 0; right: 0; bottom: 70px; display: flex; justify-content: center; }
+      .title-byline .invenzis { font-size: 34px; }
+      .title-byline .invenzis svg { width: 20px; height: 27px; }
     </style>
   </head>
   <body>
@@ -113,6 +121,7 @@
           <div class="brand s1-brand">Agéndate Tú Mismo</div>
           <div class="tagline s1-tag">Tus clientes reservan solos. Vos solo atendés.</div>
         </div>
+        <div class="title-byline s1-by"><div class="byline" style="margin:0"><small>Un desarrollo de</small><div class="invenzis">invenzis<svg viewBox="0 0 30 40" aria-hidden="true"><path d="M4 4 L26 20 L4 36 L10 20 Z" fill="#2e6fb0"/><path d="M4 4 L26 20 L18 20 Z" fill="#5b9be0"/></svg></div></div></div>
       </section>
 
       <!-- 2. El problema (5–13) -->
@@ -239,6 +248,7 @@
           <div class="logo s10-logo">A</div>
           <div class="brand s10-brand">Agéndate Tú Mismo</div>
           <div class="url s10-url">agendate-tu-mismo.vercel.app</div>
+          <div class="byline s10-by"><small>Un desarrollo de</small><div class="invenzis">invenzis<svg viewBox="0 0 30 40" aria-hidden="true"><path d="M4 4 L26 20 L4 36 L10 20 Z" fill="#2e6fb0"/><path d="M4 4 L26 20 L18 20 Z" fill="#5b9be0"/></svg></div></div>
         </div>
       </section>
     </div>
@@ -255,7 +265,8 @@
       // 1. Título
       tl.from(".s1-logo", { scale: 0.6, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 0.2)
         .from(".s1-brand", { y: 40, opacity: 0, duration: 0.8, ease }, 0.6)
-        .from(".s1-tag", { y: 24, opacity: 0, duration: 0.8, ease }, 1.1);
+        .from(".s1-tag", { y: 24, opacity: 0, duration: 0.8, ease }, 1.1)
+        .from(".s1-by", { opacity: 0, duration: 0.8 }, 1.8);
 
       // 2. Problema: los mensajes llegan de a uno
       ["b1", "b2", "b3", "b4"].forEach((b, i) => tl.from(`.${b}`, { y: 30, opacity: 0, scale: 0.96, duration: 0.5, ease }, 5.6 + i * 1.0));
@@ -314,6 +325,7 @@
       tl.from(".s10-logo", { scale: 0.6, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 85.4)
         .from(".s10-brand", { y: 30, opacity: 0, duration: 0.7, ease }, 85.8)
         .from(".s10-url", { y: 20, opacity: 0, duration: 0.6, ease }, 86.3)
+        .from(".s10-by", { y: 20, opacity: 0, duration: 0.7, ease }, 86.9)
         .to("#s10 .stack", { opacity: 0, duration: 1.2 }, 90.8);
 
       window.__timelines = window.__timelines || {};
