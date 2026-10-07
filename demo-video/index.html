@@ -12,98 +12,101 @@
         --blue: #22508c;
         --blue-2: #2e6fb0;
         --ink: #14233d;
-        --muted: #5a6884;
-        --paper: #f3f6fb;
-        --green: #1f8a4c;
+        --muted: #55637d;
         --wa: #25d366;
-        --amber: #b7791f;
       }
-      #root {
-        position: relative; width: 1920px; height: 1080px; overflow: hidden;
-        font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--ink);
-      }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--ink); }
       .clip { position: absolute; inset: 0; }
       .scene { display: flex; align-items: center; justify-content: center; }
-      .bg-dark { background: radial-gradient(1200px 800px at 30% 20%, #23508c 0%, var(--navy) 70%); color: #fff; }
-      .bg-light { background: linear-gradient(160deg, #f6f9fd 0%, #e7eef8 100%); }
+      .bg-dark { background: radial-gradient(1300px 900px at 30% 20%, #23508c 0%, var(--navy) 70%); color: #fff; }
+      .bg-light { background: linear-gradient(160deg, #f7f9fd 0%, #e6edf8 100%); }
 
       /* Marca */
-      .logo { width: 132px; height: 132px; border-radius: 32px; background: linear-gradient(145deg, var(--blue-2), var(--blue));
-        display: flex; align-items: center; justify-content: center; font-size: 76px; font-weight: 800; color: #fff;
+      .logo { width: 140px; height: 140px; border-radius: 34px; background: linear-gradient(145deg, var(--blue-2), var(--blue));
+        display: flex; align-items: center; justify-content: center; font-size: 80px; font-weight: 800; color: #fff;
         box-shadow: 0 30px 80px rgba(0,0,0,.35); }
-      .brand { font-size: 96px; font-weight: 800; letter-spacing: -0.03em; }
-      .tagline { font-size: 44px; font-weight: 400; color: #c9d8ee; }
-      .stack { display: flex; flex-direction: column; align-items: center; gap: 28px; text-align: center; }
+      .brand { font-size: 104px; font-weight: 800; letter-spacing: -0.02em; }
+      .tagline { font-size: 46px; color: #c9d8ee; }
+      .stack { display: flex; flex-direction: column; align-items: center; gap: 34px; text-align: center; }
+
+      /* Textos de las escenas */
+      .col { position: absolute; left: 150px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 26px; }
+      .kicker { font-size: 26px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--blue-2); }
+      .headline { font-size: 66px; font-weight: 800; line-height: 1.1; letter-spacing: -0.015em; }
+      .sub { font-size: 33px; line-height: 1.45; color: var(--muted); }
 
       /* Escena 2: chat */
-      .chat { width: 820px; display: flex; flex-direction: column; gap: 22px; }
-      .bubble { max-width: 560px; padding: 22px 30px; border-radius: 26px; font-size: 34px; line-height: 1.3;
-        box-shadow: 0 10px 30px rgba(15,36,64,.12); }
+      .chat { width: 900px; display: flex; flex-direction: column; gap: 26px; }
+      .bubble { max-width: 620px; padding: 24px 34px; border-radius: 28px; font-size: 36px; line-height: 1.3; box-shadow: 0 10px 30px rgba(15,36,64,.12); }
       .bubble.in { background: #fff; align-self: flex-start; border-bottom-left-radius: 8px; }
       .bubble.out { background: #d9fdd3; align-self: flex-end; border-bottom-right-radius: 8px; }
-      .bubble small { display: block; font-size: 20px; color: #7b8aa3; margin-top: 6px; text-align: right; }
-      .problem-title { position: absolute; left: 0; right: 0; bottom: 120px; text-align: center; font-size: 64px; font-weight: 800; color: var(--ink); }
+      .bubble small { display: block; font-size: 21px; color: #7b8aa3; margin-top: 6px; text-align: right; }
+      .problem-title { position: absolute; left: 0; right: 0; bottom: 110px; text-align: center; font-size: 66px; font-weight: 800; }
 
       /* Escena 3: link */
-      .big { font-size: 80px; font-weight: 800; letter-spacing: -0.02em; }
-      .link-pill { display: flex; align-items: center; gap: 24px; background: #fff; border-radius: 999px; padding: 22px 26px 22px 40px;
-        box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-      .link-pill span { font-size: 36px; color: var(--ink); font-weight: 600; }
-      .wa-btn { background: var(--wa); color: #fff; font-size: 30px; font-weight: 700; padding: 18px 32px; border-radius: 999px; }
+      .big { font-size: 88px; font-weight: 800; letter-spacing: -0.015em; }
+      .link-pill { display: flex; align-items: center; gap: 28px; background: #fff; border-radius: 999px; padding: 24px 28px 24px 44px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+      .link-pill span { font-size: 38px; color: var(--ink); font-weight: 600; }
+      .wa-btn { background: var(--wa); color: #fff; font-size: 32px; font-weight: 700; padding: 20px 36px; border-radius: 999px; }
 
-      /* Capturas */
-      .caption-col { position: absolute; left: 90px; top: 0; bottom: 0; width: 440px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
-      .kicker { font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--blue-2); }
-      .headline { font-size: 54px; font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; }
-      .sub { font-size: 30px; line-height: 1.4; color: var(--muted); }
-      .window { position: absolute; left: 560px; width: 1290px; border-radius: 18px; overflow: hidden; background: #fff;
-        box-shadow: 0 40px 100px rgba(15,36,64,.28); }
-      .window .bar { height: 44px; background: #e9eef6; display: flex; align-items: center; gap: 10px; padding-left: 18px; }
-      .window .bar i { width: 14px; height: 14px; border-radius: 50%; background: #c5cfde; display: block; }
+      /* Escena 4: teléfono */
+      .steps { display: flex; flex-direction: column; gap: 38px; margin-top: 30px; }
+      .step { display: flex; gap: 28px; align-items: flex-start; }
+      .step b { flex: none; width: 70px; height: 70px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 36px; display: flex; align-items: center; justify-content: center; }
+      .step div { font-size: 38px; font-weight: 700; line-height: 1.2; }
+      .step div span { display: block; font-size: 28px; font-weight: 400; color: var(--muted); margin-top: 6px; }
+      .phone { position: absolute; left: 1180px; top: 70px; width: 450px; height: 940px; border-radius: 66px; background: #0c1626; padding: 18px; box-shadow: 0 50px 120px rgba(15,36,64,.4); }
+      .phone .screen { position: relative; width: 100%; height: 100%; border-radius: 50px; overflow: hidden; background: #f1f5fb; }
+      .phone img { position: absolute; top: 0; left: 0; width: 100%; }
+
+      /* Ventanas con capturas del panel */
+      .window { position: absolute; left: 790px; width: 1000px; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 40px 100px rgba(15,36,64,.28); }
+      .window .bar { height: 40px; background: #e9eef6; display: flex; align-items: center; gap: 10px; padding-left: 18px; }
+      .window .bar i { width: 13px; height: 13px; border-radius: 50%; background: #c5cfde; display: block; }
       .window .view { position: relative; overflow: hidden; }
       .window img { display: block; width: 100%; }
-      .ring { position: absolute; border: 5px solid #f2b705; border-radius: 16px; box-shadow: 0 0 0 9999px rgba(15,36,64,.0); }
+      .ring { position: absolute; border: 5px solid #f2b705; border-radius: 14px; }
 
-      /* Teléfono */
-      .phone { position: absolute; left: 640px; top: 70px; width: 440px; height: 940px; border-radius: 64px; background: #0c1626;
-        padding: 18px; box-shadow: 0 50px 120px rgba(15,36,64,.4); }
-      .phone .screen { position: relative; width: 100%; height: 100%; border-radius: 48px; overflow: hidden; background: #f1f5fb; }
-      .phone img { position: absolute; top: 0; left: 0; width: 100%; }
-      .steps { position: absolute; left: 1180px; top: 0; bottom: 0; width: 640px; display: flex; flex-direction: column; justify-content: center; gap: 46px; }
-      .step { display: flex; gap: 26px; align-items: flex-start; }
-      .step b { flex: none; width: 66px; height: 66px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 34px;
-        display: flex; align-items: center; justify-content: center; }
-      .step div { font-size: 38px; font-weight: 700; line-height: 1.2; }
-      .step div span { display: block; font-size: 27px; font-weight: 400; color: var(--muted); margin-top: 6px; }
-      .phone-title { position: absolute; left: 90px; top: 0; bottom: 0; width: 500px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+      /* Escena 5: emails */
+      .mail { position: absolute; left: 960px; width: 640px; border-radius: 18px; box-shadow: 0 40px 100px rgba(15,36,64,.28); }
+      .mail-labels { display: flex; flex-direction: column; gap: 22px; margin-top: 26px; }
+      .mail-label { display: flex; align-items: center; gap: 20px; font-size: 31px; color: var(--muted); }
+      .mail-label i { flex: none; width: 18px; height: 18px; border-radius: 50%; background: #c5cfde; display: block; }
+      .mail-label strong { color: var(--ink); }
 
-      /* Toast de email */
-      .toast { position: absolute; right: 90px; top: 70px; width: 600px; background: #fff; border-radius: 18px; padding: 22px 26px;
-        display: flex; gap: 18px; align-items: center; box-shadow: 0 24px 60px rgba(15,36,64,.3); }
-      .toast .ico { flex: none; width: 58px; height: 58px; border-radius: 14px; background: #ea4335; color: #fff; font-size: 30px; font-weight: 800;
-        display: flex; align-items: center; justify-content: center; }
-      .toast p { font-size: 22px; color: var(--muted); }
-      .toast strong { display: block; font-size: 25px; color: var(--ink); }
+      /* Aviso de email en el panel */
+      .toast { position: absolute; right: 130px; top: 90px; width: 620px; background: #fff; border-radius: 18px; padding: 24px 28px; display: flex; gap: 20px; align-items: center; box-shadow: 0 24px 60px rgba(15,36,64,.3); }
+      .toast .ico { flex: none; width: 60px; height: 60px; border-radius: 14px; background: var(--blue); color: #fff; font-size: 32px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+      .toast p { font-size: 23px; color: var(--muted); }
+      .toast strong { display: block; font-size: 26px; color: var(--ink); }
 
-      /* Funciones */
-      .grid { display: grid; grid-template-columns: repeat(2, 640px); gap: 34px; }
-      .card { background: #fff; border-radius: 26px; padding: 38px 40px; box-shadow: 0 18px 50px rgba(15,36,64,.12); display: flex; gap: 28px; align-items: center; }
-      .card .em { flex: none; width: 84px; height: 84px; border-radius: 22px; background: #e6eef9; font-size: 46px; display: flex; align-items: center; justify-content: center; }
-      .card h3 { font-size: 36px; font-weight: 800; }
-      .card p { font-size: 26px; color: var(--muted); margin-top: 6px; line-height: 1.3; }
-      .grid-title { position: absolute; top: 120px; left: 0; right: 0; text-align: center; font-size: 60px; font-weight: 800; }
+      /* Escena 8: funciones */
+      .grid { display: grid; grid-template-columns: repeat(2, 700px); gap: 40px; }
+      .card { background: #fff; border-radius: 28px; padding: 42px 44px; box-shadow: 0 18px 50px rgba(15,36,64,.12); display: flex; gap: 30px; align-items: center; }
+      .card .em { flex: none; width: 90px; height: 90px; border-radius: 24px; background: #e6eef9; font-size: 48px; display: flex; align-items: center; justify-content: center; }
+      .card h3 { font-size: 38px; font-weight: 800; }
+      .card p { font-size: 27px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
+      .grid-title { position: absolute; top: 120px; left: 0; right: 0; text-align: center; font-size: 66px; font-weight: 800; }
 
       /* Cierre */
-      .chips { display: flex; gap: 18px; }
-      .chip { font-size: 28px; padding: 14px 26px; border-radius: 999px; background: rgba(255,255,255,.12); color: #e4eefc; }
-      .url { font-size: 34px; color: #9fc0ea; font-weight: 600; }
+      .chips { display: flex; gap: 20px; }
+      .chip { font-size: 29px; padding: 15px 28px; border-radius: 999px; background: rgba(255,255,255,.12); color: #e4eefc; }
+      .url { font-size: 36px; color: #9fc0ea; font-weight: 600; }
     </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="72" data-width="1920" data-height="1080">
+    <div id="root" data-composition-id="main" data-start="0" data-duration="92" data-width="1920" data-height="1080">
+
+      <!-- Sonido: música de fondo suave (generada) y un "ding" cuando llega cada email -->
+      <audio id="bgm" data-start="0" data-duration="92" data-volume="0.6" src="assets/musica.mp3" data-track-index="9"></audio>
+      <audio id="ding-1" data-start="36.2" data-duration="0.96" data-volume="0.5" src="assets/ding.mp3" data-track-index="10"></audio>
+      <audio id="ding-2" data-start="40.4" data-duration="0.96" data-volume="0.5" src="assets/ding.mp3" data-track-index="10"></audio>
+      <audio id="ding-3" data-start="44.6" data-duration="0.96" data-volume="0.5" src="assets/ding.mp3" data-track-index="10"></audio>
+      <audio id="ding-4" data-start="49.6" data-duration="0.96" data-volume="0.5" src="assets/ding.mp3" data-track-index="10"></audio>
 
       <!-- 1. Título (0–5) -->
-      <section id="s1" class="clip scene bg-dark" data-start="0" data-duration="5" data-track-index="0">
+      <section id="s1" class="clip scene bg-dark" data-start="0" data-duration="5.6" data-track-index="0">
         <div class="stack">
           <div class="logo s1-logo">A</div>
           <div class="brand s1-brand">Agéndate Tú Mismo</div>
@@ -111,9 +114,9 @@
         </div>
       </section>
 
-      <!-- 2. El problema (5–12) -->
-      <section id="s2" class="clip scene bg-light" data-start="5" data-duration="7" data-track-index="0">
-        <div class="chat" style="margin-top:-120px">
+      <!-- 2. El problema (5–13) -->
+      <section id="s2" class="clip scene bg-light" data-start="5" data-duration="8.6" data-track-index="1">
+        <div class="chat" style="margin-top:-130px">
           <div class="bubble in b1">Hola! ¿Tenés turno el martes?<small>10:02</small></div>
           <div class="bubble out b2">El martes no tengo 😕 ¿Jueves a las 10?<small>11:47</small></div>
           <div class="bubble in b3">Uh, el jueves no puedo… ¿y el viernes?<small>15:20</small></div>
@@ -122,20 +125,24 @@
         <div class="problem-title s2-title">Coordinar turnos por chat te come el día.</div>
       </section>
 
-      <!-- 3. Un link (12–16) -->
-      <section id="s3" class="clip scene bg-dark" data-start="12" data-duration="4" data-track-index="0">
+      <!-- 3. Un link (13–18) -->
+      <section id="s3" class="clip scene bg-dark" data-start="13" data-duration="5.6" data-track-index="0">
         <div class="stack">
           <div class="big s3-title">Compartís un link. Listo.</div>
           <div class="link-pill s3-pill"><span>agendate-tu-mismo.vercel.app/reservar/ibermudez</span><div class="wa-btn">Compartir por WhatsApp</div></div>
         </div>
       </section>
 
-      <!-- 4. El cliente reserva (16–31) -->
-      <section id="s4" class="clip bg-light" data-start="16" data-duration="15" data-track-index="0">
-        <div class="phone-title">
-          <div class="kicker">El cliente</div>
-          <div class="headline">Reserva desde el celular, en tres pasos.</div>
-          <div class="sub">Ve solo los horarios en que de verdad estás libre.</div>
+      <!-- 4. El cliente reserva (18–35) -->
+      <section id="s4" class="clip bg-light" data-start="18" data-duration="17.6" data-track-index="1">
+        <div class="col" style="width:880px">
+          <div class="kicker s4-k">El cliente</div>
+          <div class="headline s4-h">Reserva desde el celular,<br />en tres pasos.</div>
+          <div class="steps">
+            <div class="step st1"><b>1</b><div>Elige servicio, día y hora<span>Ve solo los horarios en que de verdad estás libre.</span></div></div>
+            <div class="step st2"><b>2</b><div>Deja su nombre y email<span>Sin crear cuentas ni descargar nada.</span></div></div>
+            <div class="step st3"><b>3</b><div>¡Reserva recibida!<span>Le llega el detalle por email.</span></div></div>
+          </div>
         </div>
         <div class="phone s4-phone">
           <div class="screen">
@@ -144,82 +151,93 @@
             <img class="m3" src="assets/m3-listo.png" alt="Reserva recibida" />
           </div>
         </div>
-        <div class="steps">
-          <div class="step st1"><b>1</b><div>Elige servicio, día y hora<span>Cruza tu horario con tu Google Calendar.</span></div></div>
-          <div class="step st2"><b>2</b><div>Deja nombre y email<span>Sin crear cuentas ni descargar nada.</span></div></div>
-          <div class="step st3"><b>3</b><div>¡Reserva recibida!<span>Le llega el detalle por email.</span></div></div>
-        </div>
       </section>
 
-      <!-- 5. Panel (31–41) -->
-      <section id="s5" class="clip bg-light" data-start="31" data-duration="10" data-track-index="0">
-        <div class="caption-col">
-          <div class="kicker">Vos</div>
-          <div class="headline">Te enterás al instante y confirmás con un clic.</div>
-          <div class="sub">El panel te muestra lo que falta confirmar y tus próximos turnos.</div>
-        </div>
-        <div class="window s5-win" style="top:150px">
-          <div class="bar"><i></i><i></i><i></i></div>
-          <div class="view" style="height:645px">
-            <img data-layout-allow-overflow src="assets/d1-panel.png" alt="Panel" />
-            <div class="ring s5-ring" style="left:255px; top:107px; width:998px; height:52px"></div>
+      <!-- 5. Los emails (35–48) -->
+      <section id="s5" class="clip bg-light" data-start="35" data-duration="13.6" data-track-index="0">
+        <div class="col" style="width:720px">
+          <div class="kicker">Avisos automáticos</div>
+          <div class="headline">Cada aviso llega con tu marca.</div>
+          <div class="mail-labels">
+            <div class="mail-label ml1"><i></i><span><strong>Al cliente:</strong> confirmación con su Meet</span></div>
+            <div class="mail-label ml2"><i></i><span><strong>A vos:</strong> turno por confirmar</span></div>
+            <div class="mail-label ml3"><i></i><span><strong>Cada mañana:</strong> tu agenda del día</span></div>
           </div>
         </div>
-        <div class="toast s5-toast">
-          <div class="ico">M</div>
-          <div><strong>Nuevo turno por confirmar</strong><p>María González · viernes 9 de octubre 10:00</p></div>
+        <img class="mail e1" style="top:230px" src="assets/e1-cliente.png" alt="Email de turno confirmado" />
+        <img class="mail e2" style="top:270px" src="assets/e2-profesional.png" alt="Email de turno por confirmar" />
+        <img class="mail e3" style="top:150px" src="assets/e3-resumen.png" alt="Resumen diario" />
+      </section>
+
+      <!-- 6. Panel (48–59) -->
+      <section id="s6" class="clip bg-light" data-start="48" data-duration="11.6" data-track-index="1">
+        <div class="col" style="width:580px">
+          <div class="kicker">Vos</div>
+          <div class="headline">Confirmás con un clic.</div>
+          <div class="sub">El panel te muestra lo que falta confirmar y tus próximos turnos.</div>
+        </div>
+        <div class="window s6-win" style="top:250px">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="view" style="height:500px">
+            <img data-layout-allow-overflow src="assets/d1-panel.png" alt="Panel" />
+            <div class="ring s6-ring" style="left:198px; top:80px; width:774px; height:42px"></div>
+          </div>
+        </div>
+        <div class="toast s6-toast">
+          <div class="ico">A</div>
+          <div><strong>Tenés un turno por confirmar</strong><p>María González · viernes 9 de octubre 10:00</p></div>
         </div>
       </section>
 
-      <!-- 6. Agenda con Meet (41–51) -->
-      <section id="s6" class="clip bg-light" data-start="41" data-duration="10" data-track-index="0">
-        <div class="caption-col">
+      <!-- 7. Agenda con Meet (59–70) -->
+      <section id="s7" class="clip bg-light" data-start="59" data-duration="11.6" data-track-index="0">
+        <div class="col" style="width:580px">
           <div class="kicker">Todo sincronizado</div>
           <div class="headline">Cada turno va a tu Google Calendar, con su Meet.</div>
           <div class="sub">Reprogramás o cancelás desde acá y el cliente recibe el aviso.</div>
         </div>
-        <div class="window s6-win" style="top:90px;">
+        <div class="window s7-win" style="top:200px">
           <div class="bar"><i></i><i></i><i></i></div>
           <div class="view">
-            <img src="assets/d3-detalle.png" alt="Agenda con detalle del turno" />
-            <div class="ring s6-ring" style="left:458px; top:162px; width:370px; height:476px"></div>
+            <img src="assets/d3-detalle.png" alt="Agenda con el detalle del turno" />
+            <div class="ring s7-ring" style="left:354px; top:126px; width:290px; height:372px"></div>
           </div>
         </div>
       </section>
 
-      <!-- 7. Funciones (51–58) -->
-      <section id="s7" class="clip scene bg-light" data-start="51" data-duration="7" data-track-index="0">
-        <div class="grid-title s7-title">Y trabaja sola</div>
-        <div class="grid" style="margin-top:110px">
+      <!-- 8. Funciones (70–78) -->
+      <section id="s8" class="clip scene bg-light" data-start="70" data-duration="8.6" data-track-index="1">
+        <div class="grid-title s8-title">Y trabaja sola</div>
+        <div class="grid" style="margin-top:120px">
           <div class="card c1"><div class="em">⏰</div><div><h3>Recordatorios</h3><p>El cliente recibe un aviso antes de su turno.</p></div></div>
           <div class="card c2"><div class="em">🛡️</div><div><h3>Sin dobles reservas</h3><p>Aunque dos personas reserven en el mismo segundo.</p></div></div>
-          <div class="card c3"><div class="em">📅</div><div><h3>Respeta tu agenda</h3><p>Lo que tengas en tus otros calendarios queda bloqueado.</p></div></div>
-          <div class="card c4"><div class="em">✉️</div><div><h3>Cancelación con un link</h3><p>El cliente cancela solo y el horario se libera.</p></div></div>
+          <div class="card c3"><div class="em">📅</div><div><h3>Respeta tu agenda</h3><p>Lo que tengas en otros calendarios queda bloqueado.</p></div></div>
+          <div class="card c4"><div class="em">↩️</div><div><h3>Cancelación con un link</h3><p>El cliente cancela solo y el horario se libera.</p></div></div>
         </div>
       </section>
 
-      <!-- 8. Reportes (58–65) -->
-      <section id="s8" class="clip bg-light" data-start="58" data-duration="7" data-track-index="0">
-        <div class="caption-col">
+      <!-- 9. Reportes (78–85) -->
+      <section id="s9" class="clip bg-light" data-start="78" data-duration="7.6" data-track-index="0">
+        <div class="col" style="width:580px">
           <div class="kicker">Tus números</div>
           <div class="headline">Reportes por día, semana o mes.</div>
           <div class="sub">Servicios más pedidos, estados y exportación a Excel.</div>
         </div>
-        <div class="window s8-win" style="top:250px">
+        <div class="window s9-win" style="top:330px">
           <div class="bar"><i></i><i></i><i></i></div>
-          <div class="view" style="height:440px">
+          <div class="view" style="height:345px">
             <img data-layout-allow-overflow src="assets/d5-reportes.png" alt="Reportes" />
           </div>
         </div>
       </section>
 
-      <!-- 9. Cierre (65–72) -->
-      <section id="s9" class="clip scene bg-dark" data-start="65" data-duration="7" data-track-index="0">
+      <!-- 10. Cierre (85–92) -->
+      <section id="s10" class="clip scene bg-dark" data-start="85" data-duration="7" data-track-index="1">
         <div class="stack">
-          <div class="logo s9-logo">A</div>
-          <div class="brand s9-brand">Agéndate Tú Mismo</div>
-          <div class="url s9-url">agendate-tu-mismo.vercel.app</div>
-          <div class="chips s9-chips"><div class="chip">Idea 68ZG6 · Agéndate tú mismo</div><div class="chip">Idea 5C2F5 · Agente AgendaFácil</div></div>
+          <div class="logo s10-logo">A</div>
+          <div class="brand s10-brand">Agéndate Tú Mismo</div>
+          <div class="url s10-url">agendate-tu-mismo.vercel.app</div>
+          <div class="chips s10-chips"><div class="chip">Idea 68ZG6 · Agéndate tú mismo</div><div class="chip">Idea 5C2F5 · Agente AgendaFácil</div></div>
         </div>
       </section>
     </div>
@@ -227,69 +245,78 @@
     <script>
       const tl = gsap.timeline({ paused: true });
       const ease = "power3.out";
+      const FADE = 0.6;
+
+      // Fundido entre escenas: cada escena entra sobre la anterior (que dura 0,6 s de más).
+      [["#s2", 5], ["#s3", 13], ["#s4", 18], ["#s5", 35], ["#s6", 48], ["#s7", 59], ["#s8", 70], ["#s9", 78], ["#s10", 85]]
+        .forEach(([id, t]) => tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: FADE, ease: "none" }, t));
 
       // 1. Título
       tl.from(".s1-logo", { scale: 0.6, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 0.2)
         .from(".s1-brand", { y: 40, opacity: 0, duration: 0.8, ease }, 0.6)
-        .from(".s1-tag", { y: 24, opacity: 0, duration: 0.8, ease }, 1.1)
-        .to("#s1 .stack", { opacity: 0, y: -30, duration: 0.5 }, 4.4);
+        .from(".s1-tag", { y: 24, opacity: 0, duration: 0.8, ease }, 1.1);
 
       // 2. Problema: los mensajes llegan de a uno
-      ["b1", "b2", "b3", "b4"].forEach((b, i) => tl.from(`.${b}`, { y: 30, opacity: 0, scale: 0.96, duration: 0.5, ease }, 5.3 + i * 0.9));
-      tl.from(".s2-title", { y: 30, opacity: 0, duration: 0.7, ease }, 9.2)
-        .to(".chat", { opacity: 0.25, duration: 0.6 }, 9.2)
-        .to("#s2 .chat, .s2-title", { opacity: 0, duration: 0.4 }, 11.6);
+      ["b1", "b2", "b3", "b4"].forEach((b, i) => tl.from(`.${b}`, { y: 30, opacity: 0, scale: 0.96, duration: 0.5, ease }, 5.6 + i * 1.0));
+      tl.from(".s2-title", { y: 30, opacity: 0, duration: 0.7, ease }, 10.0)
+        .to(".chat", { opacity: 0.25, duration: 0.6 }, 10.0);
 
       // 3. Link
-      tl.from(".s3-title", { y: 36, opacity: 0, duration: 0.7, ease }, 12.2)
-        .from(".s3-pill", { y: 30, opacity: 0, scale: 0.94, duration: 0.7, ease }, 12.8)
-        .to("#s3 .stack", { opacity: 0, duration: 0.4 }, 15.6);
+      tl.from(".s3-title", { y: 36, opacity: 0, duration: 0.7, ease }, 13.5)
+        .from(".s3-pill", { y: 30, opacity: 0, scale: 0.94, duration: 0.7, ease }, 14.2);
 
       // 4. Teléfono: tres pantallas y tres pasos
-      tl.from(".phone-title", { x: -40, opacity: 0, duration: 0.7, ease }, 16.2)
-        .from(".s4-phone", { y: 80, opacity: 0, duration: 0.9, ease }, 16.3)
+      tl.from(".s4-k, .s4-h", { x: -40, opacity: 0, duration: 0.7, ease, stagger: 0.1 }, 18.4)
+        .from(".s4-phone", { y: 80, opacity: 0, duration: 0.9, ease }, 18.5)
         .set(".m2, .m3", { opacity: 0 }, 0)
-        .from(".st1", { x: 40, opacity: 0, duration: 0.6, ease }, 17.0)
-        .to(".m1", { y: -260, duration: 2.2, ease: "power1.inOut" }, 18.2)
-        .to(".m2", { opacity: 1, duration: 0.5 }, 21.0)
-        .to(".st1", { opacity: 0.4, duration: 0.4 }, 21.0)
-        .from(".st2", { x: 40, opacity: 0, duration: 0.6, ease }, 21.1)
-        .to(".m2", { y: -120, duration: 1.6, ease: "power1.inOut" }, 22.4)
-        .to(".m3", { opacity: 1, duration: 0.5 }, 25.6)
-        .to(".st2", { opacity: 0.4, duration: 0.4 }, 25.6)
-        .from(".st3", { x: 40, opacity: 0, duration: 0.6, ease }, 25.7)
-        .to("#s4 > *", { opacity: 0, duration: 0.4 }, 30.6);
+        .set(".st2, .st3", { opacity: 0 }, 0)
+        .from(".st1", { x: 30, opacity: 0, duration: 0.6, ease }, 19.4)
+        .to(".m1", { y: -280, duration: 2.4, ease: "power1.inOut" }, 20.6)
+        .to(".m2", { opacity: 1, duration: 0.5 }, 23.8)
+        .to(".st1", { opacity: 0.65, duration: 0.4 }, 23.8)
+        .fromTo(".st2", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.6, ease }, 23.9)
+        .to(".m2", { y: -130, duration: 1.8, ease: "power1.inOut" }, 25.3)
+        .to(".m3", { opacity: 1, duration: 0.5 }, 28.8)
+        .to(".st2", { opacity: 0.65, duration: 0.4 }, 28.8)
+        .fromTo(".st3", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.6, ease }, 28.9);
 
-      // 5. Panel + aviso por email
-      tl.from("#s5 .caption-col", { x: -40, opacity: 0, duration: 0.7, ease }, 31.2)
-        .from(".s5-win", { y: 60, opacity: 0, duration: 0.9, ease }, 31.3)
-        .from(".s5-toast", { x: 120, opacity: 0, duration: 0.7, ease: "back.out(1.4)" }, 32.6)
-        .to(".s5-toast", { x: 120, opacity: 0, duration: 0.5 }, 35.6)
-        .from(".s5-ring", { opacity: 0, scale: 1.08, duration: 0.5, ease }, 35.9)
-        .to(".s5-ring", { opacity: 0.35, duration: 0.5, yoyo: true, repeat: 3 }, 36.6)
-        .to("#s5 > *", { opacity: 0, duration: 0.4 }, 40.6);
+      // 5. Emails: llegan de a uno, con su "ding", y se marca a quién va cada uno
+      tl.from("#s5 .col", { x: -40, opacity: 0, duration: 0.7, ease }, 35.3)
+        .set(".e2, .e3", { opacity: 0 }, 0);
+      [[".e1", ".ml1", 36.2], [".e2", ".ml2", 40.4], [".e3", ".ml3", 44.6]].forEach(([mail, label, t], i) => {
+        tl.fromTo(mail, { opacity: 0, y: 60, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease }, t)
+          .to(`${label} i`, { backgroundColor: "#2e6fb0", scale: 1.3, duration: 0.3 }, t)
+          .to(label, { color: "#14233d", duration: 0.3 }, t);
+        if (i < 2) tl.to(mail, { opacity: 0, y: -40, duration: 0.5 }, t + 3.7).to(`${label} i`, { scale: 1, duration: 0.3 }, t + 3.7);
+      });
 
-      // 6. Agenda con el detalle del turno
-      tl.from("#s6 .caption-col", { x: -40, opacity: 0, duration: 0.7, ease }, 41.2)
-        .from(".s6-win", { y: 60, opacity: 0, duration: 0.9, ease }, 41.3)
-        .from(".s6-ring", { opacity: 0, scale: 1.06, duration: 0.6, ease }, 43.0)
-        .to("#s6 > *", { opacity: 0, duration: 0.4 }, 50.6);
+      // 6. Panel + aviso
+      tl.from("#s6 .col", { x: -40, opacity: 0, duration: 0.7, ease }, 48.3)
+        .from(".s6-win", { y: 60, opacity: 0, duration: 0.9, ease }, 48.4)
+        .from(".s6-toast", { x: 140, opacity: 0, duration: 0.7, ease: "back.out(1.4)" }, 49.6)
+        .to(".s6-toast", { x: 140, opacity: 0, duration: 0.5 }, 53.0)
+        .from(".s6-ring", { opacity: 0, scale: 1.08, duration: 0.5, ease }, 53.4)
+        .to(".s6-ring", { opacity: 0.35, duration: 0.5, yoyo: true, repeat: 3 }, 54.1);
 
-      // 7. Funciones
-      tl.from(".s7-title", { y: 30, opacity: 0, duration: 0.6, ease }, 51.2);
-      [".c1", ".c2", ".c3", ".c4"].forEach((c, i) => tl.from(c, { y: 40, opacity: 0, duration: 0.6, ease }, 51.7 + i * 0.4));
-      tl.to("#s7 > *", { opacity: 0, duration: 0.4 }, 57.6);
+      // 7. Agenda con el detalle del turno
+      tl.from("#s7 .col", { x: -40, opacity: 0, duration: 0.7, ease }, 59.3)
+        .from(".s7-win", { y: 60, opacity: 0, duration: 0.9, ease }, 59.4)
+        .from(".s7-ring", { opacity: 0, scale: 1.06, duration: 0.6, ease }, 61.2);
 
-      // 8. Reportes
-      tl.from("#s8 .caption-col", { x: -40, opacity: 0, duration: 0.7, ease }, 58.2)
-        .from(".s8-win", { y: 60, opacity: 0, duration: 0.9, ease }, 58.3)
-        .to("#s8 > *", { opacity: 0, duration: 0.4 }, 64.6);
+      // 8. Funciones
+      tl.from(".s8-title", { y: 30, opacity: 0, duration: 0.6, ease }, 70.4);
+      [".c1", ".c2", ".c3", ".c4"].forEach((c, i) => tl.from(c, { y: 40, opacity: 0, duration: 0.6, ease }, 71.0 + i * 0.45));
 
-      // 9. Cierre
-      tl.from(".s9-logo", { scale: 0.6, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 65.2)
-        .from(".s9-brand", { y: 30, opacity: 0, duration: 0.7, ease }, 65.6)
-        .from(".s9-url", { y: 20, opacity: 0, duration: 0.6, ease }, 66.1)
-        .from(".s9-chips", { y: 20, opacity: 0, duration: 0.6, ease }, 66.6);
+      // 9. Reportes
+      tl.from("#s9 .col", { x: -40, opacity: 0, duration: 0.7, ease }, 78.3)
+        .from(".s9-win", { y: 60, opacity: 0, duration: 0.9, ease }, 78.4);
+
+      // 10. Cierre
+      tl.from(".s10-logo", { scale: 0.6, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 85.4)
+        .from(".s10-brand", { y: 30, opacity: 0, duration: 0.7, ease }, 85.8)
+        .from(".s10-url", { y: 20, opacity: 0, duration: 0.6, ease }, 86.3)
+        .from(".s10-chips", { y: 20, opacity: 0, duration: 0.6, ease }, 86.8)
+        .to("#s10 .stack", { opacity: 0, duration: 1.2 }, 90.8);
 
       window.__timelines = window.__timelines || {};
       window.__timelines["main"] = tl;
