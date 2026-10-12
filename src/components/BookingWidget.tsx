@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { normalizePhone, PHONE_ERROR_MESSAGE } from "@/lib/validation";
 import { TIMEZONES, timezoneLabel } from "@/lib/timezones";
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 
 type FreeSlot = { startISO: string; endISO: string };
 type AvailabilityResponse = {
@@ -40,6 +41,10 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   const [form, setForm] = useState({ clientName: "", clientPhone: "", clientEmail: "", notes: "" });
   // Campo trampa (honeypot): invisible para personas; si un bot lo rellena, el servidor descarta la reserva.
   const [honeypot, setHoneypot] = useState("");
+  // CAPTCHA (Turnstile): cada token sirve una sola vez. Cambiar `turnstileKey` vuelve a montar el widget y pide otro.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const waitingTurnstile = !!TURNSTILE_SITE_KEY && !turnstileToken;
   // Si el email de confirmación realmente se pudo enviar (para no prometer algo que no pasó).
   const [emailSent, setEmailSent] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
@@ -161,11 +166,17 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
           clientEmail: form.clientEmail.trim(),
           notes: form.notes || undefined,
           website: honeypot || undefined,
+          turnstileToken: turnstileToken ?? undefined,
           startISO: selectedSlot.startISO,
           endISO: selectedSlot.endISO,
         }),
       });
       const json = await res.json();
+      if (!res.ok) {
+        // El token ya se gastó en este intento: se pide uno nuevo para el próximo.
+        setTurnstileToken(null);
+        setTurnstileKey((k) => k + 1);
+      }
       if (res.status === 409) {
         // Alguien tomó el horario mientras se completaba el formulario:
         // volvemos a la lista con los horarios actualizados.
@@ -451,14 +462,15 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                   <label htmlFor="bw-website">No completar este campo</label>
                   <input id="bw-website" name="website_url" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
                 </div>
+                <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
                 {formError && <p className="text-[13px] text-red-600">{formError}</p>}
 
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || waitingTurnstile}
                   className="mt-1 w-full rounded-[12px] bg-[#215a8f] py-3.5 text-[15px] font-bold text-white disabled:opacity-60"
                 >
-                  {submitting ? "Confirmando…" : "Confirmar turno"}
+                  {submitting ? "Confirmando…" : waitingTurnstile ? "Verificando…" : "Confirmar turno"}
                 </button>
                 {/* Para quien se arrepiente a mitad de camino: todavía no se reservó nada, así que
                     se descartan el horario y los datos escritos y se vuelve al inicio. */}

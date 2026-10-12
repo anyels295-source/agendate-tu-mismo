@@ -32,10 +32,14 @@ export type RateLimitRule = {
 export const RATE_LIMITS = {
   /** Crear una reserva desde la página pública. */
   bookings: { bucket: "bookings", limit: 8, windowSeconds: 15 * 60 },
+  /** Reservas públicas dirigidas a un mismo email, desde cualquier IP: frena el envío masivo de emails a una persona. */
+  bookingsPerEmail: { bucket: "bookings-email", limit: 5, windowSeconds: 24 * 60 * 60 },
   /** Consultar horarios disponibles (cada consulta llama a Google/Microsoft). */
   availability: { bucket: "availability", limit: 90, windowSeconds: 5 * 60 },
   /** Cancelar un turno con el link del cliente. */
   cancel: { bucket: "cancel", limit: 20, windowSeconds: 15 * 60 },
+  /** Confirmar un turno pendiente con el link del cliente. */
+  confirm: { bucket: "confirm", limit: 20, windowSeconds: 15 * 60 },
   /** Intentos de login por IP. */
   loginIp: { bucket: "login-ip", limit: 10, windowSeconds: 15 * 60 },
   /** Intentos de login por email (frena ataques repartidos entre muchas IP). */

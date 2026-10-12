@@ -224,8 +224,13 @@ export async function notifyBookingRescheduled(booking: Booking, professional: P
   await Promise.allSettled(tasks);
 }
 
-export async function notifyBookingCancelled(booking: Booking, professional: Professional) {
+/**
+ * `reason: "unconfirmed"` es la cancelación automática del cron: el cliente no confirmó su
+ * turno pendiente en 24 h. Cambia el texto de los avisos y le ofrece al cliente reservar otro horario.
+ */
+export async function notifyBookingCancelled(booking: Booking, professional: Professional, opts: { reason?: "unconfirmed" } = {}) {
   const { dateLabel, timeLabel } = buildLabels(booking.startTime, professional.timezone);
+  const bookingUrl = opts.reason ? `${process.env.APP_URL ?? "http://localhost:3000"}/reservar/${professional.slug}` : undefined;
 
   const tasks: Promise<unknown>[] = [];
 
@@ -247,6 +252,8 @@ export async function notifyBookingCancelled(booking: Booking, professional: Pro
         serviceName: professional.serviceName,
         dateLabel,
         timeLabel,
+        reason: opts.reason,
+        bookingUrl,
       }).then((result) => logNotification(booking.id, "EMAIL", result, "cliente"))
     );
   }
@@ -256,7 +263,7 @@ export async function notifyBookingCancelled(booking: Booking, professional: Pro
       sendTeamsMessage({
         webhookUrl: professional.teamsWebhookUrl,
         title: `Turno cancelado: ${booking.clientName}`,
-        text: `${professional.serviceName} · era el ${dateLabel} a las ${timeLabel}.`,
+        text: `${professional.serviceName} · era el ${dateLabel} a las ${timeLabel}.${opts.reason ? " Se canceló solo: el cliente no lo confirmó en 24 horas." : ""}`,
       }).then((result) => logNotification(booking.id, "TEAMS", result, "profesional"))
     );
   }
@@ -271,6 +278,7 @@ export async function notifyBookingCancelled(booking: Booking, professional: Pro
         serviceName: professional.serviceName,
         dateLabel,
         timeLabel,
+        reason: opts.reason,
       }).then((result) => logNotification(booking.id, "EMAIL", result, "profesional"))
     );
   }

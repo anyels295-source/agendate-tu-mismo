@@ -151,6 +151,9 @@ model Booking {
   meetingUrl       String?
   // Cuándo se mandó el recordatorio del día anterior (evita enviarlo dos veces).
   reminderSentAt   DateTime?
+  // Cuándo se le pidió al cliente que confirme su turno pendiente (cron diario). Si pasan 24 h
+  // sin confirmar, el turno se cancela para liberar el horario.
+  confirmationRequestedAt DateTime?
   cancelToken      String            @unique @default(uuid())
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { verifyAdminCredentials, createAdminSession } from "@/lib/auth";
+import { verifyAdminCredentials, createAdminSession, isKnownDevice, markKnownDevice } from "@/lib/auth";
 import { checkRateLimit, getClientIp, tooManyRequests, RATE_LIMITS } from "@/lib/rateLimit";
 
 const loginSchema = z.object({
@@ -19,8 +19,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Además del límite por IP, se limita por email: frena ataques repartidos entre muchas IP.
-  const emailLimit = await checkRateLimit(RATE_LIMITS.loginEmail, parsed.data.email.toLowerCase());
-  if (!emailLimit.allowed) return tooManyRequests(emailLimit.retryAfterSeconds);
+  // No se aplica desde un navegador donde ya se entró antes, para que un atacante que conoce
+  // el email no pueda dejar al admin afuera a fuerza de intentos fallidos.
+  if (!(await isKnownDevice(parsed.data.email))) {
+    const emailLimit = await checkRateLimit(RATE_LIMITS.loginEmail, parsed.data.email.toLowerCase());
+    if (!emailLimit.allowed) return tooManyRequests(emailLimit.retryAfterSeconds);
+  }
 
   const valid = await verifyAdminCredentials(parsed.data.email, parsed.data.password);
   if (!valid) {
@@ -28,5 +32,6 @@ export async function POST(req: NextRequest) {
   }
 
   await createAdminSession(parsed.data.email);
+  await markKnownDevice(parsed.data.email);
   return NextResponse.json({ ok: true });
 }

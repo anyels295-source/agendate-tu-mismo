@@ -9,3 +9,5 @@ out
 *.tsbuildinfo
 .claude/settings.local.json
 _to_delete/
+# Informes de seguridad: describen debilidades concretas, no van al repositorio (es público).
+seguridad/

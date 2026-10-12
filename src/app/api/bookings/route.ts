@@ -5,6 +5,7 @@ import { createBooking, BookingConflictError } from "@/lib/booking";
 import { AppError } from "@/lib/errors";
 import { checkDateRange, optionalPhoneSchema, CLIENT_NAME_MAX_LENGTH, validationErrorMessage } from "@/lib/validation";
 import { checkRateLimit, getClientIp, tooManyRequests, RATE_LIMITS } from "@/lib/rateLimit";
+import { isTurnstileEnabled, verifyTurnstileToken } from "@/lib/turnstile";
 
 const bookingSchema = z
   .object({
@@ -22,11 +23,14 @@ const bookingSchema = z
     notes: z.string().max(500).optional(),
     // Campo trampa (honeypot): las personas no lo ven, un bot sí lo rellena.
     website: z.string().max(500).optional(),
+    // Token de Cloudflare Turnstile (CAPTCHA); solo se exige si está configurado.
+    turnstileToken: z.string().max(2048).optional(),
   })
   .superRefine(checkDateRange);
 
 export async function POST(req: NextRequest) {
-  const limit = await checkRateLimit(RATE_LIMITS.bookings, getClientIp(req));
+  const ip = getClientIp(req);
+  const limit = await checkRateLimit(RATE_LIMITS.bookings, ip);
   if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
 
   const json = await req.json().catch(() => null);
@@ -39,6 +43,23 @@ export async function POST(req: NextRequest) {
   // salido bien (para no darle pistas) pero no se crea nada.
   if (parsed.data.website) {
     return NextResponse.json({ bookingId: "descartada", status: "PENDING" });
+  }
+
+  if (isTurnstileEnabled() && !(await verifyTurnstileToken(parsed.data.turnstileToken, ip))) {
+    return NextResponse.json(
+      { error: "No pudimos verificar que seas una persona. Esperá unos segundos y volvé a tocar Confirmar turno." },
+      { status: 400 }
+    );
+  }
+
+  // Además del límite por IP, se limita cuántas reservas reciben un mismo email en el día, venga
+  // de donde venga el pedido: impide usar el formulario para llenarle la casilla a alguien.
+  const emailLimit = await checkRateLimit(RATE_LIMITS.bookingsPerEmail, parsed.data.clientEmail.trim().toLowerCase());
+  if (!emailLimit.allowed) {
+    return NextResponse.json(
+      { error: "Se hicieron demasiadas reservas con este email hoy. Probá de nuevo mañana o escribile al profesional." },
+      { status: 429, headers: { "Retry-After": String(emailLimit.retryAfterSeconds) } }
+    );
   }
 
   const professional = await prisma.professional.findUnique({ where: { slug: parsed.data.slug } });

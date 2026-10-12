@@ -51,6 +51,45 @@ export async function createAdminSession(email: string) {
   });
 }
 
+/**
+ * Cookie de "dispositivo conocido": se guarda en el navegador después de un login correcto.
+ * El límite de intentos por email (ver api/auth/admin) no se aplica desde un dispositivo
+ * conocido. Así, si alguien prueba contraseñas con el email del admin hasta bloquearlo, el
+ * admin igual puede entrar desde su navegador de siempre. El límite por IP sigue valiendo.
+ */
+const DEVICE_COOKIE_NAME = "agendate_admin_device";
+const DEVICE_AUDIENCE = "agendate:known-device";
+const DEVICE_DURATION_SECONDS = 60 * 60 * 24 * 180; // 180 días
+
+export async function markKnownDevice(email: string) {
+  const token = await new SignJWT({ email: email.toLowerCase() })
+    .setProtectedHeader({ alg: "HS256" })
+    .setAudience(DEVICE_AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(`${DEVICE_DURATION_SECONDS}s`)
+    .sign(getSecret());
+  const cookieStore = await cookies();
+  cookieStore.set(DEVICE_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: DEVICE_DURATION_SECONDS,
+    path: "/api/auth/admin",
+  });
+}
+
+export async function isKnownDevice(email: string): Promise<boolean> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(DEVICE_COOKIE_NAME)?.value;
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, getSecret(), { audience: DEVICE_AUDIENCE });
+    return typeof payload.email === "string" && payload.email === email.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 export async function destroyAdminSession() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);

@@ -19,6 +19,9 @@ function isOverlapError(err: unknown): boolean {
   return message.includes("Booking_no_overlap") || message.includes("23P01") || message.includes("exclusion constraint");
 }
 
+/** Cuántos turnos pendientes (futuros) puede tener un mismo email con un profesional, desde la página pública. */
+export const MAX_PENDING_PER_CLIENT_EMAIL = 2;
+
 export class BookingConflictError extends AppError {
   constructor() {
     super("El horario elegido ya no está disponible. Por favor elegí otro horario.");
@@ -63,6 +66,24 @@ export async function createBooking(params: {
     throw new AppError("El servicio elegido no existe o ya no está disponible.");
   }
   const serviceLabel = service?.name ?? professional.serviceName;
+
+  // Desde la página pública, un mismo email no puede acumular turnos sin confirmar: frena a
+  // quien llena la agenda con reservas falsas o usa el formulario para mandar emails a otros.
+  if (origin === "PUBLIC" && params.clientEmail) {
+    const pendingForEmail = await prisma.booking.count({
+      where: {
+        professionalId: professional.id,
+        status: "PENDING",
+        startTime: { gt: new Date() },
+        clientEmail: { equals: params.clientEmail, mode: "insensitive" },
+      },
+    });
+    if (pendingForEmail >= MAX_PENDING_PER_CLIENT_EMAIL) {
+      throw new AppError(
+        `Ya tenés ${MAX_PENDING_PER_CLIENT_EMAIL} turnos con ${professional.name} esperando confirmación. Confirmá o cancelá alguno (los links están en tu email) antes de reservar otro.`
+      );
+    }
+  }
 
   // El fin del turno se calcula acá a partir de la duración del servicio: lo que
   // mande el navegador en `endISO` no se usa, y el inicio se valida contra el
@@ -211,7 +232,9 @@ async function deleteEventSafely(connection: CalendarConnection, eventId: string
  * cuando llegan dos pedidos a la vez (doble clic, o cliente y panel al mismo tiempo).
  */
 async function changeStatusIf(bookingId: string, from: BookingStatus | { not: BookingStatus }, to: BookingStatus): Promise<boolean> {
-  const result = await prisma.booking.updateMany({ where: { id: bookingId, status: from }, data: { status: to } });
+  // Si el turno vuelve a Pendiente, el plazo de 24 h para confirmarlo empieza de cero.
+  const data = to === "PENDING" ? { status: to, confirmationRequestedAt: null } : { status: to };
+  const result = await prisma.booking.updateMany({ where: { id: bookingId, status: from }, data });
   return result.count === 1;
 }
 
@@ -370,6 +393,66 @@ export async function confirmBookingFromInvitation(bookingId: string): Promise<b
   return changeStatusIf(bookingId, "PENDING", "CONFIRMED");
 }
 
+/**
+ * El cliente confirma su turno pendiente desde el link del email de pedido de confirmación
+ * (página /confirmar/[token]). Equivale a aceptar la invitación del calendario: el turno pasa a
+ * Confirmado. Se le manda el email de turno confirmado, con el link de la videollamada si hay.
+ */
+export async function confirmBookingByClient(token: string) {
+  const booking = await prisma.booking.findUnique({
+    where: { cancelToken: token },
+    include: { professional: true, service: true },
+  });
+  if (!booking) {
+    throw new AppError("Reserva no encontrada.");
+  }
+  if (booking.status === "CONFIRMED") {
+    return booking;
+  }
+  if (booking.status === "CANCELLED") {
+    throw new AppError("Este turno ya fue cancelado. Si querés, podés reservar uno nuevo.");
+  }
+  if (booking.status !== "PENDING" || booking.startTime.getTime() < Date.now()) {
+    throw new AppError("Este turno ya no se puede confirmar.");
+  }
+
+  // Si otro pedido ya lo confirmó entre medio, no se vuelve a avisar.
+  if (!(await changeStatusIf(booking.id, "PENDING", "CONFIRMED"))) {
+    return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+  }
+  const confirmed = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+  await notifyBookingConfirmed(
+    confirmed,
+    { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName },
+    { skipOwner: true }
+  );
+  return confirmed;
+}
+
+/**
+ * Cancela un turno que siguió Pendiente 24 h después de pedirle al cliente que lo confirme
+ * (lo llama el cron diario). Libera el horario y avisa al cliente y al profesional. Devuelve
+ * false si el turno ya no estaba pendiente (lo confirmaron o cancelaron mientras tanto).
+ */
+export async function expireUnconfirmedBooking(bookingId: string): Promise<boolean> {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { professional: { include: { calendarConnections: true } }, service: true },
+  });
+  if (!booking || booking.status !== "PENDING") return false;
+
+  await deleteBookingEvent(booking);
+  if (!(await changeStatusIf(booking.id, "PENDING", "CANCELLED"))) return false;
+
+  const cancelled = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+  await notifyBookingCancelled(
+    cancelled,
+    { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName },
+    { reason: "unconfirmed" }
+  );
+  return true;
+}
+
 /** Cambia el estado esperando que siga siendo `from`; si otro proceso lo cambió antes, avisa en vez de pisarlo. */
 async function reapplyStatus(bookingId: string, from: BookingStatus, to: BookingStatus) {
   let changed: boolean;
@@ -462,8 +545,9 @@ export async function rescheduleBooking(params: {
     .update({
       where: { id: booking.id },
       // reminderSentAt vuelve a null: el recordatorio que se haya mandado era para la fecha vieja,
-      // y el cron solo toma turnos sin recordatorio.
-      data: { startTime: new Date(params.startISO), endTime: new Date(endISO), reminderSentAt: null },
+      // y el cron solo toma turnos sin recordatorio. Lo mismo el pedido de confirmación: con
+      // la fecha nueva, el cliente vuelve a tener su plazo para confirmar.
+      data: { startTime: new Date(params.startISO), endTime: new Date(endISO), reminderSentAt: null, confirmationRequestedAt: null },
     })
     .catch((err: unknown) => {
       if (isOverlapError(err)) throw new RescheduleConflictError();
@@ -480,7 +564,15 @@ export async function rescheduleBooking(params: {
       if (!isEventGoneError(err)) {
         // No se pudo mover: el turno vuelve a su horario anterior para que base y calendario coincidan.
         await prisma.booking
-          .update({ where: { id: booking.id }, data: { startTime: booking.startTime, endTime: booking.endTime, reminderSentAt: booking.reminderSentAt } })
+          .update({
+            where: { id: booking.id },
+            data: {
+              startTime: booking.startTime,
+              endTime: booking.endTime,
+              reminderSentAt: booking.reminderSentAt,
+              confirmationRequestedAt: booking.confirmationRequestedAt,
+            },
+          })
           .catch((revertErr: unknown) => console.error("No se pudo restaurar el horario anterior del turno:", revertErr));
         throw err;
       }

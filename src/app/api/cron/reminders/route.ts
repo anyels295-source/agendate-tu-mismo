@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/prisma";
 import { sendBookingReminderEmail } from "@/lib/notifications/email";
 import { getInvitationResponses, syncPendingInvitations } from "@/lib/invitations";
+import { processPendingConfirmations } from "@/lib/pendingConfirmation";
 
 /** Un turno reservado hace menos que esto no recibe recordatorio todavía: acaba de recibir la confirmación. */
 const RECENT_BOOKING_HOURS = 12;
@@ -21,6 +22,10 @@ const RECENT_BOOKING_HOURS = 12;
  * encabezado Authorization. Cada turno se "reclama" antes de enviar
  * (reminderSentAt), así que si el cron se ejecuta dos veces no se manda el
  * mismo recordatorio dos veces.
+ *
+ * Antes de los recordatorios, el mismo cron se ocupa de los turnos que siguen Pendientes: le
+ * pide al cliente que confirme y cancela los que pasaron 24 h sin confirmar (ver
+ * src/lib/pendingConfirmation.ts).
  */
 export async function GET(req: NextRequest) {
   const expected = process.env.CRON_SECRET;
@@ -36,11 +41,19 @@ export async function GET(req: NextRequest) {
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  let confirmationsRequested = 0;
+  let confirmationRequestsFailed = 0;
+  let expiredUnconfirmed = 0;
 
   for (const professional of professionals) {
     const now = DateTime.now().setZone(professional.timezone);
     // Los pendientes que el cliente ya aceptó pasan a Confirmado antes de mandar nada.
     await syncPendingInvitations(professional.id);
+    // Pendientes sin confirmar: se cancelan los vencidos y se pide confirmación a los demás.
+    const pending = await processPendingConfirmations(professional, appUrl);
+    confirmationsRequested += pending.requested;
+    confirmationRequestsFailed += pending.requestFailed;
+    expiredUnconfirmed += pending.expired;
     const bookings = await prisma.booking.findMany({
       where: {
         professionalId: professional.id,
@@ -58,6 +71,11 @@ export async function GET(req: NextRequest) {
     const responses = await getInvitationResponses(connections, bookings);
 
     for (const booking of bookings) {
+      // Al que recién recibió el pedido de confirmación no se le manda además el recordatorio.
+      if (pending.requestedIds.has(booking.id)) {
+        skipped += 1;
+        continue;
+      }
       if (responses.get(booking.id) === "declined") {
         skipped += 1;
         continue;
@@ -101,5 +119,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, professionalsProcessed: professionals.length, sent, failed, skipped });
+  return NextResponse.json({
+    ok: true,
+    professionalsProcessed: professionals.length,
+    sent,
+    failed,
+    skipped,
+    confirmationsRequested,
+    confirmationRequestsFailed,
+    expiredUnconfirmed,
+  });
 }

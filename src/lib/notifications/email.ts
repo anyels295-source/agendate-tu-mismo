@@ -230,17 +230,61 @@ export async function sendBookingReminderEmail(params: BookingEmailParams & { is
   });
 }
 
-export async function sendBookingCancelledEmail(
-  params: Omit<BookingEmailParams, "cancelUrl">
+/**
+ * Pedido de confirmación de un turno que sigue Pendiente (lo manda el cron diario). El cliente
+ * confirma desde una página con un botón, no desde el link mismo: los antivirus de correo abren
+ * los links de los emails y, si el link confirmara solo, confirmarían turnos que nadie pidió.
+ * Si en 24 h no confirma, el turno se cancela para liberar el horario.
+ */
+export async function sendConfirmationRequestEmail(
+  params: BookingEmailParams & { confirmUrl: string; bookingUrl: string }
 ): Promise<EmailSendResult> {
+  const html = layout({
+    preheader: `Confirmá tu turno del ${params.dateLabel} a las ${params.timeLabel} en las próximas 24 horas.`,
+    title: "¿Mantenemos tu turno?",
+    body: `
+      ${para(`Hola ${esc(params.clientName)},`)}
+      ${para(`Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> todavía no está confirmado.`)}
+      ${dateBox({ dateLabel: params.dateLabel, timeLabel: params.timeLabel, status: "Pendiente de confirmación", tone: "amber" })}
+      ${para("Si te sigue quedando bien, confirmalo con este botón:")}
+      ${button(params.confirmUrl, "Confirmar mi turno", "#1c7a43")}
+      ${para(`<strong>Si no lo confirmás en las próximas 24 horas, lo cancelamos</strong> para liberar el horario.`)}
+      ${para(`¿Preferís otro día u hora? <a href="${esc(params.bookingUrl)}" style="color:${BRAND};">Elegí un horario nuevo</a> y después cancelá este.`)}
+      ${cancelLine(params.cancelUrl, "¿Ya no lo necesitás?")}
+      <p style="margin:14px 0 0;font-size:13px;color:${MUTED};">Si no reservaste este turno, ignorá este mensaje: se cancela solo.</p>`,
+  });
+  return sendEmail({
+    toEmail: params.toEmail,
+    subject: `Confirmá tu turno: ${params.dateLabel} ${params.timeLabel}`,
+    html,
+  });
+}
+
+export async function sendBookingCancelledEmail(
+  params: Omit<BookingEmailParams, "cancelUrl"> & {
+    /** "unconfirmed": se canceló solo porque el cliente no lo confirmó a tiempo. */
+    reason?: "unconfirmed";
+    /** Página pública de reservas, para ofrecer elegir otro horario. */
+    bookingUrl?: string;
+  }
+): Promise<EmailSendResult> {
+  const unconfirmed = params.reason === "unconfirmed";
   const html = layout({
     preheader: `Se canceló tu turno del ${params.dateLabel} a las ${params.timeLabel}.`,
     title: "Tu turno fue cancelado",
     body: `
       ${para(`Hola ${esc(params.clientName)},`)}
-      ${para(`Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> fue cancelado.`)}
+      ${para(
+        unconfirmed
+          ? `Cancelamos tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> porque no recibimos tu confirmación, y liberamos el horario.`
+          : `Tu turno de <strong>${esc(params.serviceName)}</strong> con <strong>${esc(params.professionalName)}</strong> fue cancelado.`
+      )}
       ${dateBox({ dateLabel: params.dateLabel, timeLabel: params.timeLabel, status: "Cancelado", tone: "gray" })}
-      ${para(`Si querés reservar un nuevo horario, escribile a ${esc(params.professionalName)}.`)}`,
+      ${
+        params.bookingUrl
+          ? `${para("Si todavía querés el turno, podés elegir un horario nuevo:")}${button(params.bookingUrl, "Reservar otro horario")}`
+          : para(`Si querés reservar un nuevo horario, escribile a ${esc(params.professionalName)}.`)
+      }`,
   });
   return sendEmail({
     toEmail: params.toEmail,
@@ -395,13 +439,20 @@ export async function sendDailySummaryEmail(params: {
   });
 }
 
-export async function sendOwnerBookingCancelledEmail(params: OwnerNoticeParams): Promise<EmailSendResult> {
+export async function sendOwnerBookingCancelledEmail(params: OwnerNoticeParams & { reason?: "unconfirmed" }): Promise<EmailSendResult> {
+  const unconfirmed = params.reason === "unconfirmed";
   const html = layout({
-    preheader: `${params.clientName} canceló su turno del ${params.dateLabel}.`,
+    preheader: unconfirmed
+      ? `El turno de ${params.clientName} del ${params.dateLabel} se canceló por falta de confirmación.`
+      : `${params.clientName} canceló su turno del ${params.dateLabel}.`,
     title: "Se canceló un turno",
     body: `
       ${para(`Hola ${esc(params.professionalName)},`)}
-      ${para(`<strong>${esc(params.clientName)}</strong>${esc(phoneSuffix(params.clientPhone))} canceló su turno de <strong>${esc(params.serviceName)}</strong>.`)}
+      ${para(
+        unconfirmed
+          ? `El turno de <strong>${esc(params.serviceName)}</strong> de <strong>${esc(params.clientName)}</strong>${esc(phoneSuffix(params.clientPhone))} se canceló solo: le pedimos que lo confirmara y pasaron 24 horas sin respuesta.`
+          : `<strong>${esc(params.clientName)}</strong>${esc(phoneSuffix(params.clientPhone))} canceló su turno de <strong>${esc(params.serviceName)}</strong>.`
+      )}
       ${dateBox({ dateLabel: params.dateLabel, timeLabel: params.timeLabel, status: "Cancelado", tone: "gray" })}
       ${para("Ese horario ya quedó libre en tu agenda.")}`,
   });
