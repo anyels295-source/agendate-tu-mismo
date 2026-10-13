@@ -26,7 +26,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     >
       <BookingWidget slug={professional.slug} professionalName={professional.name} />
       <p className="mt-5 text-[11.5px] text-[var(--muted-nav)]">Agendate Tú Mismo · reservá cuando quieras, sin llamadas</p>
-      <LegalLinks className="mt-2 !text-[11px]" />
+      <LegalLinks className="mt-2 !text-[11px]" newTab />
     </main>
   );
 }
