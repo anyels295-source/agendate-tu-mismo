@@ -42,31 +42,66 @@ function loadScript(): Promise<void> {
   return scriptPromise;
 }
 
-export default function TurnstileWidget({ onToken }: { onToken: (token: string | null) => void }) {
+/** Si en este tiempo no hay token ni error, se avisa: el widget puede quedar trabado sin decir nada. */
+const STUCK_AFTER_MS = 20_000;
+
+/**
+ * `onError` recibe el código de error de Cloudflare (por ejemplo "300030"), o
+ * "tiempo" si la verificación no terminó en 20 segundos. Se llama con null
+ * cuando la verificación por fin funciona, para borrar un aviso anterior.
+ *
+ * Auditoría/arreglo 2026-10-13: antes el widget era invisible hasta que pedía un
+ * clic ("interaction-only") y no avisaba los errores. Si Cloudflare se trababa,
+ * el botón quedaba en "Verificando…" para siempre, sin explicación. Ahora el
+ * recuadro de Cloudflare se ve siempre y los problemas se informan.
+ */
+export default function TurnstileWidget({
+  onToken,
+  onError,
+}: {
+  onToken: (token: string | null) => void;
+  onError?: (code: string | null) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // La función puede cambiar en cada render del padre; el widget usa siempre la última.
+  // Las funciones pueden cambiar en cada render del padre; el widget usa siempre las últimas.
   const onTokenRef = useRef(onToken);
   onTokenRef.current = onToken;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useEffect(() => {
     if (!TURNSTILE_SITE_KEY) return;
     let widgetId: string | null = null;
     let cancelled = false;
+    const stuckTimer = setTimeout(() => onErrorRef.current?.("tiempo"), STUCK_AFTER_MS);
+
     loadScript()
       .then(() => {
         if (cancelled || !containerRef.current || !window.turnstile) return;
         widgetId = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           language: "es",
-          appearance: "interaction-only",
-          callback: (token: string) => onTokenRef.current(token),
+          callback: (token: string) => {
+            clearTimeout(stuckTimer);
+            onErrorRef.current?.(null);
+            onTokenRef.current(token);
+          },
           "expired-callback": () => onTokenRef.current(null),
-          "error-callback": () => onTokenRef.current(null),
+          "error-callback": (code: string) => {
+            clearTimeout(stuckTimer);
+            onTokenRef.current(null);
+            onErrorRef.current?.(String(code || "desconocido"));
+          },
         });
       })
-      .catch(() => onTokenRef.current(null));
+      .catch(() => {
+        clearTimeout(stuckTimer);
+        onTokenRef.current(null);
+        onErrorRef.current?.("no-cargo");
+      });
     return () => {
       cancelled = true;
+      clearTimeout(stuckTimer);
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
   }, []);

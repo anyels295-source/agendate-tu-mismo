@@ -44,6 +44,8 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
   // CAPTCHA (Turnstile): cada token sirve una sola vez. Cambiar `turnstileKey` vuelve a montar el widget y pide otro.
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileKey, setTurnstileKey] = useState(0);
+  // Código de error de Cloudflare (o "tiempo"), para avisar en vez de dejar el botón trabado.
+  const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const waitingTurnstile = !!TURNSTILE_SITE_KEY && !turnstileToken;
   // Si el email de confirmación realmente se pudo enviar (para no prometer algo que no pasó).
   const [emailSent, setEmailSent] = useState(true);
@@ -175,6 +177,7 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
       if (!res.ok) {
         // El token ya se gastó en este intento: se pide uno nuevo para el próximo.
         setTurnstileToken(null);
+        setTurnstileError(null);
         setTurnstileKey((k) => k + 1);
       }
       if (res.status === 409) {
@@ -462,7 +465,25 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                   <label htmlFor="bw-website">No completar este campo</label>
                   <input id="bw-website" name="website_url" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
                 </div>
-                <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
+                <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} onError={setTurnstileError} />
+                {turnstileError && !turnstileToken && (
+                  <p className="text-[12.5px] text-amber-700">
+                    {turnstileError === "tiempo"
+                      ? "La verificación está tardando más de lo normal."
+                      : `No pudimos verificar que seas una persona (código ${turnstileError}).`}{" "}
+                    Recargá la página o probá desde otro navegador.{" "}
+                    <button
+                      type="button"
+                      className="font-semibold underline"
+                      onClick={() => {
+                        setTurnstileError(null);
+                        setTurnstileKey((k) => k + 1);
+                      }}
+                    >
+                      Reintentar
+                    </button>
+                  </p>
+                )}
                 <p className="text-[11.5px] text-[#6b7280]">
                   Al confirmar aceptás las{" "}
                   <a href="/terminos" target="_blank" className="underline">condiciones</a> y la{" "}
