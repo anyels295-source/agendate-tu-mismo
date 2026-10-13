@@ -5,13 +5,8 @@ Tareas que quedaron para hacer a mano. Al terminar una, marcarla con `[x]` y ano
 ## Despliegue de los cambios del 2026-10-12 (confirmación de pendientes, CAPTCHA, login)
 
 - [x] **Base de producción:** migración `20261012120000_pedido_de_confirmacion` aplicada en la rama `production` de Neon el 2026-10-13. Código pasado a `main` (`03ca920`) el mismo día.
-- [ ] **Cloudflare Turnstile (CAPTCHA):**
-  1. Entrar a [dash.cloudflare.com](https://dash.cloudflare.com) (cuenta gratis) → Turnstile → *Add widget*.
-  2. Modo *Managed*; dominios: `agendate-tu-mismo.vercel.app` y `localhost`.
-  3. Copiar las dos claves a Vercel → Settings → Environment Variables, en **Preview** y **Production**:
-     `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (clave del sitio) y `TURNSTILE_SECRET_KEY` (clave secreta).
-  4. Volver a desplegar (la clave del sitio se incorpora al compilar). Con una sola de las dos claves, el CAPTCHA queda apagado.
-- [ ] **Probar en `dev` (preview)** con un calendario conectado: reservar un turno y ver que aparece el CAPTCHA y que la reserva entra.
+- [x] **Cloudflare Turnstile (CAPTCHA):** activo en producción y probado con una persona real el 2026-10-13. Ojo: en un navegador automatizado (el de Claude) nunca se resuelve; para probar, usar Chrome o el celular. Diagnóstico: `/prueba-captcha` en la versión de pruebas (no existe en producción).
+- [x] **Probar en producción:** reserva con CAPTCHA probada en Chrome el 2026-10-13.
 - [ ] **Login:** después del despliegue, entrar una vez al panel desde tu navegador habitual (así queda marcado como dispositivo conocido).
 
 ## Configuración de cuentas
