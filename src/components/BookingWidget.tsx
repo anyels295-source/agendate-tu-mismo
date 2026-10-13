@@ -463,6 +463,11 @@ export default function BookingWidget({ slug, professionalName }: { slug: string
                   <input id="bw-website" name="website_url" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
                 </div>
                 <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
+                <p className="text-[11.5px] text-[#6b7280]">
+                  Al confirmar aceptás las{" "}
+                  <a href="/terminos" target="_blank" className="underline">condiciones</a> y la{" "}
+                  <a href="/privacidad" target="_blank" className="underline">política de privacidad</a>.
+                </p>
                 {formError && <p className="text-[13px] text-red-600">{formError}</p>}
 
                 <button

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import BookingWidget from "@/components/BookingWidget";
 import { notFound } from "next/navigation";
+import { LegalLinks } from "@/components/LegalPage";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -25,6 +26,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     >
       <BookingWidget slug={professional.slug} professionalName={professional.name} />
       <p className="mt-5 text-[11.5px] text-[var(--muted-nav)]">Agendate Tú Mismo · reservá cuando quieras, sin llamadas</p>
+      <LegalLinks className="mt-2 !text-[11px]" />
     </main>
   );
 }
