@@ -107,6 +107,11 @@ Un grupo de operaciones sobre la base que se aplican todas juntas o ninguna.
 Git guarda el historial del código. Una **rama** es una línea de trabajo; un **commit** es un punto guardado con un mensaje; **push** sube los commits al servidor.
 - **En el proyecto:** trabajamos en la rama `dev` (pruebas) y llevamos a `main` (producción) con `git push origin dev:main`.
 
+### Remoto y clave SSH
+Un **remoto** es un servidor donde Git sube el código (`origin` es GitHub, `azure` es Azure DevOps). Una **clave SSH** es un par de archivos que reemplaza a la contraseña: la **privada** queda en tu computadora (`~/.ssh/id_...`) y nunca se comparte; la **pública** (`.pub`) se carga en el servidor. La clave identifica a la persona en una computadora, no a un proyecto: con una sola clave cargada en Azure DevOps se accede a todos los repos de la organización a los que tengas permiso.
+- **Parecido en Java:** como el keystore con el certificado de cliente que usa una app Java para autenticarse por TLS. Se configura una vez y sirve para cualquier servidor que confíe en ese certificado.
+- **En el proyecto:** la clave `id_rsa_azuredevops` (configurada en `~/.ssh/config`) se usa para el Portal de Clientes y para Agendate. Si cambiás de computadora, se crea una clave nueva para esa máquina.
+
 ### Vercel, deploy, preview y producción
 **Vercel** es donde está publicada la app. Un **deploy** es una publicación nueva. **Producción** es lo que ven los clientes (rama `main`). Un **preview** es una copia de prueba que se genera con cada push a otra rama (`dev`).
 - **En el proyecto:** cada entorno tiene sus propias variables y su propia base de datos.
@@ -453,3 +458,4 @@ Archivo de texto con valores separados por comas, que abre Excel.
 | 2026-10-06 | Informe de QA: audiencia de un JWT, CSRF, timeout, idempotencia, grilla de horarios y QA exploratorio. |
 | 2026-10-12 | Auditoría de seguridad: pentest y bug bounty, MFA, revocar sesión, IDOR/BOLA, CAPTCHA/Turnstile, relay de spam, WAF, CSP, SSRF por DNS, PKCE, mínimo privilegio, inyección indirecta de prompt, repositorio público/privado. |
 | 2026-10-12 | Arreglos P1: doble confirmación (double opt-in) y cookie de dispositivo conocido. |
+| 2026-10-23 | Remoto y clave SSH. |
