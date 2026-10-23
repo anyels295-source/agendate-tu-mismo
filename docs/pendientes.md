@@ -12,11 +12,11 @@ Tareas que quedaron para hacer a mano. Al terminar una, marcarla con `[x]` y ano
 ## Configuración de cuentas
 
 - [ ] **GitHub:** pasar el repositorio a privado (Settings → General → *Danger Zone* → *Change visibility*).
-- [ ] **Vercel Firewall:** reglas de límite de pedidos para las rutas de reserva, disponibilidad y login (Claude puede configurarlas con tu OK).
+- [x] **Vercel Firewall:** regla "Limite API publica (login, reservas, disponibilidad)" publicada en producción el 2026-10-16: 40 pedidos/min por IP en `/api/auth/admin`, `/api/bookings` y `/api/availability`, responde 429. El plan Hobby admite una sola regla de límite, por eso las tres rutas comparten el contador.
 - [ ] **MFA** en GitHub, Vercel, Neon, Google Cloud, Azure y Resend.
 - [ ] **Secretos distintos por entorno:** hoy `AUTH_SECRET`, `TOKEN_ENCRYPTION_KEY`, `GOOGLE_CLIENT_SECRET` y `RESEND_API_KEY` tienen el mismo valor en desarrollo, pruebas y producción (visto en Vercel el 2026-10-13). Generar valores nuevos para producción. Ojo: cambiar `TOKEN_ENCRYPTION_KEY` obliga a volver a cifrar (o reconectar) los calendarios.
 
 ## Para más adelante
 
-- [ ] Decidir qué hacer con la invitación del calendario mientras el turno está pendiente (se pospuso el 2026-10-12).
-- [ ] Prioridades P2–P4 del informe de seguridad (carpeta `seguridad/`, local, fuera de Git).
+- [x] Invitación del calendario mientras el turno está pendiente: decidido el 2026-10-16 invitar recién al confirmar. El evento se crea sin invitado; al confirmar (panel o link del email) se agrega al cliente. Código en `dev` sin commit todavía: falta probar en la versión de pruebas y pasar a `main`.
+- [x] Prioridades P2–P4 del informe de seguridad cargadas en Jira el 2026-10-16 (INV43-36 a INV43-43, etiqueta `seguridad`). Los hallazgos abiertos del QA exploratorio del 6/10 están en INV43-24 a INV43-35 (etiqueta `qa-exploratorio-2026-10-06`).

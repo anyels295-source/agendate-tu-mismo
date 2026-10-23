@@ -9,9 +9,9 @@ import { sendConfirmationRequestEmail } from "@/lib/notifications/email";
  * no lo hizo, cancela el turno para liberar el horario.
  *
  * Así un turno falso (un bot, o alguien que puso el email de otra persona) no ocupa la agenda
- * para siempre: nadie lo confirma y se cancela solo. El cliente confirma desde /confirmar/[token],
- * o aceptando la invitación del calendario (eso lo resuelve syncPendingInvitations, que el cron
- * corre antes).
+ * para siempre: nadie lo confirma y se cancela solo. El cliente confirma desde /confirmar/[token].
+ * Los turnos Pendientes ya no llevan invitado en el calendario (la invitación sale al confirmar);
+ * syncPendingInvitations sigue confirmando los turnos viejos que sí la tenían.
  */
 
 /** Un turno reservado hace menos que esto no recibe el pedido todavía: acaba de recibir el email de turno registrado. */

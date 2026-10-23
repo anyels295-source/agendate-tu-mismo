@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { DateTime } from "luxon";
 import { isSlotStillFree, checkSlotAllowed } from "@/lib/availability";
 import { getValidAccessToken, CalendarTokenExpiredError } from "@/lib/calendar/tokenManager";
-import { createGoogleEvent, deleteGoogleEvent, moveGoogleEvent } from "@/lib/calendar/google";
-import { createOutlookEvent, deleteOutlookEvent, moveOutlookEvent } from "@/lib/calendar/outlook";
+import { addGoogleAttendee, createGoogleEvent, deleteGoogleEvent, moveGoogleEvent } from "@/lib/calendar/google";
+import { addOutlookAttendee, createOutlookEvent, deleteOutlookEvent, moveOutlookEvent } from "@/lib/calendar/outlook";
 import { notifyBookingConfirmed, notifyBookingRescheduled, notifyBookingCancelled } from "@/lib/notifications";
 import { AppError } from "@/lib/errors";
 import type { BookingStatus, CalendarConnection } from "@prisma/client";
@@ -137,6 +137,10 @@ export async function createBooking(params: {
   let createdEventId: string | null = null;
   try {
     const accessToken = await getValidAccessToken(bookingConnection);
+    // Un turno Pendiente se crea SIN invitado: la invitación del calendario sale recién cuando se
+    // confirma (inviteClientToEvent). Así nadie puede usar la página pública para que la cuenta
+    // del profesional le mande invitaciones con texto propio a cualquier email (SEC-01).
+    const attendeeEmail = params.confirmed ? params.clientEmail : undefined;
     const eventDescription = `Reserva creada vía Agendate Tú Mismo.\nCliente: ${params.clientName}${params.clientPhone ? `\nTeléfono: ${params.clientPhone}` : ""}${params.notes ? `\nNotas: ${params.notes}` : ""}`;
 
     const { eventId, meetingUrl } =
@@ -149,7 +153,7 @@ export async function createBooking(params: {
             startISO: params.startISO,
             endISO: endISO,
             timezone: professional.timezone,
-            attendeeEmail: params.clientEmail,
+            attendeeEmail,
             withMeeting: professional.videoCallEnabled,
           })
         : await createOutlookEvent({
@@ -159,7 +163,7 @@ export async function createBooking(params: {
             startISO: params.startISO,
             endISO: endISO,
             timezone: professional.timezone,
-            attendeeEmail: params.clientEmail,
+            attendeeEmail,
             withMeeting: professional.videoCallEnabled,
           });
 
@@ -244,6 +248,41 @@ function isEventGoneError(err: unknown): boolean {
   const status = e?.response?.status ?? e?.status ?? Number(e?.code);
   if (status === 404 || status === 410) return true;
   return /\b(404|410)\b/.test(String(e?.message ?? ""));
+}
+
+/**
+ * Invita al cliente al evento del calendario cuando su turno pasa de Pendiente a Confirmado
+ * (ver createBooking). No lanza: si falla, el turno queda confirmado igual y el cliente recibe
+ * el email de confirmación con todos los datos; solo se registra el error.
+ */
+async function inviteClientToEvent(booking: {
+  clientEmail: string | null;
+  externalEventId: string | null;
+  calendarProvider: "GOOGLE" | "OUTLOOK" | null;
+  professional: { calendarConnections: CalendarConnection[] };
+}): Promise<void> {
+  if (!booking.clientEmail || !booking.externalEventId || !booking.calendarProvider) return;
+  const connection = booking.professional.calendarConnections.find((c) => c.provider === booking.calendarProvider && c.isActive);
+  if (!connection) {
+    console.warn("No se pudo invitar al cliente al evento: la conexión del calendario no está activa.");
+    return;
+  }
+  try {
+    const accessToken = await getValidAccessToken(connection);
+    if (connection.provider === "GOOGLE") {
+      await addGoogleAttendee({
+        accessToken,
+        calendarId: connection.externalCalendarId,
+        eventId: booking.externalEventId,
+        attendeeEmail: booking.clientEmail,
+      });
+    } else {
+      await addOutlookAttendee({ accessToken, eventId: booking.externalEventId, attendeeEmail: booking.clientEmail });
+    }
+  } catch (err) {
+    if (isEventGoneError(err)) return;
+    console.error("No se pudo invitar al cliente al evento del calendario:", err);
+  }
 }
 
 /**
@@ -358,6 +397,7 @@ export async function adminSetBookingStatus(params: {
       return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     }
     const confirmed = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    await inviteClientToEvent({ ...confirmed, professional: booking.professional });
     const { clientEmailStatus } = await notifyBookingConfirmed(
       confirmed,
       { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName },
@@ -401,7 +441,7 @@ export async function confirmBookingFromInvitation(bookingId: string): Promise<b
 export async function confirmBookingByClient(token: string) {
   const booking = await prisma.booking.findUnique({
     where: { cancelToken: token },
-    include: { professional: true, service: true },
+    include: { professional: { include: { calendarConnections: true } }, service: true },
   });
   if (!booking) {
     throw new AppError("Reserva no encontrada.");
@@ -421,6 +461,7 @@ export async function confirmBookingByClient(token: string) {
     return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
   }
   const confirmed = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+  await inviteClientToEvent({ ...confirmed, professional: booking.professional });
   await notifyBookingConfirmed(
     confirmed,
     { ...booking.professional, serviceName: booking.service?.name ?? booking.professional.serviceName },
@@ -578,6 +619,8 @@ export async function rescheduleBooking(params: {
       }
       // El evento ya no existe (se borró a mano en el calendario): se crea uno nuevo.
       const accessToken = await getValidAccessToken(eventConnection);
+      // Un turno Pendiente sigue sin invitado hasta que se confirme (ver createBooking).
+      const attendeeEmail = booking.status === "PENDING" ? undefined : booking.clientEmail ?? undefined;
       const eventDescription = `Reserva reprogramada vía Agendate Tú Mismo.\nCliente: ${booking.clientName}${booking.clientPhone ? `\nTeléfono: ${booking.clientPhone}` : ""}`;
       const created =
         eventConnection.provider === "GOOGLE"
@@ -589,7 +632,7 @@ export async function rescheduleBooking(params: {
               startISO: params.startISO,
               endISO: endISO,
               timezone: professional.timezone,
-              attendeeEmail: booking.clientEmail ?? undefined,
+              attendeeEmail,
               withMeeting: professional.videoCallEnabled,
             })
           : await createOutlookEvent({
@@ -599,7 +642,7 @@ export async function rescheduleBooking(params: {
               startISO: params.startISO,
               endISO: endISO,
               timezone: professional.timezone,
-              attendeeEmail: booking.clientEmail ?? undefined,
+              attendeeEmail,
               withMeeting: professional.videoCallEnabled,
             });
       replacedEvent = { externalEventId: created.eventId, calendarProvider: eventConnection.provider, meetingUrl: created.meetingUrl };

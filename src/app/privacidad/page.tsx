@@ -47,7 +47,7 @@ export default function PrivacidadPage() {
       </p>
       <ul>
         <li>Consultar en qué horarios está ocupado, para ofrecer solo horarios libres.</li>
-        <li>Crear, mover o borrar el evento de cada turno reservado, invitando al cliente.</li>
+        <li>Crear, mover o borrar el evento de cada turno reservado, e invitar al cliente cuando el turno se confirma.</li>
         <li>Ver si el cliente aceptó o rechazó esa invitación.</li>
         <li>Conocer el email de la cuenta conectada, para identificarla.</li>
       </ul>

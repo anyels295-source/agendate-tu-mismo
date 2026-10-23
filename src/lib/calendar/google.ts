@@ -221,6 +221,32 @@ export async function moveGoogleEvent(params: {
   });
 }
 
+/**
+ * Agrega al cliente como invitado de un evento ya creado, y Google le manda la invitación. Se usa
+ * al confirmar un turno: mientras está Pendiente, el evento existe solo en el calendario del
+ * profesional, sin invitados, para que la página pública no sirva para mandar invitaciones a
+ * cualquier dirección desde la cuenta del profesional (SEC-01). Si ya estaba invitado, no hace nada.
+ */
+export async function addGoogleAttendee(params: {
+  accessToken: string;
+  calendarId: string;
+  eventId: string;
+  attendeeEmail: string;
+}): Promise<void> {
+  const client = getOAuthClient();
+  client.setCredentials({ access_token: params.accessToken });
+  const calendar = google.calendar({ version: "v3", auth: client });
+  const current = await calendar.events.get({ calendarId: params.calendarId, eventId: params.eventId });
+  const attendees = current.data.attendees ?? [];
+  if (attendees.some((a) => a.email?.toLowerCase() === params.attendeeEmail.toLowerCase())) return;
+  await calendar.events.patch({
+    calendarId: params.calendarId,
+    eventId: params.eventId,
+    sendUpdates: "all",
+    requestBody: { attendees: [...attendees, { email: params.attendeeEmail }] },
+  });
+}
+
 /** Respuesta de un invitado a la invitación de un evento (Google): accepted, declined, tentative o needsAction. */
 export async function getGoogleAttendeeResponse(params: {
   accessToken: string;

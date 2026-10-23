@@ -234,6 +234,23 @@ export async function moveOutlookEvent(params: {
   });
 }
 
+/**
+ * Agrega al cliente como invitado de un evento ya creado; Outlook le manda la invitación al
+ * guardar el cambio. Se usa al confirmar un turno (ver addGoogleAttendee). Si ya estaba
+ * invitado, no hace nada.
+ */
+export async function addOutlookAttendee(params: { accessToken: string; eventId: string; attendeeEmail: string }): Promise<void> {
+  const data = await graphFetch(`/me/events/${params.eventId}?$select=attendees`, params.accessToken);
+  const attendees: { emailAddress?: { address?: string } }[] = data.attendees ?? [];
+  if (attendees.some((a) => a.emailAddress?.address?.toLowerCase() === params.attendeeEmail.toLowerCase())) return;
+  await graphFetch(`/me/events/${params.eventId}`, params.accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      attendees: [...attendees, { emailAddress: { address: params.attendeeEmail }, type: "required" }],
+    }),
+  });
+}
+
 /** Respuesta de un invitado a la invitación de un evento (Outlook), con los mismos valores que Google. */
 export async function getOutlookAttendeeResponse(params: {
   accessToken: string;
